@@ -24,7 +24,7 @@ pulseaudio-alsa pavucontrol ctags xcompmgr libreoffice aws-cli jdk-openjdk gnutl
 lib32-gnutls terminator tmux dunst libnotify terminator \
 nvidia bbswitch wifi-radar bluez bluez-utils tmux cmake \
 libsecret gnome-keyring git ctags ncurses curl \
-elixir nodejs npm gvim
+elixir nodejs npm gvim neovim
 
 echo "[APPS] Install packages from AUR"
 yay -S --noconfirm --needed google-chrome ttf-ms-fonts spotify playerctl \
@@ -39,6 +39,10 @@ echo "[APPS] Install python modules for vim"
 pip install flake8 jedi --user
 pip3 install flake8 jedi --user
 pip3.8 install flake8 jedi --user
+python -m pip install --user --upgrade pynvim
+python3 -m pip install --user --upgrade pynvim
+python3.8 -m pip install --user --upgrade pynvim
+
 if [ -f $HOME/.vim/plugged/youcompleteme/.is-installed ]
 then
     echo "[APPS] youcompleteme is already installed, skipping..."
