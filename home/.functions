@@ -1,1 +1,84 @@
-.functions
+ARCH=$(uname)
+
+alias c="clear"
+if [ $ARCH = "Linux" ]; then
+	alias ls="ls --color=auto"
+	alias l="ls -lah --color=auto"
+fi
+alias shdn="shutdown now"
+alias dotupd="dotfiles_update"
+
+# zsh
+alias rcs="source ~/.zshrc"
+
+# paths
+alias c.="cd .."
+alias dot="cd ~/.dotfiles"
+alias pr="cd $PROJECTS"
+
+# git
+alias ga="git add"
+alias gs="git status"
+alias gp="git push"
+alias gpl="git push"
+alias gd="git diff"
+alias gc="git checkout"
+alias gcm="git commit -m "
+alias gconf="git conflicted"
+
+# docker
+alias dp="docker ps"
+alias dcu="docker-compose up"
+alias dl="docker logs"
+alias de="docker exec -it"
+alias drf="docker rm -f"
+
+function dkill() {
+    docker kill $(docker ps -q)
+}
+
+function drm() {
+    docker rm -f $(docker ps -qa)
+}
+
+function dipfix() {
+    sudo sysctl -w net.ipv6.conf.all.disable_ipv6=1
+    sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
+}
+
+# terraform
+alias tf="terraform"
+alias tfp="tf fmt && tf plan"
+
+# archiving
+alias dirgz="find * -maxdepth 0 -type d -exec tar czvf {}.tar.gz {} \;"
+alias dirzip="find * -maxdepth 0 -type d -exec zip -r {}.zip {} \;"
+
+# python
+alias pipr="pip install -r requirements.txt"
+
+# tmux
+alias ta='tmux attach -t'
+alias tkss='tmux kill-session -t'
+alias tksv='tmux kill-server'
+alias tl='tmux list-sessions'
+alias ts='tmux new-session -s'
+
+alias ans='tmuxp load -s ansible ~/.tmuxp/ansible.yaml'
+if [[ -f ~/.tmuxp/alias ]]; then
+  source ~/.tmuxp/alias
+fi
+
+## UPDATE REMINDER
+
+if [[ $RUNNING_FROM_PROFILE != 1 ]]; then
+  FILE=/opt/update-reminder/is-offline-updates-ready
+  if test -f "$FILE"; then
+    bash $FILE
+    if [ $? -eq 0 ]; then
+      echo "Updates required. Run 'upgrade-packages' to install."
+    else
+      echo "No updates found."
+    fi
+  fi
+fi
