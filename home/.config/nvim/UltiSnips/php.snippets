@@ -1,0 +1,38 @@
+snippet test "New PHPUnit test function" !b
+/**
+ * @test
+ * @covers Example::doSomething
+ */
+public function ${1:it_can_add_two_numbers}(): void
+{
+	$this->assertTrue(true);
+}
+endsnippet
+
+snippet <?php "new php file starter" !b
+<?php
+
+declare(strict_types=1);
+
+namespace ${1:App};
+
+class ${2:Calculator}
+{
+	${3:}
+}
+endsnippet
+
+snippet fn "new php function" !b
+private function ${1:doSomething}(): void
+{
+	${2:throw new Exception('not implemented!');}
+}
+endsnippet
+
+snippet exc "throw exception" !b
+throw new Exception('${1:not implemented}');
+endsnippet
+
+snippet vd "var_dump and die" !b
+var_dump(${1:true}); die;
+endsnippet
