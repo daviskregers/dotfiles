@@ -221,7 +221,7 @@ local lsp_plugins = {
     html = {},
     elixirls = {
         filetypes = {"elixir", "eelixir", "ex", "exs"},
-        cmd = {"~/.helpers/elixir-ls/language_server.sh"}
+        cmd = {"elixir-ls"}
     },
     hls = {},
     terraformls = {},
