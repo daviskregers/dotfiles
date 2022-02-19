@@ -73,6 +73,7 @@ return require('packer').startup(function(use)
         requires = { 'tpope/vim-dispatch', 'neomake/neomake', 'preservim/vimux' }
     }
     use 'windwp/nvim-projectconfig'
+    use 'RRethy/nvim-align'
 
 	if packer_bootstrap then
 		require('packer').sync()
