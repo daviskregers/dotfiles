@@ -17,6 +17,7 @@ local pid = vim.fn.getpid()
 local omnisharp_bin = "~/.helpers/omnisharp/run"
 
 local lsp_plugins = {
+    ansiblels = {},
     pyright = {},
     bashls = {},
     dockerls = {},
