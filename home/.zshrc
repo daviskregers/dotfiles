@@ -1,7 +1,6 @@
 source "$HOME/.homesick/repos/homeshick/homeshick.sh"
 
-ARCH=$(uname)
-if [[ $(uname) = "Darwin" ]]; then
+if [[ -d "$HOME/.oh-my-zsh" ]]; then
     export ZSH="$HOME/.oh-my-zsh"
 else
     export ZSH="/usr/share/oh-my-zsh"
