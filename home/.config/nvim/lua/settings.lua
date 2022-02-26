@@ -75,6 +75,7 @@ require('autocmd-lua').augroup {
       yaml = 'set tabstop=2 shiftwidth=2',
       yml = 'set tabstop=2 shiftwidth=2',
       tf = 'set tabstop=2 shiftwidth=2',
+      tf = 'set tabstop=4 shiftwidth=4',
     }
   }}
 }

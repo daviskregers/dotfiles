@@ -37,7 +37,10 @@ return require('packer').startup(function(use)
     use 'ludovicchabant/vim-gutentags' -- ctags generation
     use 'lukas-reineke/indent-blankline.nvim' -- indent guides
     use 'nanotee/sqls.nvim'
-    use 'neovim/nvim-lspconfig'
+    use {
+        'neovim/nvim-lspconfig',
+        'williamboman/nvim-lsp-installer', -- installs LSP servers locally
+    }
     use 'ntpeters/vim-better-whitespace' -- display trailing whitespace
     use 'nvim-lua/plenary.nvim'
     use 'nvim-lua/popup.nvim'
@@ -53,7 +56,6 @@ return require('packer').startup(function(use)
     use 'terrortylor/nvim-comment' -- toggle comments
     use 'tjdevries/colorbuddy.vim' -- colorscheme helper
     use 'tveskag/nvim-blame-line' -- blame line
-    use 'williamboman/nvim-lsp-installer' -- installs LSP servers locally
     use {'nvim-treesitter/nvim-treesitter', run=':TSUpdate'} -- configuration and abstraction layer for neovim treesitter
     use {'phpactor/phpactor', branch = 'develop', run = 'composer install --no-dev -o'}
     use 'terryma/vim-expand-region'

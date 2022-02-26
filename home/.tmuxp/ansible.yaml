@@ -1,0 +1,10 @@
+session_name: ansible-setup
+windows:
+  - window_name: dev window
+    layout: even-horizontal
+    shell_command_before:
+      - cd ~/projects/ansible-setup
+      - git pull --no-ff
+    panes:
+      - nvim
+      - echo hello
