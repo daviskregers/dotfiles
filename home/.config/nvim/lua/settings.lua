@@ -36,6 +36,7 @@ global.updatetime = 300
 global.timeoutlen = 500
 global.clipboard = 'unnamedplus'
 global.guifont = 'FiraCode Nerd Font:h12'
+global.termguicolors = true
 global.tags ='tags;,./tags;'
 global.grepprg = 'rg --nogroup --nocolor'
 global.completeopt = "menuone,noinsert,noselect"
