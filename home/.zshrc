@@ -15,5 +15,8 @@ source ~/.functions
 if [[ -f ~/.edurioalias ]]; then
   source ~/.edurioalias
 fi
+if [[ -f ~/.custom ]]; then
+  source ~/.custom
+fi
 
 neofetch
