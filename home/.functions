@@ -58,6 +58,7 @@ alias dirzip="find * -maxdepth 0 -type d -exec zip -r {}.zip {} \;"
 alias pipr="pip install -r requirements.txt"
 
 # tmux
+alias tmux='tmux -u'
 alias ta='tmux attach -t'
 alias tkss='tmux kill-session -t'
 alias tksv='tmux kill-server'
