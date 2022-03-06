@@ -1,15 +1,19 @@
 local global = vim.o
 
 -- Theme
-vim.g.nb_style = "night"
-vim.g.neon_style = "doom"
+-- vim.g.nb_style = "night"
+-- vim.g.neon_style = "doom"
 
 --require('colorbuddy').colorscheme('nightbuddy')
 -- require("nebulous").setup()
 
-vim.cmd[[colorscheme neon]]
-
+-- vim.cmd[[colorscheme neon]]
 local Color, colors, Group, groups, styles = require('colorbuddy').setup()
+
+require('onenord').setup({
+    theme = "light",
+})
+
 
 -- Use Color.new(<name>, <#rrggbb>) to create new colors
 -- They can be accessed through colors.<name>
