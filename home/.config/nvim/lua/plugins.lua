@@ -76,6 +76,8 @@ return require('packer').startup(function(use)
     }
     use 'windwp/nvim-projectconfig'
     use 'RRethy/nvim-align'
+    use 'rmehri01/onenord.nvim'
+
 
 	if packer_bootstrap then
 		require('packer').sync()
