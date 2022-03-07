@@ -27,6 +27,7 @@ M.TESTING_RESULT = {}
 
 M.neomake_on_job_started = function()
     M.TESTING_STATUS = "running"
+    M.reset_background()
 end
 
 M.neomake_on_job_ended = function()
@@ -38,14 +39,39 @@ end
 M.update_background = function()
     if M.has_failing() and g.neomake_highlight then
         M.TESTING_STATUS = "failing"
-        vim.cmd("hi! NonText ctermbg=NONE guibg=#560002")
-        vim.cmd("hi! Normal ctermbg=NONE guibg=#560002")
+        M.failure_background()
     else
         M.TESTING_STATUS = "passing"
-        vim.cmd("hi! NonText ctermbg=NONE guibg=NONE")
-        vim.cmd("hi! Normal ctermbg=NONE guibg=NONE")
+        M.reset_background()
     end
 end
+
+M.reset_background = function()
+    vim.cmd("hi! NonText ctermbg=NONE guibg=NONE")
+    vim.cmd("hi! Normal ctermbg=NONE guibg=NONE")
+end
+
+M.failure_background = function()
+    vim.cmd("hi! NonText ctermbg=NONE guibg=#FF9696")
+    vim.cmd("hi! Normal ctermbg=NONE guibg=#FF9696")
+end
+
+disable_background = function()
+    g.neomake_highlight = false
+    M.reset_background()
+end
+
+enable_background = function()
+    g.neomake_highlight = true
+end
+
+reset_background = function()
+    M.reset_background()
+end
+
+vim.cmd([[command! MakeBackgroundEnable lua enable_background()]])
+vim.cmd([[command! MakeBackgroundDisable lua disable_background()]])
+vim.cmd([[command! MakeBackgroundReset lua reset_background()]])
 
 M.has_failing = function()
     for k, v in pairs(M.TESTING_RESULT) do
