@@ -1,5 +1,5 @@
 {
     "workbench.colorTheme": "Default Dark+",
-    "pasteImage.prefix": "img/",
-    "telemetry.telemetryLevel": "off"
+    "telemetry.telemetryLevel": "off",
+    "pasteImage.path": "${currentFileDir}/img"
 }
