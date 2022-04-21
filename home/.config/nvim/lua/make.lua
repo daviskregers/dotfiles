@@ -14,6 +14,11 @@ g.neomake_error_sign = {
     text = "∙"
 }
 
+vim.cmd([[
+    let g:neomake_php_phpmd_args = ['%t', 'text', 'phpmd.xml']
+    let g:neomake_php_phpcs_args = neomake#makers#ft#php#phpcs().args
+]])
+
 if not g.disable_automake then
     vim.cmd("call neomake#configure#automake('w')")
 end
