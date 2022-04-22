@@ -67,7 +67,7 @@ require('vgit').setup({
       },
     },
     live_blame = {
-      enabled = true,
+      enabled = false,
       format = function(blame, git_config)
         local config_author = git_config['user.name']
         local author = blame.author
@@ -120,8 +120,20 @@ require('vgit').setup({
     live_gutter = {
       enabled = true,
     },
-    scene = {
+    authorship_code_lens = {
+      enabled = true,
+    },
+    screen = {
       diff_preference = 'unified',
+    },
+    project_diff_preview = {
+      keymaps = {
+        buffer_stage = 's',
+        buffer_unstage = 'u',
+        stage_all = 'a',
+        unstage_all = 'd',
+        reset_all = 'r',
+      },
     },
     signs = {
       priority = 10,
@@ -163,7 +175,7 @@ require('vgit').setup({
         },
       },
       usage = {
-        scene = {
+        screen = {
           add = 'GitSignsAddLn',
           remove = 'GitSignsDeleteLn',
         },

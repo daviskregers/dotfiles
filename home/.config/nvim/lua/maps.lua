@@ -57,7 +57,7 @@ map('n', '<Leader>o', 'o<Esc>^Da', options)
 map('n', '<Leader>O', 'O<Esc>^Da', options)
 
 -- reload vimrc
-map('n', '<leader>rr', ':Reload<CR>', options)
+map('n', '<leader>rR', ':Reload<CR>', options)
 
 -- generate ctags
 map('n', '<leader>ct', ':!ctags -R .<CR>', options)
@@ -81,7 +81,6 @@ map('v', '<A-Down>', ':m \'>+1<CR>gv=gv', options)
 map('v', '<A-Up>', ':m \'<-2<CR>gv=gv', options)
 
 -- fuzzy file finder
-
 map('n', '<leader>fd', '<cmd>Telescope find_files<CR>', options)
 map('n', '<leader>fg', '<cmd>Telescope live_grep<CR>', options)
 map('n', '<leader>fb', '<cmd>Telescope buffers<CR>', options)
@@ -106,11 +105,23 @@ map('n', '<leader>9', ':BufferLast<CR>', { silent = true, noremap = true })
 map('n', '<leader>c', ':BufferClose<CR>', { silent = true, noremap = true })
 
 -- text align
-map('n', 'ga', '<Plug>(EasyAlign)', {})
-map('x', 'ga', '<Plug>(EasyAlign)', {})
+map('n', 'gA', '<Plug>(EasyAlign)', {})
+map('x', 'gA', '<Plug>(EasyAlign)', {})
 
 -- phpactor
 map('n', '<leader>Q', ':PhpactorContextMenu<CR>', options)
+map('n', '<leader>pp', ':PhpactorContextMenu<CR>', options)
+map('n', '<leader>pe', ':PhpactorExtractExpression<CR>', options)
+map('x', '<leader>pe', ':PhpactorExtractExpression<CR>', options)
+map('n', '<leader>pc', ':PhpactorExtractConstant<CR>', options)
+map('n', '<leader>pm', ':PhpactorExtractMethod<CR>', options)
+map('x', '<leader>pm', ':PhpactorExtractMethod<CR>', options)
+map('n', '<leader>pt', ':PhpactorTransform<CR>', options)
+map('n', '<leader>pn', ':PhpactorNavigate<CR>', options)
+map('n', '<leader>pi', ':PhpactorImportMissingClasses<CR>', options)
+map('n', '<leader>pa', ':PhpactorGenerateAccessors<CR>', options)
+map('n', '<leader>pv', ':PhpactorChangeVisibility<CR>', options)
+map('n', '<leader>pf', ':PhpactorClassInflect<CR>', options)
 
 -- tagbar
 map('n', '<leader>tb', ':TagbarToggle<CR>', {})
@@ -120,8 +131,8 @@ map('n', 'gm', ':LivedownToggle<CR>', {})
 map('n', 'gM', ':LivedownPreview<CR>', {})
 
 -- format
-map('n', '<leader>f', ':Neoformat<CR>', {})
-map('v', '<leader>f', ':Neoformat<CR>', {})
+-- map('n', '<leader>f', ':Neoformat<CR>', {})
+-- map('v', '<leader>f', ':Neoformat<CR>', {})
 
 -- copilot
 map('i', '<C-J>', 'copilot#Accept("<CR>")', {expr = true, silent = true, script = true})
