@@ -3,7 +3,6 @@ local window = vim.wo
 local buffer = vim.bo
 
 local cmd = vim.cmd
-local u = require('utils')
 
 -- If you’re not sure if an option is global, buffer or window-local,
 -- consult the Vim help! For example, :h 'number':
@@ -41,15 +40,15 @@ global.tags ='tags;,./tags;'
 global.grepprg = 'rg --nogroup --nocolor'
 global.completeopt = "menuone,noinsert,noselect"
 
-window.number = false
 window.wrap = false
 window.conceallevel = 0
 window.number = true
+window.relativenumber = true
 window.cursorline = true
 window.colorcolumn = '120'
 window.foldmethod = 'indent'
+window.foldenable = false
 
-buffer.expandtab = false
 buffer.syntax = 'ON'
 buffer.tabstop = 4
 buffer.shiftwidth = 4
@@ -60,31 +59,12 @@ vim.opt.sw = 4
 vim.opt.ts = 4
 
 cmd('au CursorHold * checktime')
---cmd('au! BufWritePost $MYVIMRC source %')
 cmd('au! BufWritePost $MYVIMRC :Reload')
 cmd('au Filetype * setlocal omnifunc=v:lua.vim.lsp.omnifunc')
 
--- blame line
-cmd('au BufEnter * EnableBlameLine')
-vim.api.nvim_set_var('blameLineVirtualTextHighlight', 'BlameLine')
-
-require('autocmd-lua').augroup {
-  -- the keys `group` and `autocmds` are also optional
-  'filetype_commands',
-  {{
-    'FileType', {
-      yaml = 'set tabstop=2 shiftwidth=2',
-      yml = 'set tabstop=2 shiftwidth=2',
-      tf = 'set tabstop=2 shiftwidth=2',
-      tf = 'set tabstop=4 shiftwidth=4',
-    }
-  }}
-}
-
-require("which-key").setup {
-  -- your configuration comes here
-  -- or leave it empty to use the default settings
-  -- refer to the configuration section below
-}
-
 vim.g['gutentags_cache_dir'] = '~/.cache/tags'
+
+
+vim.o.updatetime = 300
+vim.o.incsearch = false
+vim.wo.signcolumn = 'yes'
