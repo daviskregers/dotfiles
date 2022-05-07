@@ -1,3 +1,6 @@
+local map = vim.api.nvim_set_keymap
+map('n', '<leader>v', ':SymbolsOutline<CR>', { noremap = true })
+
 vim.g.symbols_outline = {
     highlight_hovered_item = true,
     show_guides = true,
@@ -50,5 +53,3 @@ vim.g.symbols_outline = {
         TypeParameter = {icon = "𝙏", hl = "TSParameter"}
     }
 }
-
-vim.api.nvim_set_keymap('n', 'gs', ':SymbolsOutline<CR>', { noremap = true, silent = true, expr = false })

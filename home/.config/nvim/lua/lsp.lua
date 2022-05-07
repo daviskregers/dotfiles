@@ -14,8 +14,16 @@ capabilities.textDocument.completion.completionItem.resolveSupport = {
 
 local nvim_lsp = require("lspconfig")
 local pid = vim.fn.getpid()
-local omnisharp_bin = "~/.helpers/omnisharp/run"
 local lsp_plugins = {
+    sumneko_lua = {
+        settings = {
+            Lua = {
+                diagnostics = {
+                    globals = { 'vim', 'table', 'math', 'string', 'io', 'os', 'debug' }
+                }
+            }
+        }
+    },
     ansiblels = {},
     pyright = {},
     bashls = {},
@@ -23,8 +31,8 @@ local lsp_plugins = {
     graphql = {},
     gopls = {},
     phpactor = {
-        cmd = {"phpactor", "language-server"},
-        filetypes = {"php"},
+        cmd = { "phpactor", "language-server" },
+        filetypes = { "php" },
         root_dir = nvim_lsp.util.root_pattern("composer.json", ".git"),
         init_options = {
             -- ["language_server_phpstan.enabled"] = true,
@@ -32,8 +40,8 @@ local lsp_plugins = {
         }
     },
     intelephense = {
-        cmd = {"intelephense", "--stdio"},
-        filetypes = {"php"},
+        cmd = { "intelephense", "--stdio" },
+        filetypes = { "php" },
         root_dir = nvim_lsp.util.root_pattern("composer.json", ".git"),
         settings = {
             intelephense = {
@@ -217,19 +225,26 @@ local lsp_plugins = {
     vuels = {},
     yamlls = {},
     omnisharp = {
-        cmd = {omnisharp_bin, "--languageserver", "--hostPID", tostring(pid)}
+        cmd = { "omnisharp", "--languageserver", "--hostPID", tostring(pid) }
     },
     jsonls = {},
     cssls = {},
     html = {},
     elixirls = {
-        filetypes = {"elixir", "eelixir", "ex", "exs"},
-        cmd = {"elixir-ls"}
+        filetypes = { "elixir", "eelixir", "ex", "exs" },
+        cmd = { "elixir-ls" }
     },
-    hls = {},
+    -- hls = {},
     terraformls = {},
     ccls = {},
     sqlls = {},
+    asm_lsp = {},
+    clangd = {},
+    csharp_ls = {},
+    cmake = {},
+    codeqlls = {},
+    cucumber_language_server = {},
+    diagnosticls = {},
 }
 
 local on_attach = function(client, bufnr)
@@ -239,6 +254,7 @@ local on_attach = function(client, bufnr)
     local function buf_set_keymap(...)
         vim.api.nvim_buf_set_keymap(bufnr, ...)
     end
+
     local function buf_set_option(...)
         vim.api.nvim_buf_set_option(bufnr, ...)
     end
@@ -246,7 +262,7 @@ local on_attach = function(client, bufnr)
     buf_set_option("omnifunc", "v:lua.vim.lsp.omnifunc")
 
     -- Mappings.
-    local opts = {noremap = true, silent = true}
+    local opts = { noremap = true, silent = true }
     -- https://oroques.dev/notes/neovim-init/
     buf_set_keymap("n", "gD", "<Cmd>lua vim.lsp.buf.declaration()<CR>", opts)
     buf_set_keymap("n", "gd", "<Cmd>lua vim.lsp.buf.definition()<CR>", opts)
@@ -259,13 +275,13 @@ local on_attach = function(client, bufnr)
     buf_set_keymap("n", "<leader>D", "<cmd>lua vim.lsp.buf.type_definition()<CR>", opts)
     buf_set_keymap("n", "gr", "<cmd>lua vim.lsp.buf.references()<CR>", opts)
 
-    buf_set_keymap("n", "rn", "<cmd>Lspsaga rename<cr>", {silent = true, noremap = true})
-    buf_set_keymap("n", "ga", "<cmd>Lspsaga code_action<cr>", {silent = true, noremap = true})
-    buf_set_keymap("x", "ga", ":<c-u>Lspsaga range_code_action<cr>", {silent = true, noremap = true})
-    buf_set_keymap("n", "K",  "<cmd>Lspsaga hover_doc<cr>", {silent = true, noremap = true})
-    buf_set_keymap("n", "<leader>el", "<cmd>Lspsaga show_line_diagnostics<cr>", {silent = true, noremap = true})
-    buf_set_keymap("n", "]d", "<cmd>Lspsaga diagnostic_jump_next<cr>", {silent = true, noremap = true})
-    buf_set_keymap("n", "[d", "<cmd>Lspsaga diagnostic_jump_prev<cr>", {silent = true, noremap = true})
+    buf_set_keymap("n", "rn", "<cmd>Lspsaga rename<cr>", { silent = true, noremap = true })
+    buf_set_keymap("n", "ga", "<cmd>Lspsaga code_action<cr>", { silent = true, noremap = true })
+    buf_set_keymap("x", "ga", ":<c-u>Lspsaga range_code_action<cr>", { silent = true, noremap = true })
+    buf_set_keymap("n", "K", "<cmd>Lspsaga hover_doc<cr>", { silent = true, noremap = true })
+    buf_set_keymap("n", "<leader>el", "<cmd>Lspsaga show_line_diagnostics<cr>", { silent = true, noremap = true })
+    buf_set_keymap("n", "]d", "<cmd>Lspsaga diagnostic_jump_next<cr>", { silent = true, noremap = true })
+    buf_set_keymap("n", "[d", "<cmd>Lspsaga diagnostic_jump_prev<cr>", { silent = true, noremap = true })
     buf_set_keymap("n", "<C-u>", "<cmd>lua require('lspsaga.action').smart_scroll_with_saga(-1, '<c-u>')<cr>", {})
     buf_set_keymap("n", "<C-d>", "<cmd>lua require('lspsaga.action').smart_scroll_with_saga(1, '<c-d>')<cr>", {})
 
@@ -278,15 +294,15 @@ local on_attach = function(client, bufnr)
     -- buf_set_keymap("n", "<leader>rn", "<cmd>lua vim.lsp.buf.rename()<CR>", opts)
 
     -- Set some keybinds conditional on server capabilities
-    if client.resolved_capabilities.document_formatting then
+    if client.supports_method('document_formatting') then
         buf_set_keymap("n", "gF", "<cmd>lua vim.lsp.buf.formatting()<CR>", opts)
     end
-    if client.resolved_capabilities.document_range_formatting then
+    if client.supports_method('document_range_formatting') then
         buf_set_keymap("v", "gF", "<cmd>lua vim.lsp.buf.range_formatting()<CR>", opts)
     end
 
     -- Set autocommands conditional on server_capabilities
-    if client.resolved_capabilities.document_highlight then
+    if client.supports_method('document_highlight') then
         vim.api.nvim_exec(
             [[
                 hi LspReferenceRead cterm=underline,bold ctermbg=red guibg=LightYellow
@@ -304,7 +320,7 @@ local on_attach = function(client, bufnr)
 end
 
 local function get_options(plugin)
-    local options = {capabilities = capabilities, autostart = true, on_attach = on_attach}
+    local options = { capabilities = capabilities, autostart = true, on_attach = on_attach }
     if lsp_plugins[plugin] ~= nil then
         for option_key, option_value in pairs(lsp_plugins[plugin]) do
             options[option_key] = option_value
@@ -316,9 +332,15 @@ local function get_options(plugin)
     return options
 end
 
-require("lspkind").init({})
-local lsp_installer = require("nvim-lsp-installer")
-lsp_installer.settings({
+local servers = {}
+for k, _ in pairs(lsp_plugins) do
+    table.insert(servers, k)
+end
+
+local lsp_installer = require('nvim-lsp-installer')
+lsp_installer.setup({
+    ensure_installed = servers,
+    automatic_installation = true,
     ui = {
         icons = {
             server_installed = "✓",
@@ -328,10 +350,15 @@ lsp_installer.settings({
     }
 })
 
-for plugin, plugin_options in pairs(lsp_plugins) do
+-- print('Servers:')
+-- print(vim.inspect(servers))
+
+require("lspkind").init({})
+
+for plugin, _ in pairs(lsp_plugins) do
     nvim_lsp[plugin].setup(get_options(plugin))
 end
 
-lsp_installer.on_server_ready(function(server)
-    server:setup(get_options(server.name))
-end)
+-- lsp_installer.on_server_ready(function(server)
+--     server:setup(get_options(server.name))
+-- end)
