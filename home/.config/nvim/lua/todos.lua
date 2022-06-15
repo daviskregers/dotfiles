@@ -6,6 +6,7 @@ require("todo-comments").setup
         sign_priority = 8, -- sign priority
         -- keywords recognized as todo comments
         keywords = {
+            NOW = { icon = " ", color = "info", alt = {"TODONOW"} },
             FIX = {
                 icon = " ", -- icon used for the sign, and in search results
                 color = "error", -- can be a hex color, or a named color (see below)
