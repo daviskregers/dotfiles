@@ -286,6 +286,7 @@ myManageHook = composeAll
      , (className =? "firefox" <&&> resource =? "Dialog") --> doFloat  -- Float Firefox Dialog
      , (title     =? "Picture-in-Picture") --> doFloat
      , isFullscreen -->  doFullFloat
+     , manageHook defaultConfig
      ] <+> namedScratchpadManageHook scratchpads
 
 -- Binds
@@ -357,13 +358,13 @@ main = do
     xmproc1 <- spawnPipe "xmobar -x 1 $HOME/.config/xmobar/xmobarrc-1"
         -- the xmonad, ya know...what the WM is named after!
     xmonad $ ewmh def
-        { manageHook         = myManageHook <+> manageDocks
+        { manageHook         = manageDocks <+> myManageHook
         , handleEventHook    = docksEventHook
                                -- Uncomment this line to enable fullscreen support on things like YouTube/Netflix.
                                -- This works perfect on SINGLE monitor systems. On multi-monitor systems,
                                -- it adds a border around the window if screen does not have focus. So, my solution
                                -- is to use a keybinding to toggle fullscreen noborders instead.  (M-<Space>)
-                               -- <+> fullscreenEventHook
+                               <+> fullscreenEventHook
         , modMask            = myModMask
         , terminal           = myTerminal
         , startupHook        = myStartupHook
