@@ -141,7 +141,7 @@ return require('packer').startup(function()
     }
 
     -- marks
-    use 'chentau/marks.nvim'
+    use 'chentoast/marks.nvim'
 
     -- show latest package versions
     use({
