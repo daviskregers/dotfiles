@@ -37,6 +37,6 @@ require('telescope').setup{
 require('telescope').load_extension('fzy_native')
 
 
-map('n', '<leader>ff', '<cmd>Telescope find_files<CR>', { noremap = true })
-map('n', '<leader>fg', '<cmd>Telescope live_grep<CR>', { noremap = true })
-map('n', '<leader>fg', '<cmd>Telescope live_grep<CR>', { noremap = true })
+map('n', '<leader>ff', '<cmd>Telescope find_files hidden=true<CR>', { noremap = true })
+map('n', '<leader>fg', '<cmd>Telescope live_grep hidden=true<CR>', { noremap = true })
+map('n', '<leader>fg', '<cmd>Telescope live_grep hidden=true<CR>', { noremap = true })
