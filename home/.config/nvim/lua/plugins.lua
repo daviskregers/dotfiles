@@ -35,6 +35,12 @@ return require('packer').startup(function()
     use 'kosayoda/nvim-lightbulb' -- shows a lightbulb whenever a code action is available
     use 'tami5/lspsaga.nvim'
     use 'simrat39/symbols-outline.nvim'
+    use {
+      'lewis6991/gitsigns.nvim',
+      config = function()
+        require('gitsigns').setup()
+      end
+    }
     use 'jose-elias-alvarez/null-ls.nvim' -- linters
 
     -- treesitter
@@ -160,7 +166,7 @@ return require('packer').startup(function()
     use 'lukas-reineke/headlines.nvim' -- highlight blocks
 
     -- testing
-    use { "rcarriga/vim-ultest", requires = { "vim-test/vim-test" }, run = ":UpdateRemotePlugins" }
+    -- TODO: nvim-neotest/neotest
 
     -- projects
     use 'windwp/nvim-projectconfig'
@@ -170,4 +176,5 @@ return require('packer').startup(function()
         require('pqf').setup()
     end }
 
+    require('packer').sync()
 end)
