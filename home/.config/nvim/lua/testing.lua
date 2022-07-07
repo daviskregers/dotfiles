@@ -1,3 +1,0 @@
--- TODO: configure phpunit
--- TODO: configure mocha
--- TODO: configure unittest
