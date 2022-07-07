@@ -1,7 +1,0 @@
-List of lua plugins
-- https://nvimluau.dev/
-- https://hannadrehman.com/top-neovim-plugins-for-developers-in-2022
-
-Write your own plugin:
-- https://www.alanwsmith.com/posts/20eo42jkmlie--how-to-make-a-hello-world-neovim-plugin-with-lua
-- https://dev.to/2nit/how-to-write-neovim-plugins-in-lua-5cca
