@@ -210,6 +210,7 @@ local mappings = {
         h = { "<cmd>ToggleTerm size=10 direction=horizontal<cr>", "Horizontal" },
         v = { "<cmd>ToggleTerm size=80 direction=vertical<cr>", "Vertical" },
         _ = { "", "toggle with CTRL+\\" },
+        e = { "<cmd>99ToggleTerm<cr>", "Test"},
     },
 }
 
