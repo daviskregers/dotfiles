@@ -65,6 +65,8 @@ alias tksv='tmux kill-server'
 alias tl='tmux list-sessions'
 alias ts='tmux new-session -s'
 
+alias wezcfg='nvim ~/.config/wezterm/wezterm.lua'
+
 alias ans='tmuxp load -s ansible ~/.tmuxp/ansible.yaml'
 if [[ -f ~/.tmuxp/alias ]]; then
   source ~/.tmuxp/alias
