@@ -88,6 +88,7 @@ return packer.startup(function(use)
     -- snippets
     use "L3MON4D3/LuaSnip" --snippet engine
     use "rafamadriz/friendly-snippets" -- a bunch of snippets to use
+    use "honza/vim-snippets"
 
     -- LSP
     use {
@@ -106,6 +107,9 @@ return packer.startup(function(use)
         requires = "kyazdani42/nvim-web-devicons",
     }
 
+    -- dap
+    use { "rcarriga/nvim-dap-ui", requires = {"mfussenegger/nvim-dap"} }
+
     -- Treesitter
     use {
         "nvim-treesitter/nvim-treesitter",
@@ -114,9 +118,25 @@ return packer.startup(function(use)
     use "p00f/nvim-ts-rainbow"
     use "nvim-treesitter/playground"
     use "JoosepAlviste/nvim-ts-context-commentstring"
+    use {
+      "nvim-neotest/neotest",
+      requires = {
+        "antoinemadec/FixCursorHold.nvim",
+        "haydenmeade/neotest-jest",
+        "nvim-lua/plenary.nvim",
+        "nvim-neotest/neotest-plenary",
+        "nvim-neotest/neotest-python",
+        "nvim-treesitter/nvim-treesitter",
+        "olimorris/neotest-phpunit",
+        "rouge8/neotest-rust",
+      }
+    }
 
     -- Git
     use "lewis6991/gitsigns.nvim"
+
+    -- hard mode
+    use "takac/vim-hardtime"
 
     if PACKER_BOOTSTRAP then
         require("packer").sync()

@@ -212,6 +212,27 @@ local mappings = {
         _ = { "", "toggle with CTRL+\\" },
         e = { "<cmd>99ToggleTerm<cr>", "Test"},
     },
+
+    -- TODO: jump tests / failures
+    T = {
+        name = "Test",
+        A = {"<cmd>lua require('neotest').run.attach()<CR>", "Attach closest"},
+        S = {"<cmd>lua require('neotest').run.stop()<CR>", "Stop closest"},
+        a = {"<cmd>lua require('neotest').run.run({ suite = true })<CR>", "Suite"},
+        c = {"<cmd>lua require('neotest').run.run()<CR>", "Closest test"},
+        d = {"<cmd>lua require('neotest').run.run({strategy = 'dap'})<CR>", "Debug nearest"},
+        f = {"<cmd>lua require('neotest').run.run(vim.fn.expand('%'))<CR>", "File"},
+        s = {"<cmd>lua require('neotest').summary.toggle()<CR>", "Summary"},
+        o = {"<cmd>lua require('neotest').output.open({ enter = true })<CR>", "Output"},
+        i = {"<cmd>lua require('neotest').diagnostic.config()<CR>", "Output"},
+    },
+    d = {
+        name = "Debug",
+        o = {"<cmd>lua require('dapui').open()<CR>", "Open"},
+        c = {"<cmd>lua require('dapui').close()<CR>", "Close"},
+        t = {"<cmd>lua require('dapui').toggle()<CR>", "Toggle"},
+        e = {"<Cmd>lua require('dapui').eval()<CR>", "Eval"},
+    }
 }
 
 which_key.setup(setup)
