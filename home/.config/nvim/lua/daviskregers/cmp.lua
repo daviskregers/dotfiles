@@ -116,23 +116,24 @@ cmp.setup {
         end,
     },
     sources = {
-        { name = "buffer" },
-        { name = "calc" },
-        { name = "cmp_tabnine" },
-        { name = "emoji" },
-        { name = "luasnip" },
-        { name = "nvim_lsp" },
+        -- keyword_length, max_item_count
         { name = "nvim_lsp_signature_help" },
-        { name = "nvim_lua" },
-        { name = "path" },
         { name = 'nvim_lsp_document_symbol' },
+        { name = "nvim_lsp" },
+        { name = "nvim_lua" },
+        { name = "luasnip" },
+        { name = "buffer" },
+        { name = "path" },
+        { name = "cmp_tabnine" },
+        { name = "calc" },
+        { name = "emoji" },
     },
     confirm_opts = {
         behavior = cmp.ConfirmBehavior.Replace,
         select = false,
     },
     experimental = {
-        ghost_text = false,
+        ghost_text = true,
         native_menu = false,
     },
 }

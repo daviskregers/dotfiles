@@ -2,8 +2,8 @@
 vim.cmd [[
     augroup _general_settings
         autocmd!
-        autocmd FileType qf,help,man,lspinfo nnoremap <silent> <buffer> q :close<CR> 
-        autocmd TextYankPost * silent!lua require('vim.highlight').on_yank({higroup = 'Search', timeout = 200}) 
+        autocmd FileType qf,help,man,lspinfo nnoremap <silent> <buffer> q :close<CR>
+        autocmd TextYankPost * silent!lua require('vim.highlight').on_yank({higroup = 'Search', timeout = 200})
         autocmd BufWinEnter * :set formatoptions-=cro
         autocmd FileType qf set nobuflisted
     augroup end
@@ -22,7 +22,7 @@ vim.cmd [[
 
     augroup _auto_resize
         autocmd!
-        autocmd VimResized * tabdo wincmd = 
+        autocmd VimResized * tabdo wincmd =
     augroup end
 
     augroup _alpha
@@ -40,4 +40,20 @@ vim.cmd [[
         autocmd!
         autocmd BufAdd,BufEnter,BufNew,BufNewFile,BufWinEnter * :call FoldConfig()
     augroup end
+
+    augroup _hardmode
+        autocmd!
+        autocmd VimEnter,BufNewFile,BufReadPost * silent! call HardMode()
+    augroup end
 ]]
+
+
+vim.api.nvim_create_autocmd({ "BufWritePost" }, {
+    pattern = { "*Test.php" },
+    callback = function ()
+        if not vim.g.TEST_RUNNER_ENABLED then return end
+        file = vim.fn.expand('%')
+        cmd = string.format("%s %s | less", vim.g.TEST_RUNNER, file)
+        -- vim.cmd(string.format('98TermExec cmd="%s"', cmd))
+    end
+})

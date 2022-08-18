@@ -1,0 +1,20 @@
+snippet phpt PHPUnit Test Class
+	<?php
+
+	namespace Tests\Feature;
+
+	use Test\TestCase;
+
+	class $0Test extends TestCase
+	{
+		public function test_nothing()
+		{
+			\$this->assertTrue(true);
+		}
+	}
+
+snippet test PHPUnit Test Case
+	public function test_$1()
+	{
+		$0
+	}
