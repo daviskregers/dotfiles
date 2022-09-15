@@ -157,6 +157,7 @@ scratchpads = [
                     NS "authy" "authy" (className =? "Authy Desktop") (customFloating $ center 0.3 0.3),
                     NS "blueberry" "blueberry" (className =? "Blueberry.py") (customFloating $ center 0.6 0.6),
                     NS "btop" "wezterm start --class btop -- btop" (className =? "btop") (customFloating $ center 0.6 0.6),
+                    NS "ctop" "wezterm start --class ctop -- ctop" (className =? "ctop") (customFloating $ center 0.6 0.6),
                     NS "mailspring" "mailspring" (className =? "Mailspring") (customFloating $ center 0.9 0.9),
                     NS "notion" "notion-app" (className =? "notion-app") (customFloating $ center 0.9 0.9),
                     NS "slack" "slack" (className =? "Slack") (customFloating $ center 0.9 0.9),
@@ -326,6 +327,7 @@ myKeys = [
         ("M-S-d",                  spawn "dmenu_run"), -- app launcher
         ("M-S-f",                  spawn  "dolphin"), -- file explorer
         ("M-S-h",                  namedScratchpadAction scratchpads "btop"),
+        ("M-S-g",                  namedScratchpadAction scratchpads "ctop"),
         ("M-S-j",                  windows W.swapUp),
         ("M-S-k",                  windows W.swapDown),
         ("M-S-m",                  namedScratchpadAction scratchpads "spotify"),
