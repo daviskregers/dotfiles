@@ -91,6 +91,7 @@ M.on_attach = function(client, bufnr)
   end
   lsp_keymaps(bufnr)
   lsp_highlight_document(client)
+  require('folding').on_attach()
 end
 
 local capabilities = vim.lsp.protocol.make_client_capabilities()
