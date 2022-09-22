@@ -1,3 +1,8 @@
+function PHPUNIT_COMMAND()
+    print('RUNNING ', vim.g.PHPUNIT_CMD)
+    return vim.g.PHPUNIT_CMD
+end
+
 require("neotest").setup({
     default_strategy = "integrated",
     diagnostic = {
@@ -91,7 +96,7 @@ require("neotest").setup({
         require("neotest-plenary"),
         require("neotest-rust"),
         require("neotest-phpunit") {
-            command = "ed-monolith-test",
+            phpunit_cmd = PHPUNIT_COMMAND,
             use_relative_path = true,
             output_dir = ".tmp/",
         },
