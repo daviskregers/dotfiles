@@ -89,3 +89,10 @@ keymap("t", "<C-l>", "<C-\\><C-N><C-w>l", term_opts)
 --- undo tree
 vim.keymap.set('n', '<leader>u', require('undotree').toggle, { noremap = true, silent = true })
 
+-- harpoon
+keymap("n", "<leader>m", ":lua require('harpoon.mark').add_file()<CR>", opts)
+keymap("n", "<leader>M", ":lua require('harpoon.ui').toggle_quick_menu()<CR>", opts)
+keymap("n", "<leader>1", ":lua require('harpoon.ui').nav_file(1)<CR>", opts)
+keymap("n", "<leader>2", ":lua require('harpoon.ui').nav_file(2)<CR>", opts)
+keymap("n", "<leader>3", ":lua require('harpoon.ui').nav_file(3)<CR>", opts)
+keymap("n", "<leader>4", ":lua require('harpoon.ui').nav_file(4)<CR>", opts)

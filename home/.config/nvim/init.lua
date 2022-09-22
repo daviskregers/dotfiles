@@ -1,23 +1,3 @@
--- Stuff yoinked from https://github.com/LunarVim/Neovim-from-scratch
-
--- TODO:
--- PHP
--- - remove unused imports on save
--- - cs fix on save
--- - show unused methods
--- - throws & dockblocks
--- Automate
--- - remove trailing whitespace on save
--- - reformat changed code on save
--- - run tests?
--- Remind myself:
--- - how to split code
--- Refactor:
--- - safe imports extracted
--- - safe import all the things!
--- Nice to have:
--- - Bookmarks
-
 require "daviskregers.options"
 require "daviskregers.keymaps"
 require "daviskregers.plugins"
@@ -51,3 +31,4 @@ require "daviskregers.dap"
 require "daviskregers.hardtime"
 require "daviskregers.undotree"
 require "daviskregers.treesitter-context"
+require "daviskregers.harpoon"

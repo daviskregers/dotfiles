@@ -73,6 +73,7 @@ return packer.startup(function(use)
         "nvim-lua/plenary.nvim",
       },
     }
+    use "ThePrimeagen/harpoon"
 
     -- colorscheme
     use "folke/tokyonight.nvim"
