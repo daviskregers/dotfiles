@@ -178,6 +178,7 @@ local mappings = {
         R = { "<cmd>Telescope registers<cr>", "Registers" },
         k = { "<cmd>Telescope keymaps<cr>", "Keymaps" },
         C = { "<cmd>Telescope commands<cr>", "Commands" },
+        m = { "<cmd>Telescope harpoon marks<cr>", "harpoon" },
         t = { ":TodoTelescope<cr>", "TODO" },
         x = {
             name = "Replace",
