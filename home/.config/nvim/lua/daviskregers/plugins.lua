@@ -137,6 +137,7 @@ return packer.startup(function(use)
         "rouge8/neotest-rust",
       }
     }
+    use "nvim-treesitter/nvim-treesitter-context"
 
     -- Git
     use "lewis6991/gitsigns.nvim"
