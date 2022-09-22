@@ -67,6 +67,12 @@ return packer.startup(function(use)
         config = function() require 'nvim-search-and-replace'.setup() end,
     }
     use "windwp/nvim-projectconfig"
+    use {
+      "jiaoshijie/undotree",
+      requires = {
+        "nvim-lua/plenary.nvim",
+      },
+    }
 
     -- colorscheme
     use "folke/tokyonight.nvim"
