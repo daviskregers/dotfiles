@@ -1,3 +1,8 @@
+function PHP_VERSION()
+    print('GOT VERSION ', vim.g.PHP_VERSION)
+    return vim.g.PHP_VERSION
+end
+
 return {
     filetypes = { "php" },
     settings = {
@@ -175,7 +180,7 @@ return {
                 maxSize = 5000000
             },
             environment = {
-                phpVersion = "7.1",
+                phpVersion = PHP_VERSION(),
                 shortOpenTag = false,
             }
         }
