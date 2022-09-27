@@ -175,7 +175,7 @@ return {
                 maxSize = 5000000
             },
             environment = {
-                phpVersion = "7.0",
+                phpVersion = "7.1",
                 shortOpenTag = false,
             }
         }
