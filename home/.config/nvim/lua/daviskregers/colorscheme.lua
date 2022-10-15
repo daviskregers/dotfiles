@@ -7,6 +7,7 @@ if not status_ok then
   return
 end
 
-vim.highlight.create('Comment', {guifg="#D33257"}, false)
-vim.highlight.create('ExtraWhitespace', {guibg="red"}, false)
+vim.api.nvim_set_hl(0, 'Comment', {fg="#D33257"})
+vim.api.nvim_set_hl(0, 'ExtraWhitespace', {bg="red"})
+vim.api.nvim_set_hl(0, 'ColorColumn', {bg="#840000"})
 

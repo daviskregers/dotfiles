@@ -102,6 +102,8 @@ return packer.startup(function(use)
     use {
         "williamboman/mason.nvim",
         "williamboman/mason-lspconfig.nvim",
+        "jose-elias-alvarez/null-ls.nvim",
+        "jayp0521/mason-null-ls.nvim",
         "neovim/nvim-lspconfig",
     }
     use "williamboman/nvim-lsp-installer" -- simple to use language server installer
@@ -146,6 +148,15 @@ return packer.startup(function(use)
 
     -- hard mode
     use "takac/vim-hardtime"
+
+    -- refactoring
+    use {
+        "ThePrimeagen/refactoring.nvim",
+        requires = {
+            {"nvim-lua/plenary.nvim"},
+            {"nvim-treesitter/nvim-treesitter"}
+        }
+    }
 
     if PACKER_BOOTSTRAP then
         require("packer").sync()

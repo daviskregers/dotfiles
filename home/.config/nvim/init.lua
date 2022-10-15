@@ -1,3 +1,5 @@
+require('impatient')
+
 require "daviskregers.options"
 require "daviskregers.keymaps"
 require "daviskregers.plugins"
@@ -32,3 +34,4 @@ require "daviskregers.hardtime"
 require "daviskregers.undotree"
 require "daviskregers.treesitter-context"
 require "daviskregers.harpoon"
+require "daviskregers.refactoring"
