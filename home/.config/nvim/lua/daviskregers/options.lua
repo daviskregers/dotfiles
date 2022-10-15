@@ -40,4 +40,4 @@ vim.cmd "set whichwrap+=<,>,[,],h,l"
 vim.cmd [[set iskeyword+=-]]
 vim.cmd [[set formatoptions-=cro]]
 
-vim.wo.colorcolumn = "120" 		  	-- displays a colored column indicated max recommended line width
+vim.wo.colorcolumn = "80" 		  	-- displays a colored column indicated max recommended line width

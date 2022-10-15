@@ -40,7 +40,7 @@ keymap("n", "<S-h>", ":bprevious<CR>", opts)
 keymap("n", "<A-Right>", ":bnext<CR>", opts)
 
 -- other
-keymap("n", "gF", ":Format<cr>", opts)
+keymap("n", "gF", "<ESC><cmd>lua vim.lsp.buf.format()<CR>", opts)
 
 -- Insert --
 -- Press jk fast to enter
@@ -87,6 +87,7 @@ keymap("t", "<C-k>", "<C-\\><C-N><C-w>k", term_opts)
 keymap("t", "<C-l>", "<C-\\><C-N><C-w>l", term_opts)
 
 --- undo tree
+-- TODO: move this elsewhere so when things are missing, packer works
 vim.keymap.set('n', '<leader>u', require('undotree').toggle, { noremap = true, silent = true })
 
 -- harpoon
@@ -96,3 +97,7 @@ keymap("n", "<leader>1", ":lua require('harpoon.ui').nav_file(1)<CR>", opts)
 keymap("n", "<leader>2", ":lua require('harpoon.ui').nav_file(2)<CR>", opts)
 keymap("n", "<leader>3", ":lua require('harpoon.ui').nav_file(3)<CR>", opts)
 keymap("n", "<leader>4", ":lua require('harpoon.ui').nav_file(4)<CR>", opts)
+
+-- code actions
+keymap("n", "ga", ":lua vim.lsp.buf.code_action()<CR>", opts)
+keymap("v", "ga", ":'<,'>Telescope lsp_range_code_actions<CR>", opts)

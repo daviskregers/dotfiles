@@ -1,8 +1,23 @@
+local mason_status_ok, mason = pcall(require, "mason")
+if not mason_status_ok then
+    vim.notify("Error loading mason")
+    return
+end
+
 local null_ls_status_ok, null_ls = pcall(require, "null-ls")
 if not null_ls_status_ok then
     vim.notify("Error loading null-ls")
     return
 end
+
+local mason_null_ls_status_ok, mason_null_ls = pcall(require, "mason-null-ls")
+if not mason_null_ls_status_ok then
+    vim.notify("Error loading mason-null-ls")
+    return
+end
+
+-- TODO: this should be elsewhere
+mason.setup()
 
 -- https://github.com/jose-elias-alvarez/null-ls.nvim/tree/main/lua/null-ls/builtins/
 local code_actions = null_ls.builtins.code_actions
@@ -15,7 +30,6 @@ null_ls.setup {
     sources = {
         code_actions.eslint_d,
         code_actions.gitsigns,
-        -- code_actions.refactoring,
 
         completion.luasnip,
 
@@ -85,4 +99,18 @@ null_ls.setup {
         formatting.uncrustify,
         formatting.xmllint,
     },
+    update_in_insert = true,
 }
+
+mason_null_ls.setup({
+    ensure_installed = {
+        'editorconfig-checker',
+        'luacheck',
+        'markdownlint',
+        'phpcs',
+        'phpmd',
+        'phpstan',
+
+    },
+    automatic_installation = true,
+})
