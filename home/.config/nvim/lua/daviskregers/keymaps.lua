@@ -34,10 +34,10 @@ keymap("n", "<C-Left>", ":vertical resize -2<CR>", opts)
 keymap("n", "<C-Right>", ":vertical resize +2<CR>", opts)
 
 -- Navigate buffers
-keymap("n", "<S-l>", ":bnext<CR>", opts)
-keymap("n", "<A-Left>", ":bprevious<CR>", opts)
-keymap("n", "<S-h>", ":bprevious<CR>", opts)
-keymap("n", "<A-Right>", ":bnext<CR>", opts)
+--[[ keymap("n", "<S-l>", ":bnext<CR>", opts) ]]
+--[[ keymap("n", "<A-Left>", ":bprevious<CR>", opts) ]]
+--[[ keymap("n", "<S-h>", ":bprevious<CR>", opts) ]]
+--[[ keymap("n", "<A-Right>", ":bnext<CR>", opts) ]]
 
 -- other
 keymap("n", "gF", "<ESC><cmd>lua vim.lsp.buf.format()<CR>", opts)
