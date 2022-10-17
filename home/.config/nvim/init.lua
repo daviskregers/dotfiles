@@ -1,5 +1,6 @@
 require('impatient')
 
+require "daviskregers.impatient"
 require "daviskregers.options"
 require "daviskregers.keymaps"
 require "daviskregers.plugins"
@@ -17,7 +18,6 @@ require "daviskregers.bufferline"
 require "daviskregers.lualine"
 require "daviskregers.toggleterm"
 require "daviskregers.project"
-require "daviskregers.impatient"
 require "daviskregers.indentline"
 require "daviskregers.alpha"
 require "daviskregers.whichkey"
