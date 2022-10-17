@@ -1,8 +1,8 @@
 require('impatient')
 
 require "daviskregers.options"
-require "daviskregers.plugins"
 require "daviskregers.keymaps"
+require "daviskregers.plugins"
 require "daviskregers.colorscheme"
 require "daviskregers.luasnip"
 require "daviskregers.cmp"
