@@ -99,7 +99,7 @@ null_ls.setup {
         formatting.uncrustify,
         formatting.xmllint,
     },
-    update_in_insert = true,
+    update_in_insert = false,
 }
 
 mason_null_ls.setup({
