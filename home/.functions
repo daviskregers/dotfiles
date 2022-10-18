@@ -32,6 +32,7 @@ alias dcu="docker compose up"
 alias dl="docker logs"
 alias de="docker exec -it"
 alias drf="docker rm -f"
+alias "docker-compose"="echo LEARN TO USE NEW STUFF!"
 
 function dkill() {
     docker kill $(docker ps -q)
