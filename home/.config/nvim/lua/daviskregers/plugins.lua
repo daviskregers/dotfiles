@@ -107,7 +107,6 @@ return packer.startup(function(use)
         "neovim/nvim-lspconfig",
     }
     use "williamboman/nvim-lsp-installer" -- simple to use language server installer
-    use "jose-elias-alvarez/null-ls.nvim" -- for formatters and linters
 
     -- Telescope
     use "nvim-telescope/telescope.nvim"

@@ -117,11 +117,11 @@ cmp.setup {
     },
     sources = {
         -- keyword_length, max_item_count
+        { name = "luasnip" },
         { name = "nvim_lsp_signature_help" },
         { name = 'nvim_lsp_document_symbol' },
         { name = "nvim_lsp" },
         { name = "nvim_lua" },
-        { name = "luasnip" },
         { name = "buffer" },
         { name = "path" },
         { name = "cmp_tabnine" },
