@@ -7,14 +7,14 @@ snippet phpt PHPUnit Test Class
 
 	class $0Test extends TestCase
 	{
-		public function test_nothing()
+		public function test_nothing(): void
 		{
 			\$this->assertTrue(true);
 		}
 	}
 
 snippet test PHPUnit Test Case
-	public function test_$1()
+	public function test_$1(): void
 	{
 		$0
 	}
