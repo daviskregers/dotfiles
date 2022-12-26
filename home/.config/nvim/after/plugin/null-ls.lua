@@ -16,9 +16,6 @@ if not mason_null_ls_status_ok then
     return
 end
 
--- TODO: this should be elsewhere
-mason.setup()
-
 -- https://github.com/jose-elias-alvarez/null-ls.nvim/tree/main/lua/null-ls/builtins/
 local code_actions = null_ls.builtins.code_actions
 local completion = null_ls.builtins.completion
@@ -29,7 +26,7 @@ null_ls.setup {
     debug = false,
     sources = {
         code_actions.eslint_d,
-        code_actions.gitsigns,
+        -- code_actions.gitsigns,
 
         completion.luasnip,
 
@@ -101,16 +98,3 @@ null_ls.setup {
     },
     update_in_insert = false,
 }
-
-mason_null_ls.setup({
-    ensure_installed = {
-        'editorconfig-checker',
-        'luacheck',
-        'markdownlint',
-        'phpcs',
-        'phpmd',
-        'phpstan',
-
-    },
-    automatic_installation = true,
-})
