@@ -47,11 +47,16 @@ PATH=~/bin:$PATH
 PATH=/opt/update-reminder:$PATH
 
 # OTHER
-export COMPOSE_DOCKER_CLI_BUILD=0
-export DOCKER_BUILDKIT=0
+export COMPOSE_DOCKER_CLI_BUILD=1
+export DOCKER_BUILDKIT=1
 export DOTFILES_ENABLE_KEYPAD="on"
 export QT_QPA_PLATFORMTHEME="qt5ct"
 export REDSHIFT_LOCATION=56.946285:24.105078
+
+# NVM
+export NVM_DIR="$HOME/.nvm"
+[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
+[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
 
 # OVERRIDES
 # source $DOTFILES/.overrides
