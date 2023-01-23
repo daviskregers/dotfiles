@@ -20,9 +20,6 @@ vim.opt.softtabstop                              = 4
 vim.opt.shiftwidth                               = 4
 vim.opt.expandtab                                = true
 
--- smart auto indenting when starting a new line.
-vim.opt.smartindent                              = true
-
 -- do not wrap lines
 vim.opt.wrap                                     = false
 
@@ -49,6 +46,8 @@ vim.opt.colorcolumn                              = table.concat(M.range(80, 240)
 
 vim.opt.cursorline                               = true
 
+-- disable mouse
+vim.opt.mouse = ""
 
 -- highlight yank
 vim.api.nvim_create_augroup("highlight_yank", { clear = true })
@@ -57,3 +56,17 @@ vim.api.nvim_create_autocmd("TextYankPost", {
     pattern = {"*"},
     command = 'silent! lua vim.highlight.on_yank{higroup="IncSearch", timeout=300}',
 })
+
+vim.api.nvim_create_augroup("tiltfile", { clear = true })
+vim.api.nvim_create_autocmd("BufRead", {
+    group = "tiltfile",
+    pattern = {"Tiltfile"},
+    command = "setf=tiltfile"
+})
+
+-- use utf-8
+vim.opt.fileencoding = "utf-8"
+
+-- smart auto indenting when starting a new line.
+vim.opt.autoindent                               = true
+vim.opt.smartindent                              = true
