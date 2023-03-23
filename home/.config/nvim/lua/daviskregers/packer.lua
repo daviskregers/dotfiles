@@ -63,4 +63,10 @@ return require('packer').startup(function(use)
     use 'folke/todo-comments.nvim' -- highlight todo comments
     use 'braxtons12/blame_line.nvim' -- git blame virtual text
     use 'takac/vim-hardtime' -- disallow spamming jk or arrows
+
+    -- swagger
+      use {
+          "vinnymeller/swagger-preview.nvim",
+          run = "npm install -g swagger-ui-watcher",
+      }
 end)
