@@ -74,6 +74,9 @@ if [[ -f ~/.tmuxp/alias ]]; then
   source ~/.tmuxp/alias
 fi
 
+# tilt
+alias tud='tilt up && tilt down'
+
 ## UPDATE REMINDER
 
 if [[ $ARCH != "Darwin" && $RUNNING_FROM_PROFILE != 1 ]]; then
