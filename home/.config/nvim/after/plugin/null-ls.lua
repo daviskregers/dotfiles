@@ -52,7 +52,7 @@ null_ls.setup {
         diagnostics.revive,
         diagnostics.rubocop,
         diagnostics.selene,
-        diagnostics.semgrep,
+        -- diagnostics.semgrep,
         diagnostics.sqlfluff,
         diagnostics.stylelint,
         diagnostics.stylint,
