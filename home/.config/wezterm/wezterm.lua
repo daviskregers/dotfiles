@@ -21,9 +21,9 @@ return {
     use_ime = true,
     enable_scroll_bar = false,
     window_padding = {
-        left = 0,
-        right = 0,
-        top = 0,
-        bottom = 0,
+        left = 25,
+        right = 25,
+        top = 25,
+        bottom = 25,
     },
 }
