@@ -70,3 +70,36 @@ vim.opt.fileencoding = "utf-8"
 -- smart auto indenting when starting a new line.
 vim.opt.autoindent                               = true
 vim.opt.smartindent                              = true
+
+-- automatically reload file on changes
+vim.opt.autoread                                 = true
+
+vim.api.nvim_create_augroup('checktime', { clear = true })
+local reloadcmd = 'if mode() != "c" | checktime | endif'
+vim.api.nvim_create_autocmd('FocusGained', {
+    group = 'checktime',
+    pattern = {'*'},
+    command = reloadcmd
+})
+vim.api.nvim_create_autocmd('BufEnter', {
+    group = 'checktime',
+    pattern = {'*'},
+    command = reloadcmd
+})
+vim.api.nvim_create_autocmd('CursorHold', {
+    group = 'checktime',
+    pattern = {'*'},
+    command = reloadcmd
+})
+vim.api.nvim_create_autocmd('CursorHoldI', {
+    group = 'checktime',
+    pattern = {'*'},
+    command = reloadcmd
+})
+
+vim.api.nvim_create_augroup('file_changed', { clear = true })
+vim.api.nvim_create_autocmd('FileChangedShellPost', {
+    group = 'file_changed',
+    pattern = {'*'},
+    command = 'echohl WarningMsg | echo "File changed on disk. Buffer reloaded." | echohl None'
+})
