@@ -1,3 +1,4 @@
+local telescope = require('telescope')
 vim.g.mapleader = " "
 vim.keymap.set("n", "<leader>pv", vim.cmd.Ex)
 
@@ -66,3 +67,5 @@ _G.LspDiagnosticsPopupHandler = function()
   end
 end
 vim.keymap.set("n", "<leader>k", _G.LspDiagnosticsPopupHandler)
+vim.keymap.set("n", "<leader>w", ":Telescope pnpm workspace<CR>")
+vim.keymap.set("n", "<leader>n", ":Telescope package_info<CR>")

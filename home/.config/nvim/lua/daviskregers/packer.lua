@@ -69,4 +69,14 @@ return require('packer').startup(function(use)
         "vinnymeller/swagger-preview.nvim",
         run = "npm install -g swagger-ui-watcher",
     }
+
+    -- pnpm
+    use {
+      'lukahartwig/pnpm.nvim',
+      requires = {
+        { 'nvim-telescope/telescope.nvim' }
+      }
+    }
+
+    use 'b0o/schemastore.nvim'
 end)
