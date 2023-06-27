@@ -55,7 +55,6 @@ vim.keymap.set("v", "<leader>=", ":'<,'>Align ")
 
 -- show diagnostics popup
 _G.LspDiagnosticsPopupHandler = function()
-  print('called')
   local current_cursor = vim.api.nvim_win_get_cursor(0)
   local last_popup_cursor = vim.w.lsp_diagnostics_last_cursor or {nil, nil}
 
@@ -67,5 +66,34 @@ _G.LspDiagnosticsPopupHandler = function()
   end
 end
 vim.keymap.set("n", "<leader>k", _G.LspDiagnosticsPopupHandler)
+
+-- switch between pnpm workspaces
 vim.keymap.set("n", "<leader>w", ":Telescope pnpm workspace<CR>")
 vim.keymap.set("n", "<leader>n", ":Telescope package_info<CR>")
+
+
+-- terminal commands
+vim.keymap.set("n", "<leader>tt", ":vsplit term://zsh<CR>")
+vim.keymap.set("n", "<leader>tT", ":split term://zsh<CR>")
+
+vim.api.nvim_create_augroup('tests', { clear = true})
+vim.api.nvim_create_autocmd('FileType', {
+    group = 'tests',
+    pattern = 'typescript',
+    command = 'nnoremap <buffer><silent><leader>tl :vsplit term://pnpm test<cr>'
+})
+vim.api.nvim_create_autocmd('FileType', {
+    group = 'tests',
+    pattern = 'typescript',
+    command = 'nnoremap <buffer><silent><leader>tk :split term://pnpm test<cr>'
+})
+vim.api.nvim_create_autocmd('FileType', {
+    group = 'tests',
+    pattern = 'javascript',
+    command = 'nnoremap <buffer><silent><leader>tl :vsplit term://pnpm test<cr>'
+})
+vim.api.nvim_create_autocmd('FileType', {
+    group = 'tests',
+    pattern = 'javascript',
+    command = 'nnoremap <buffer><silent><leader>tl :split term://pnpm test<cr>'
+})
