@@ -103,3 +103,7 @@ vim.api.nvim_create_autocmd('FileChangedShellPost', {
     pattern = {'*'},
     command = 'echohl WarningMsg | echo "File changed on disk. Buffer reloaded." | echohl None'
 })
+
+-- format before save
+-- vim.cmd [[autocmd BufWritePre <buffer> lua vim.lsp.buf.format()]]
+vim.cmd [[autocmd BufWritePre * lua vim.lsp.buf.format()]]
