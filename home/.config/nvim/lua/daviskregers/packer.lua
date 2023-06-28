@@ -78,5 +78,14 @@ return require('packer').startup(function(use)
       }
     }
 
+    -- show package.json updates
+    use({
+        "vuki656/package-info.nvim",
+        requires = "MunifTanjim/nui.nvim",
+        config = function()
+        end
+    })
+
+    -- json schema validations
     use 'b0o/schemastore.nvim'
 end)
