@@ -69,7 +69,6 @@ vim.keymap.set("n", "<leader>k", _G.LspDiagnosticsPopupHandler)
 
 -- switch between pnpm workspaces
 vim.keymap.set("n", "<leader>w", ":Telescope pnpm workspace<CR>")
-vim.keymap.set("n", "<leader>n", ":Telescope package_info<CR>")
 
 
 -- terminal commands
@@ -97,3 +96,12 @@ vim.api.nvim_create_autocmd('FileType', {
     pattern = 'javascript',
     command = 'nnoremap <buffer><silent><leader>tl :split term://pnpm test<cr>'
 })
+
+-- package info
+vim.keymap.set({ "n" }, "<LEADER>ns", require("package-info").show, { silent = true, noremap = true, desc = 'package-info | show'})
+vim.keymap.set({ "n" }, "<LEADER>nc", require("package-info").hide, { silent = true, noremap = true, desc = 'package-info | hide'})
+vim.keymap.set({ "n" }, "<LEADER>nt", require("package-info").toggle, { silent = true, noremap = true, desc = 'package-info | toggle' })
+vim.keymap.set({ "n" }, "<LEADER>nu", require("package-info").update, { silent = true, noremap = true, desc = 'package-info | update'})
+vim.keymap.set({ "n" }, "<LEADER>nd", require("package-info").delete, { silent = true, noremap = true, desc = 'package-info | delete'})
+vim.keymap.set({ "n" }, "<LEADER>ni", require("package-info").install, { silent = true, noremap = true, desc = 'package-info | install'})
+vim.keymap.set({ "n" }, "<LEADER>np", require("package-info").change_version, { silent = true, noremap = true, desc = 'package-info | change version'})
