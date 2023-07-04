@@ -1,7 +1,11 @@
-local lsp = require("lsp-zero")
+local ok, lsp = pcall(require, 'lsp-zero')
+
+if not ok then
+	print "Failed loading plugin 'lsp-zero', skipping setup..."
+	return
+end
 
 lsp.preset("recommended")
-
 lsp.ensure_installed({
   'tsserver',
   'eslint',
@@ -29,10 +33,10 @@ lsp.setup_nvim_cmp({
 lsp.set_preferences({
     suggest_lsp_servers = true,
     sign_icons = {
-        error = 'E',
-        warn = 'W',
-        hint = 'H',
-        info = 'I'
+	error = 'E',
+	warn = 'W',
+	hint = 'H',
+	info = 'I'
     }
 })
 

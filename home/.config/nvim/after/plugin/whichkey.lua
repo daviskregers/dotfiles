@@ -1,4 +1,9 @@
-local wk = require("which-key")
+local ok, wk = pcall(require, 'which-key')
+
+if not ok then
+	print "Failed to load plugin 'which-key', skipping setup..."
+	return
+end
 
 wk.setup({
   plugins = {
