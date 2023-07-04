@@ -1,4 +1,4 @@
-local ok_m, mark = pcall(require, 'harpon.mark')
+local ok_m, mark = pcall(require, 'harpoon.mark')
 local ok_u, ui = pcall(require, 'harpoon.ui')
 
 if not ok_m then
