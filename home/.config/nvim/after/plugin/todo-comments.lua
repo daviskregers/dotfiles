@@ -1,4 +1,11 @@
-require("todo-comments").setup {
+local ok, todo = pcall(require, 'todo-comments')
+
+if not ok then
+	print "Failed to load plugin 'todo-comments', skipping setup..."
+	return
+end
+
+todo.setup {
     signs = true, -- show icons in the signs column
     sign_priority = 8, -- sign priority
     -- keywords recognized as todo comments

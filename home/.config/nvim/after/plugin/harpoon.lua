@@ -1,5 +1,15 @@
-local mark = require("harpoon.mark")
-local ui = require("harpoon.ui")
+local ok_m, mark = pcall(require, 'harpon.mark')
+local ok_u, ui = pcall(require, 'harpoon.ui')
+
+if not ok_m then
+	print "Failed to load plugin 'harpoon.mark', skipping setup..."
+	return
+end
+
+if not ok_u then
+	print "Failed to load plugin 'harpoon.ui', skipping setup..."
+	return
+end
 
 vim.keymap.set("n", "<leader>a", mark.add_file)
 vim.keymap.set("n", "<C-e>", ui.toggle_quick_menu)

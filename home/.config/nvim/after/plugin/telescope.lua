@@ -1,6 +1,16 @@
-local builtin = require('telescope.builtin')
+local ok_t, telescope = pcall(require, 'telescope')
+if not ok_t then
+	print "Failed to load plugin 'telescope', skipping setup"
+	return
+end
 
-require("telescope").setup({
+local ok_b, builtin = pcall(require, 'telescope.builtin')
+if not ok_b then
+	print "Failed to load plugin 'telescope.builtin', skipping setup"
+	return
+end
+
+telescope.setup({
     extensions = {
         package_info = {
             -- Optional theme (the extension doesn't set a default theme)

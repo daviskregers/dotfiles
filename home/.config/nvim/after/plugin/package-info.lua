@@ -1,4 +1,11 @@
-require('package-info').setup({
+local ok, package_info = pcall(require, 'package-info')
+
+if not ok then
+	print "Failed to load plugin 'package-info', skipping setup..."
+	return
+end
+
+package_info.setup({
     colors = {
         up_to_date = "#3C4048", -- Text color for up to date dependency virtual text
         outdated = "#d19a66", -- Text color for outdated dependency virtual text

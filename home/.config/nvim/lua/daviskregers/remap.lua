@@ -97,16 +97,26 @@ vim.api.nvim_create_autocmd('FileType', {
 })
 
 -- package info
-vim.keymap.set({ "n" }, "<LEADER>ns", require("package-info").show, { silent = true, noremap = true, desc = 'package-info | show'})
-vim.keymap.set({ "n" }, "<LEADER>nc", require("package-info").hide, { silent = true, noremap = true, desc = 'package-info | hide'})
-vim.keymap.set({ "n" }, "<LEADER>nt", require("package-info").toggle, { silent = true, noremap = true, desc = 'package-info | toggle' })
-vim.keymap.set({ "n" }, "<LEADER>nu", require("package-info").update, { silent = true, noremap = true, desc = 'package-info | update'})
-vim.keymap.set({ "n" }, "<LEADER>nd", require("package-info").delete, { silent = true, noremap = true, desc = 'package-info | delete'})
-vim.keymap.set({ "n" }, "<LEADER>ni", require("package-info").install, { silent = true, noremap = true, desc = 'package-info | install'})
-vim.keymap.set({ "n" }, "<LEADER>np", require("package-info").change_version, { silent = true, noremap = true, desc = 'package-info | change version'})
+local ok, mod = pcall(require, 'package-info')
+if not ok then
+	print "plugin 'package-info' not loaded, skipping setting up keybinds..."
+else
+	vim.keymap.set({ "n" }, "<LEADER>ns", require("package-info").show, { silent = true, noremap = true, desc = 'package-info | show'})
+	vim.keymap.set({ "n" }, "<LEADER>nc", require("package-info").hide, { silent = true, noremap = true, desc = 'package-info | hide'})
+	vim.keymap.set({ "n" }, "<LEADER>nt", require("package-info").toggle, { silent = true, noremap = true, desc = 'package-info | toggle' })
+	vim.keymap.set({ "n" }, "<LEADER>nu", require("package-info").update, { silent = true, noremap = true, desc = 'package-info | update'})
+	vim.keymap.set({ "n" }, "<LEADER>nd", require("package-info").delete, { silent = true, noremap = true, desc = 'package-info | delete'})
+	vim.keymap.set({ "n" }, "<LEADER>ni", require("package-info").install, { silent = true, noremap = true, desc = 'package-info | install'})
+	vim.keymap.set({ "n" }, "<LEADER>np", require("package-info").change_version, { silent = true, noremap = true, desc = 'package-info | change version'})
+end
 
 -- folding
-vim.keymap.set('n', 'zR', require('ufo').openAllFolds)
-vim.keymap.set('n', 'zM', require('ufo').closeAllFolds)
-vim.keymap.set('n', 'zr', require('ufo').openFoldsExceptKinds)
-vim.keymap.set('n', 'zm', require('ufo').closeFoldsWith) -- closeAllFolds == closeFoldsWith(0)
+local ok, mod = pcall(require, 'ufo')
+if not ok then
+	print "plugin 'ufo' not loaded, skipping setting up keybinds..."
+else
+	vim.keymap.set('n', 'zR', require('ufo').openAllFolds)
+	vim.keymap.set('n', 'zM', require('ufo').closeAllFolds)
+	vim.keymap.set('n', 'zr', require('ufo').openFoldsExceptKinds)
+	vim.keymap.set('n', 'zm', require('ufo').closeFoldsWith) -- closeAllFolds == closeFoldsWith(0)
+end
