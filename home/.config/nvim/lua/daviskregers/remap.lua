@@ -74,6 +74,7 @@ vim.keymap.set("n", "<leader>w", ":Telescope pnpm workspace<CR>")
 vim.keymap.set("n", "<leader>tt", ":vsplit term://zsh<CR>")
 vim.keymap.set("n", "<leader>tT", ":split term://zsh<CR>")
 
+-- typescript
 vim.api.nvim_create_augroup('tests', { clear = true})
 vim.api.nvim_create_autocmd('FileType', {
     group = 'tests',
@@ -85,6 +86,7 @@ vim.api.nvim_create_autocmd('FileType', {
     pattern = 'typescript',
     command = 'nnoremap <buffer><silent><leader>tk :split term://pnpm test<cr>'
 })
+-- javascript
 vim.api.nvim_create_autocmd('FileType', {
     group = 'tests',
     pattern = 'javascript',
@@ -94,6 +96,17 @@ vim.api.nvim_create_autocmd('FileType', {
     group = 'tests',
     pattern = 'javascript',
     command = 'nnoremap <buffer><silent><leader>tl :split term://pnpm test<cr>'
+})
+-- php
+vim.api.nvim_create_autocmd('FileType', {
+    group = 'tests',
+    pattern = 'php',
+    command = 'nnoremap <buffer><silent><leader>tl :vsplit term://composer test %<cr>'
+})
+vim.api.nvim_create_autocmd('FileType', {
+    group = 'tests',
+    pattern = 'php',
+    command = 'nnoremap <buffer><silent><leader>tk :split term://composer test %<cr>'
 })
 
 -- package info
