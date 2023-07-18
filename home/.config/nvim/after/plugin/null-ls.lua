@@ -28,8 +28,6 @@ null_ls.setup {
         code_actions.eslint_d,
         -- code_actions.gitsigns,
 
-        completion.luasnip,
-
         diagnostics.actionlint,
         diagnostics.ansiblelint,
         diagnostics.checkmake,
