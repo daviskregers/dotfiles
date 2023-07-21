@@ -108,6 +108,17 @@ vim.api.nvim_create_autocmd('FileType', {
     pattern = 'php',
     command = 'nnoremap <buffer><silent><leader>tk :split term://composer test %<cr>'
 })
+-- php
+vim.api.nvim_create_autocmd('FileType', {
+    group = 'tests',
+    pattern = 'dockerfile',
+    command = 'nnoremap <buffer><silent><leader>tl :vsplit term://docker build .<cr>'
+})
+vim.api.nvim_create_autocmd('FileType', {
+    group = 'tests',
+    pattern = 'dockerfile',
+    command = 'nnoremap <buffer><silent><leader>tk :split term://docker build .<cr>'
+})
 
 -- package info
 local ok, mod = pcall(require, 'package-info')
