@@ -34,7 +34,10 @@ esac
 # pnpm end
 
 tmux-window-name() {
-	($TMUX_PLUGIN_MANAGER_PATH/tmux-window-name/scripts/rename_session_windows.py &)
+    if [ -z "$TMUX_PLUGIN_MANAGER_PATH" ]; then
+    else
+        ($TMUX_PLUGIN_MANAGER_PATH/tmux-window-name/scripts/rename_session_windows.py &)
+    fi
 }
 
 add-zsh-hook chpwd tmux-window-name
