@@ -13,7 +13,7 @@ alias rcs="source ~/.zshrc"
 
 # paths
 alias c.="cd .."
-alias dot="cd ~/.dotfiles"
+alias dot="homeshick cd dotfiles"
 alias pr="cd $PROJECTS"
 alias obsidian='cd ~/Library/Mobile\ Documents/iCloud~md~obsidian/Documents/Obsidian/'
 
