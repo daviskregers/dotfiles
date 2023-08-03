@@ -93,5 +93,5 @@ return require('packer').startup(function(use)
     use {'kevinhwang91/nvim-ufo', requires = 'kevinhwang91/promise-async'}
 
     -- tabnine
-    use { 'codota/tabnine-nvim', run = "./dl_binaries.sh" }
+    -- use { 'codota/tabnine-nvim', run = "./dl_binaries.sh" }
 end)
