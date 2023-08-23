@@ -119,6 +119,22 @@ vim.api.nvim_create_autocmd('FileType', {
     pattern = 'dockerfile',
     command = 'nnoremap <buffer><silent><leader>tk :split term://docker build .<cr>'
 })
+-- golang
+vim.api.nvim_create_autocmd('FileType', {
+    group = 'tests',
+    pattern = 'go',
+    command = 'nnoremap <buffer><silent><leader>tr :vsplit term://go run .<cr>'
+})
+vim.api.nvim_create_autocmd('FileType', {
+    group = 'tests',
+    pattern = 'go',
+    command = 'nnoremap <buffer><silent><leader>tl :vsplit term://go test<cr>'
+})
+vim.api.nvim_create_autocmd('FileType', {
+    group = 'tests',
+    pattern = 'go',
+    command = 'nnoremap <buffer><silent><leader>tk :split term://go test<cr>'
+})
 
 -- package info
 local ok, mod = pcall(require, 'package-info')
