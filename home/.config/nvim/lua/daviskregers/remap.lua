@@ -86,6 +86,11 @@ vim.api.nvim_create_autocmd('FileType', {
     pattern = 'typescript',
     command = 'nnoremap <buffer><silent><leader>tk :split term://pnpm test<cr>'
 })
+vim.api.nvim_create_autocmd('FileType', {
+    group = 'tests',
+    pattern = 'typescript',
+    command = 'nnoremap <buffer><silent><leader>tg :vsplit term://pnpm lint<cr>'
+})
 -- javascript
 vim.api.nvim_create_autocmd('FileType', {
     group = 'tests',
@@ -96,6 +101,11 @@ vim.api.nvim_create_autocmd('FileType', {
     group = 'tests',
     pattern = 'javascript',
     command = 'nnoremap <buffer><silent><leader>tl :split term://pnpm test<cr>'
+})
+vim.api.nvim_create_autocmd('FileType', {
+    group = 'tests',
+    pattern = 'javascript',
+    command = 'nnoremap <buffer><silent><leader>tg :vsplit term://pnpm lint<cr>'
 })
 -- php
 vim.api.nvim_create_autocmd('FileType', {
