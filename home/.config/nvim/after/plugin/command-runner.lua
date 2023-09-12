@@ -1,5 +1,6 @@
 -- TODO: Persist commands for each project
 -- TODO: Menu to show all saved commands & choosing them
+-- TODO: reorder commands
 local M = {
     cmds = {
         'echo "SETUP COMMAND 1"',
