@@ -96,4 +96,31 @@ return require('packer').startup(function(use)
 
     -- tabnine
     -- use { 'codota/tabnine-nvim', run = "./dl_binaries.sh" }
+
+    -- use {
+    --   "ahmedkhalf/jupyter-nvim",
+    --   run = ":UpdateRemotePlugins",
+    --   config = function()
+    --     require("jupyter-nvim").setup {
+    --       -- your configuration comes here
+    --       -- or leave it empty to use the default settings
+    --       -- refer to the configuration section below
+    --     }
+    --   end
+    -- }
+    use {"meatballs/notebook.nvim", config = function()
+        require('notebook').setup {
+            -- Whether to insert a blank line at the top of the notebook
+            insert_blank_line = true,
+
+            -- Whether to display the index number of a cell
+            show_index = true,
+
+            -- Whether to display the type of a cell
+            show_cell_type = true,
+
+            -- Style for the virtual text at the top of a cell
+            virtual_text_style = { fg = "lightblue", italic = true },
+        }
+    end}
 end)
