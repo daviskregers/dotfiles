@@ -34,7 +34,9 @@ return require('packer').startup(function(use)
             { 'neovim/nvim-lspconfig' },
             { 'williamboman/mason.nvim' },
             { 'williamboman/mason-lspconfig.nvim' },
-            { 'jose-elias-alvarez/null-ls.nvim' },
+
+            -- TODO: try nvim-lint + conform.nvim
+            { 'nvimtools/none-ls.nvim' },
             { 'jayp0521/mason-null-ls.nvim' },
 
             -- Autocompletion
