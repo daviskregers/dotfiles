@@ -1,1 +1,3 @@
-require("daviskregers")
+require("settings")
+require("remaps")
+require("lazy-init")
