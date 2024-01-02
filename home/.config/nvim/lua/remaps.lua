@@ -29,3 +29,9 @@ vim.keymap.set({ "n", "v", "x" }, "<Down>", "<nop>")
 vim.keymap.set({ "n", "v", "x" }, "<Left>", "<nop>")
 vim.keymap.set({ "n", "v", "x" }, "<Right>", "<nop>")
 vim.keymap.set({ "n", "v", "x" }, "<Up>", "<nop>")
+
+-- neogen
+vim.keymap.set("n", "<Leader>nc", ":lua require('neogen').generate({ type = 'class' })<CR>", {desc = "generate class docs"})
+vim.keymap.set("n", "<Leader>nf", ":lua require('neogen').generate({ type = 'func' })<CR>", {desc = "generate function docs"})
+vim.keymap.set("n", "<Leader>nF", ":lua require('neogen').generate({ type = 'file' })<CR>", {desc = "generate file docs"})
+vim.keymap.set("n", "<Leader>nt", ":lua require('neogen').generate({ type = 'type' })<CR>", {desc = "generate type docs"})
