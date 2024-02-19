@@ -6,11 +6,18 @@ else
     export ZSH="/usr/share/oh-my-zsh"
 fi
 
-ZSH_THEME="custom-theme"
+export ZSH_CUSTOM="~/.oh-my-zsh-custom"
+export ZSH_THEME="custom-theme"
+
+if [ ! -f $ZSH_CUSTOM/themes/$ZSH_THEME.zsh-theme ]; then
+    mkdir -p $ZSH_CUSTOM/themes/
+    cp ~/.homesick/repos/dotfiles/home/.oh-my-zsh-custom/themes/$ZSH_THEME.zsh-theme $ZSH_CUSTOM/themes/$ZSH_THEME.zsh-theme
+fi
+
 plugins=(git)
 
-source $ZSH/oh-my-zsh.sh
 source ~/.variables
+source $ZSH/oh-my-zsh.sh
 source ~/.functions
 if [[ -f ~/.edurioalias ]]; then
   source ~/.edurioalias
