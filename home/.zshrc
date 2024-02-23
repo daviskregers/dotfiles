@@ -1,3 +1,5 @@
+eval "$(direnv hook zsh)"
+
 source "$HOME/.homesick/repos/homeshick/homeshick.sh"
 
 if [[ -d "$HOME/.oh-my-zsh" ]]; then
@@ -8,11 +10,6 @@ fi
 
 export ZSH_CUSTOM="~/.oh-my-zsh-custom"
 export ZSH_THEME="custom-theme"
-
-if [ ! -f $ZSH_CUSTOM/themes/$ZSH_THEME.zsh-theme ]; then
-    mkdir -p $ZSH_CUSTOM/themes/
-    cp ~/.homesick/repos/dotfiles/home/.oh-my-zsh-custom/themes/$ZSH_THEME.zsh-theme $ZSH_CUSTOM/themes/$ZSH_THEME.zsh-theme
-fi
 
 plugins=(git)
 
