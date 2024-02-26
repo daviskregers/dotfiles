@@ -83,8 +83,11 @@ myModMask = mod4Mask        -- Sets modkey to super/windows key
 myTerminal :: String
 myTerminal = "wezterm"    -- Sets default terminal
 
+myFileExplorer :: String
+myFileExplorer = "nautilus"    -- Sets default file explorer
+
 myBrowser :: String
-myBrowser = "google-chrome-stable "  -- Sets qutebrowser as browser
+myBrowser = "firefox "  -- Sets qutebrowser as browser
 
 myBorderWidth :: Dimension
 myBorderWidth = 1           -- Sets border width for windows
@@ -318,6 +321,7 @@ myKeys = [
         ("M-<F12>",                spawn "launch_redshift --kill"),
         ("M-<Return>",             windows W.swapMaster),
         ("M-<Tab>",                windows W.focusDown),
+        ("M-S-f",                  spawn (myFileExplorer)),
         ("M-S-<Return>",           spawn (myTerminal)),
         ("M-S-<Space>",            sendMessage NextLayout),
         ("M-<Space>", sendMessage (MT.Toggle NBFULL) >> sendMessage ToggleStruts), -- Toggles noborder/full
@@ -325,7 +329,6 @@ myKeys = [
         ("M-S-b",                  namedScratchpadAction scratchpads "blueberry"),
         ("M-S-c",                  kill),
         ("M-S-d",                  spawn "dmenu_run"), -- app launcher
-        ("M-S-f",                  spawn  "dolphin"), -- file explorer
         ("M-S-h",                  namedScratchpadAction scratchpads "btop"),
         ("M-S-g",                  namedScratchpadAction scratchpads "ctop"),
         ("M-S-j",                  windows W.swapUp),
