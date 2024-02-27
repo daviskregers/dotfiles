@@ -45,3 +45,11 @@ tmux-window-name() {
 }
 
 add-zsh-hook chpwd tmux-window-name
+
+export PATH="$PATH:$(go env GOBIN):$(go env GOPATH)/bin"
+
+alias ls='ls --color=auto'
+alias l='ls -lah'
+
+alias infra='tmuxp load ~/projects/tmuxp-layouts/infra.yaml'
+alias tksv='tmux kill-server'
