@@ -3,7 +3,7 @@ windows:
   - window_name: dev window
     layout: even-horizontal
     shell_command_before:
-      - cd ~/projects/ansible-setup
+      - cd ~/projects/ansible-setup-2
       - git pull --no-ff
     panes:
       - nvim
