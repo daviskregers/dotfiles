@@ -1,3 +1,5 @@
+eval "$(direnv hook zsh)"
+
 source "$HOME/.homesick/repos/homeshick/homeshick.sh"
 
 if [[ -d "$HOME/.oh-my-zsh" ]]; then
@@ -6,11 +8,13 @@ else
     export ZSH="/usr/share/oh-my-zsh"
 fi
 
-ZSH_THEME="custom-theme"
+export ZSH_CUSTOM="~/.oh-my-zsh-custom"
+export ZSH_THEME="custom-theme"
+
 plugins=(git)
 
-source $ZSH/oh-my-zsh.sh
 source ~/.variables
+source $ZSH/oh-my-zsh.sh
 source ~/.functions
 if [[ -f ~/.edurioalias ]]; then
   source ~/.edurioalias
@@ -41,3 +45,11 @@ tmux-window-name() {
 }
 
 add-zsh-hook chpwd tmux-window-name
+
+export PATH="$PATH:$(go env GOBIN):$(go env GOPATH)/bin"
+
+alias ls='ls --color=auto'
+alias l='ls -lah'
+
+alias infra='tmuxp load ~/projects/tmuxp-layouts/infra.yaml'
+alias tksv='tmux kill-server'

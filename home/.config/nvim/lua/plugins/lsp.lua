@@ -109,7 +109,7 @@ return {
                 end)
 
                 require('mason-lspconfig').setup({
-                    ensure_installed = { 'lua-language-server' },
+                    ensure_installed = {},
                     handlers = {
                         lsp_zero.default_setup,
                         lua_ls = function()
@@ -117,6 +117,19 @@ return {
                             local lua_opts = lsp_zero.nvim_lua_ls()
                             require('lspconfig').lua_ls.setup(lua_opts)
                         end,
+                        omnisharp = function()
+                            local lua_opts = lsp_zero.nvim_lua_ls()
+                            require('lspconfig').omnisharp.setup({
+                                capabilities = lua_opts.capabilities,
+                                cmd = { "dotnet", vim.fn.stdpath "data" .. "/mason/packages/omnisharp/libexec/OmniSharp.dll" },
+                                enable_import_completion = true,
+                                organize_imports_on_format = true,
+                                enable_roslyn_analyzers = true,
+                                root_dir = function ()
+                                    return vim.loop.cwd() -- current working directory
+                                end,
+                            })
+                        end
                     }
                 })
             end
