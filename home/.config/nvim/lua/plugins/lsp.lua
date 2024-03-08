@@ -1,6 +1,16 @@
 return {
     {
         {
+            "zbirenbaum/copilot.lua",
+            cmd = "Copilot",
+            build = ":Copilot auth",
+            opts = {
+                filetypes = {
+                    ["*"] = true,
+                },
+            },
+        },
+        {
             'VonHeikemen/lsp-zero.nvim',
             branch = 'v3.x',
             lazy = true,
@@ -25,11 +35,15 @@ return {
                 { 'saadparwaiz1/cmp_luasnip' },
                 { 'L3MON4D3/LuaSnip' },
                 { 'honza/vim-snippets' },
+                { 'zbirenbaum/copilot-cmp' },
             },
             config = function()
                 -- Here is where you configure the autocompletion settings.
                 local lsp_zero = require('lsp-zero')
+                local copilot_cmp = require("copilot_cmp")
+
                 lsp_zero.extend_cmp()
+                copilot_cmp.setup({})
 
                 -- And you can configure cmp even more, if you want to.
                 local cmp = require('cmp')
@@ -46,6 +60,7 @@ return {
                     sources = {
                         { name = 'nvim_lsp' },
                         { name = 'luasnip' },
+                        { name = 'copilot', group_index = 1, priority = 100 },
                     },
                     mapping = cmp.mapping.preset.insert({
                         -- `Enter` key to confirm completion
@@ -125,7 +140,7 @@ return {
                                 enable_import_completion = true,
                                 organize_imports_on_format = true,
                                 enable_roslyn_analyzers = true,
-                                root_dir = function ()
+                                root_dir = function()
                                     return vim.loop.cwd() -- current working directory
                                 end,
                             })
