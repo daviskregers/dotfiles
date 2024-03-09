@@ -4,7 +4,14 @@
 if [[ $# -eq 1 ]]; then
     selected=$1
 else
-    selected=$(find ~/projects/ ~/projects/edurio ~/.homesick/repos -mindepth 1 -maxdepth 1 -type d | fzf)
+    default_directories="~/projects/ ~/projects/edurio ~/.homesick/repos"
+    find_args="-mindepth 1 -maxdepth 1 -type d | fzf"
+    indexed_projects=$(while IFS= read -r line; do
+        echo -n "~/projects/$line "
+    done < "$HOME/projects/.project-directory-index")
+    $indexed_projects="${indexed_projects%" "}"
+
+    selected=$(eval "find $default_directories $indexed_projects $find_args")
 fi
 
 if [[ -z $selected ]]; then
