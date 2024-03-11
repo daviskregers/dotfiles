@@ -79,7 +79,7 @@ indent-for-nested-containers-with-the-same-orientation = 30
 
 alt-shift-p = 'exec-and-forget open -n /Applications/1Password.app'
 alt-shift-enter = 'exec-and-forget open -n /Applications/WezTerm.app'
-alt-shift-f = 'exec-and-forget open -n ~'
+#alt-shift-f = 'exec-and-forget open -n ~'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#layout
 alt-slash = 'layout tiles horizontal vertical'
@@ -102,36 +102,28 @@ alt-shift-minus = 'resize smart -50'
 alt-shift-equal = 'resize smart +50'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#workspace
-alt-0 = 'workspace 0'
-alt-1 = 'workspace 1'
-alt-2 = 'workspace 2'
-alt-3 = 'workspace 3'
-alt-4 = 'workspace 4'
-alt-5 = 'workspace 5'
-alt-6 = 'workspace 6'
-alt-7 = 'workspace 7'
-alt-8 = 'workspace 8'
-alt-9 = 'workspace 9'
-alt-q = 'workspace Q'
-alt-w = 'workspace W'
-alt-e = 'workspace E'
-alt-n = 'workspace N'
+alt-a = 'workspace www'
+alt-s = 'workspace dev'
+alt-d = 'workspace 3'
+alt-z = 'workspace 4'
+alt-x = 'workspace 5'
+alt-c = 'workspace 6'
+alt-v = 'workspace 7'
+alt-b = 'workspace 8'
+alt-n = 'workspace Notes'
+alt-m = 'workspace Comms'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#move-node-to-workspace
-alt-shift-0 = 'move-node-to-workspace 0'
-alt-shift-1 = 'move-node-to-workspace 1'
-alt-shift-2 = 'move-node-to-workspace 2'
-alt-shift-3 = 'move-node-to-workspace 3'
-alt-shift-4 = 'move-node-to-workspace 4'
-alt-shift-5 = 'move-node-to-workspace 5'
-alt-shift-6 = 'move-node-to-workspace 6'
-alt-shift-7 = 'move-node-to-workspace 7'
-alt-shift-8 = 'move-node-to-workspace 8'
-alt-shift-9 = 'move-node-to-workspace 9'
-alt-shift-q = 'move-node-to-workspace Q'
-alt-shift-w = 'move-node-to-workspace W'
-alt-shift-e = 'move-node-to-workspace E'
-alt-shift-n = 'move-node-to-workspace N'
+alt-shift-a = 'move-node-to-workspace www'
+alt-shift-s = 'move-node-to-workspace dev'
+alt-shift-d = 'move-node-to-workspace 3'
+alt-shift-z = 'move-node-to-workspace 4'
+alt-shift-x = 'move-node-to-workspace 5'
+alt-shift-c = 'move-node-to-workspace 6'
+alt-shift-v = 'move-node-to-workspace 7'
+alt-shift-b = 'move-node-to-workspace 8'
+alt-shift-n = 'move-node-to-workspace Notes'
+alt-shift-m = 'move-node-to-workspace Comms'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#workspace-back-and-forth
 alt-tab = 'workspace-back-and-forth'
@@ -159,3 +151,4 @@ alt-shift-j = ['join-with down', 'mode main']
 alt-shift-k = ['join-with up', 'mode main']
 alt-shift-l = ['join-with right', 'mode main']
 esc = 'mode main'
+
