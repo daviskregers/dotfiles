@@ -5,6 +5,7 @@ return {
         "antoinemadec/FixCursorHold.nvim",
         "nvim-treesitter/nvim-treesitter",
         "rouge8/neotest-rust",
+        "nvim-neotest/nvim-nio",
     },
     config = function()
         local nt = require("neotest")
