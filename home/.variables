@@ -45,6 +45,7 @@ PATH=~/.yarn/bin:$PATH
 PATH=~/.cargo/bin:$PATH
 PATH=~/bin:$PATH
 PATH=/opt/update-reminder:$PATH
+PATH=/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH
 
 # OTHER
 export COMPOSE_DOCKER_CLI_BUILD=1
