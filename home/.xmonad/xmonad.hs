@@ -7,6 +7,7 @@ import System.IO (hPutStrLn)
 import XMonad
 import qualified Debug.Trace as T
 import qualified XMonad.StackSet as W
+import XMonad.Hooks.UrgencyHook
 
     -- Actions
 import XMonad.Actions.CopyWindow (kill1)
@@ -362,7 +363,8 @@ main = do
     xmproc0 <- spawnPipe "xmobar -x 0 $HOME/.config/xmobar/xmobarrc-0"
     xmproc1 <- spawnPipe "xmobar -x 1 $HOME/.config/xmobar/xmobarrc-1"
         -- the xmonad, ya know...what the WM is named after!
-    xmonad $ ewmh def
+    xmonad $ withUrgencyHook NoUrgencyHook
+           $ ewmh def
         { manageHook         = manageDocks <+> myManageHook
         , handleEventHook    = docksEventHook
                                -- Uncomment this line to enable fullscreen support on things like YouTube/Netflix.
