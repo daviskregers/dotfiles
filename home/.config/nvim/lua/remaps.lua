@@ -35,3 +35,7 @@ vim.keymap.set("n", "<Leader>nc", ":lua require('neogen').generate({ type = 'cla
 vim.keymap.set("n", "<Leader>nf", ":lua require('neogen').generate({ type = 'func' })<CR>", {desc = "generate function docs"})
 vim.keymap.set("n", "<Leader>nF", ":lua require('neogen').generate({ type = 'file' })<CR>", {desc = "generate file docs"})
 vim.keymap.set("n", "<Leader>nt", ":lua require('neogen').generate({ type = 'type' })<CR>", {desc = "generate type docs"})
+
+-- trouble
+vim.keymap.set("n", "[t", ":lua require('trouble').previous({skip_groups = true, jump = true})<CR>", {desc = "Previous prev item"})
+vim.keymap.set("n", "]t", ":lua require('trouble').next({skip_groups = true, jump = true})<CR>", {desc = "Next trouble item"})
