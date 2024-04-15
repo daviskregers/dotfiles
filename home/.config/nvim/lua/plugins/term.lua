@@ -47,6 +47,11 @@ return {
             pattern = 'typescript',
             command = 'nnoremap <buffer><silent><leader>tg :vsplit term://pnpm lint<cr>'
         })
+        vim.api.nvim_create_autocmd('FileType', {
+            group = 'tests',
+            pattern = 'typescript',
+            command = "nnoremap <buffer><silent><leader>tw :vsplit term://nodemon --exec 'pnpm test' -e ts,js<cr>"
+        })
         -- javascript
         vim.api.nvim_create_autocmd('FileType', {
             group = 'tests',
@@ -62,6 +67,11 @@ return {
             group = 'tests',
             pattern = 'javascript',
             command = 'nnoremap <buffer><silent><leader>tg :vsplit term://pnpm lint<cr>'
+        })
+        vim.api.nvim_create_autocmd('FileType', {
+            group = 'tests',
+            pattern = 'javascript',
+            command = "nnoremap <buffer><silent><leader>tw :vsplit term://nodemon --exec 'pnpm test' -e ts,js<cr>"
         })
         -- php
         vim.api.nvim_create_autocmd('FileType', {
