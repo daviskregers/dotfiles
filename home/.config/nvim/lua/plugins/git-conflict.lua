@@ -44,6 +44,8 @@ return {
     },
     keys = {
         { '<leader>gcl', ":GitConflictListQf<cr>", mode = { 'n', 'x' }, desc = 'List Git Conflicts' },
+        { ']c', ":GitConflictNextConflict<cr>", mode = { 'n', 'x' }, desc = 'Move to Next Git Conflict' },
+        { '[c', ":GitConflictPrevConflict<cr>", mode = { 'n', 'x' }, desc = 'Move to Prev Git Conflict' },
         { '<leader>gco', ":GitConflictChooseOurs<cr>", mode = { 'n', 'x' }, desc = 'Choose Our Git Conflict' },
         { '<leader>gct', ":GitConflictChooseTheirs<cr>", mode = { 'n', 'x' }, desc = 'Choose Their Git Conflict' },
         { '<leader>gcb', ":GitConflictChooseBoth<cr>", mode = { 'n', 'x' }, desc = 'Choose Both Git Conflicts' },
