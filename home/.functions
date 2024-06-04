@@ -110,3 +110,9 @@ if [[ $ARCH != "Darwin" && $RUNNING_FROM_PROFILE != 1 ]]; then
   fi
 fi
 
+## Screens
+
+
+## Xorg presets
+alias xtv="bash ~/.screenlayout/tv.sh"
+alias xnorm="bash ~/.screenlayout/normal.sh"
