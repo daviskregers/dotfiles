@@ -8,8 +8,10 @@ else
     export ZSH="/usr/share/oh-my-zsh"
 fi
 
-export ZSH_CUSTOM="~/.oh-my-zsh-custom"
-export ZSH_THEME="custom-theme"
+if [[ -d "$HOME/.oh-my-zsh-custom" ]]; then
+    export ZSH_CUSTOM="$HOME/.oh-my-zsh-custom"
+    export ZSH_THEME="custom-theme"
+fi
 
 plugins=(git)
 
