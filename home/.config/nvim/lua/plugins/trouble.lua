@@ -5,7 +5,7 @@ return {
         auto_close = true,
         auto_preview = true,
         modes = {
-            diagnostics = { auto_open = true },
+            diagnostics = { auto_open = false },
         }
     }
 }
