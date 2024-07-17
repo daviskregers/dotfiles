@@ -7,6 +7,7 @@
   "copilot.vim": { "branch": "release", "commit": "25f73977033c597d530c7ab0e211d99b60927d2d" },
   "fidget.nvim": { "branch": "main", "commit": "d855eed8a06531a7e8fd0684889b2943f373c469" },
   "gitsigns.nvim": { "branch": "main", "commit": "f4928ba14eb6c667786ac7d69927f6aee6719f1e" },
+  "glance.nvim": { "branch": "master", "commit": "51059bcf21016387b6233c89eed220cf47fca752" },
   "harpoon": { "branch": "harpoon2", "commit": "0378a6c428a0bed6a2781d459d7943843f374bce" },
   "indent-blankline.nvim": { "branch": "master", "commit": "65e20ab94a26d0e14acac5049b8641336819dfc7" },
   "lazy.nvim": { "branch": "main", "commit": "5473e3d77c13e40fc4758fa977a1f2c14d0b4ceb" },
@@ -40,5 +41,6 @@
   "vim-snippets": { "branch": "master", "commit": "96d79529edc3dee1ccf2ce7b75a88cb546ec2501" },
   "which-key.nvim": { "branch": "main", "commit": "e8b454fb03e3cab398c894e5d462c84595ee57ca" },
   "whitespace.nvim": { "branch": "master", "commit": "e196282cd6b01ff0ce736751146fd4db49a42205" },
+  "workspace-diagnostics.nvim": { "branch": "main", "commit": "2c911e785f953241704918dcd0dbada8c852d716" },
   "wtf.nvim": { "branch": "main", "commit": "7aefcc970ea56dc0a89dafdf9f5eb0de7b1ee58c" }
 }
