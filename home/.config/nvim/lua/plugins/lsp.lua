@@ -125,7 +125,7 @@ return {
                                 enable_import_completion = true,
                                 organize_imports_on_format = true,
                                 enable_roslyn_analyzers = true,
-                                root_dir = function ()
+                                root_dir = function()
                                     return vim.loop.cwd() -- current working directory
                                 end,
                             })
@@ -151,6 +151,20 @@ return {
             "vuki656/package-info.nvim",
             dependencies = { "MunifTanjim/nui.nvim" },
             config = true
+        },
+
+        -- diagnostics
+        {
+            'https://git.sr.ht/~whynothugo/lsp_lines.nvim',
+            config = function()
+                require('lsp_lines').setup()
+                vim.keymap.set(
+                    '',
+                    '<Leader>l',
+                    require('lsp_lines').toggle,
+                    { desc = 'Toggle lsp_lines' }
+                )
+            end,
         }
     }
 }
