@@ -1,3 +1,5 @@
+local SymbolKind = vim.lsp.protocol.SymbolKind
+
 return {
     {
         {
@@ -164,6 +166,28 @@ return {
                     require('lsp_lines').toggle,
                     { desc = 'Toggle lsp_lines' }
                 )
+            end,
+        },
+        {
+            'VidocqH/lsp-lens.nvim',
+            config = function()
+                require('lsp-lens').setup({
+                    enable = true,
+                    include_declaration = true, -- Reference include declaration
+                    sections = {               -- Enable / Disable specific request, formatter example looks 'Format Requests'
+                        definition = true,
+                        references = true,
+                        implements = true,
+                        git_authors = false,
+                    },
+                    -- ignore_filetype = {
+                    --     "prisma",
+                    -- },
+                    -- Target Symbol Kinds to show lens information
+                    -- target_symbol_kinds = { SymbolKind.Function, SymbolKind.Method, SymbolKind.Interface },
+                    -- Symbol Kinds that may have target symbol kinds as children
+                    -- wrapper_symbol_kinds = { SymbolKind.Class, SymbolKind.Struct },
+                })
             end,
         }
     }
