@@ -162,7 +162,7 @@ return {
                 require('lsp_lines').setup()
                 vim.keymap.set(
                     '',
-                    '<Leader>l',
+                    '<Leader>dl',
                     require('lsp_lines').toggle,
                     { desc = 'Toggle lsp_lines' }
                 )
@@ -174,7 +174,7 @@ return {
                 require('lsp-lens').setup({
                     enable = true,
                     include_declaration = true, -- Reference include declaration
-                    sections = {               -- Enable / Disable specific request, formatter example looks 'Format Requests'
+                    sections = {                -- Enable / Disable specific request, formatter example looks 'Format Requests'
                         definition = true,
                         references = true,
                         implements = true,
@@ -188,6 +188,18 @@ return {
                     -- Symbol Kinds that may have target symbol kinds as children
                     -- wrapper_symbol_kinds = { SymbolKind.Class, SymbolKind.Struct },
                 })
+            end,
+        },
+        {
+            'dnlhc/glance.nvim',
+            config = function()
+                vim.keymap.set('n', 'gD', '<CMD>Glance definitions<CR>')
+                vim.keymap.set('n', 'gR', '<CMD>Glance references<CR>')
+                vim.keymap.set('n', 'gY', '<CMD>Glance type_definitions<CR>')
+                vim.keymap.set('n', 'gM', '<CMD>Glance implementations<CR>')
+                local glance = require('glance')
+
+                glance.setup()
             end,
         }
     }
