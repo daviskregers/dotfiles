@@ -201,6 +201,14 @@ return {
 
                 glance.setup()
             end,
+        },
+        {
+            dir = '~/.config/nvim/lua/plugin/remove-php-imports',
+            name = 'remove-php-imports',
+            ft = 'php',
+            config = function()
+                require('plugin.remove-php-imports').setup()
+            end
         }
     }
 }
