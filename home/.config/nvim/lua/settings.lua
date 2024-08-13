@@ -63,3 +63,10 @@ vim.opt.foldlevelstart = -1
 vim.opt.foldenable     = true
 
 vim.opt.runtimepath:append(',~/.config/nvim/lua/plugin')
+
+vim.api.nvim_create_augroup("Tiltfile", { clear = true })
+vim.api.nvim_create_autocmd({"BufNewFile", "BufRead"}, {
+    group = "Tiltfile",
+    pattern = { "Tiltfile" },
+    command = 'silent! set syntax=starlark}',
+})
