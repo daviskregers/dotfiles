@@ -58,9 +58,15 @@ vim.opt.fileencoding   = "utf-8"
 
 -- folding
 vim.opt.foldcolumn     = "1"
-vim.opt.foldlevel      = 99
+vim.opt.foldlevel      = 20
 vim.opt.foldlevelstart = -1
 vim.opt.foldenable     = true
+
+vim.cmd([[
+    set foldmethod=expr
+    set foldexpr=nvim_treesitter#foldexpr()
+    set nofoldenable
+]])
 
 vim.opt.runtimepath:append(',~/.config/nvim/lua/plugin')
 
