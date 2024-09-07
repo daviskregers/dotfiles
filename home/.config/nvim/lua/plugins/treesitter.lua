@@ -7,7 +7,7 @@ return {
         configs.setup({
             ensure_installed = { "c", "lua", "vim", "vimdoc", "query", "javascript", "html", "typescript", "php", "bash",
                 "luadoc", "make", "markdown", "markdown_inline", "phpdoc", "python", "rust", "sql", "terraform", "toml",
-                "vue", "jsdoc", "c_sharp"},
+                "vue", "jsdoc", "c_sharp", "hcl"},
             sync_install = false,
             highlight = { enable = true },
             indent = { enable = true },
