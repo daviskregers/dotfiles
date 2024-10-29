@@ -81,11 +81,11 @@ return {
                     end
                 end
 
-                -- print(vim.inspect(defaultTestCommands))
+                print(vim.inspect(defaultTestCommands))
 
                 local types = {
-                    { "l", "test" },
-                    { "g", "lint" },
+                    { "t", "test" },
+                    { "l", "lint" },
                     { "w", "watch" },
                     { "r", "run" },
                     { "b", "build" },
@@ -105,6 +105,7 @@ return {
 
                                 vim.keymap.set("n", "<leader>t" .. key, function()
                                     local cmd = commands[command]
+                                    print(string.format('Running %s', cmd))
                                     if cmd == nil then
                                         local fallback = CONFIG_TEST_COMMANDS['*'][command]
                                         if fallback == nil then
