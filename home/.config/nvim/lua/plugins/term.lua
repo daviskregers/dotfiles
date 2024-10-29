@@ -88,6 +88,8 @@ return {
                     { "g", "lint" },
                     { "w", "watch" },
                     { "r", "run" },
+                    { "b", "build" },
+                    { "c", "clean" },
                 }
 
                 for filetype, commands in pairs(defaultTestCommands) do
@@ -102,12 +104,17 @@ return {
                                 end
 
                                 vim.keymap.set("n", "<leader>t" .. key, function()
-                                    if command[command] == nil then
-                                        print(string.format('No command found for %s', command))
-                                        return
+                                    local cmd = commands[command]
+                                    if cmd == nil then
+                                        local fallback = CONFIG_TEST_COMMANDS['*'][command]
+                                        if fallback == nil then
+                                            print(string.format('No command found for %s', command))
+                                            return
+                                        end
+                                        cmd = fallback
                                     end
                                     vim.cmd('vsplit')
-                                    vim.cmd(string.format('term %s %s', commands[command], COMMAND_ARGS[argKey]))
+                                    vim.cmd(string.format('term %s %s', cmd, COMMAND_ARGS[argKey]))
                                 end)
 
                                 vim.keymap.set("n", "<leader>t" .. string.upper(key), function()
