@@ -84,7 +84,7 @@ return {
                 print(vim.inspect(defaultTestCommands))
 
                 local types = {
-                    { "t", "test" },
+                    { "y", "test" },
                     { "l", "lint" },
                     { "w", "watch" },
                     { "r", "run" },
