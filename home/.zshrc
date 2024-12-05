@@ -55,3 +55,6 @@ alias l='ls -lah'
 
 alias infra='tmuxp load ~/projects/tmuxp-layouts/infra.yaml'
 alias tksv='tmux kill-server'
+
+# bun completions
+[ -s "/Users/daviskregers/.bun/_bun" ] && source "/Users/daviskregers/.bun/_bun"
