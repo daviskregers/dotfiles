@@ -6,6 +6,20 @@ alias l="ls -lah --color=auto"
 alias shdn="shutdown now"
 alias dotupd="dotfiles_update"
 
+RED='\033[0;31m'
+NC='\033[0m' # No Color
+
+
+(
+    cd ~/.dotfiles
+    if [[ `(git status --porcelain)` ]]; then
+        printf "${RED}-------------------------------------------------------------${NC}\n"
+        printf "${RED}-------------------- UNCOMMITED DOTFILES --------------------${NC}\n"
+        printf "${RED}-------------------------------------------------------------${NC}\n"
+    fi
+)
+
+
 # zsh
 alias rcs="source ~/.zshrc"
 
