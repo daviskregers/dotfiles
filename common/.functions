@@ -1,10 +1,8 @@
 ARCH=$(uname)
 
 alias c="clear"
-if [ $ARCH = "Linux" ]; then
-	alias ls="ls --color=auto"
-	alias l="ls -lah --color=auto"
-fi
+alias ls="ls --color=auto"
+alias l="ls -lah --color=auto"
 alias shdn="shutdown now"
 alias dotupd="dotfiles_update"
 
@@ -61,6 +59,18 @@ alias pipr="pip install -r requirements.txt"
 alias conda="/opt/homebrew/anaconda3/bin/conda"
 
 # tmux
+tmux-window-name() {
+    if [ -z "$TMUX_PLUGIN_MANAGER_PATH" ]; then
+    else
+        ($TMUX_PLUGIN_MANAGER_PATH/tmux-window-name/scripts/rename_session_windows.py &)
+    fi
+}
+
+add-zsh-hook chpwd tmux-window-name
+
+alias infra='tmuxp load ~/projects/tmuxp-layouts/infra.yaml'
+alias tksv='tmux kill-server'
+
 alias tmux='tmux -u'
 alias ta='tmux attach -t'
 alias tkss='tmux kill-session -t'
