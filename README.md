@@ -2,8 +2,9 @@
 
 My dotfiles.
 
-Installation:
-```
+```console
 sudo pacman -S stow
-$HOME/.homesick/repos/homeshick/bin/homeshick clone daviskregers/dotfiles
+git clone git@github.com:daviskregers/dotfiles.git ~/.dotfiles
+cd .dotfiles
+make
 ```
