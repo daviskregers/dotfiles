@@ -57,4 +57,5 @@ alias infra='tmuxp load ~/projects/tmuxp-layouts/infra.yaml'
 alias tksv='tmux kill-server'
 
 # bun completions
+# FIXME: use $HOME, move to common
 [ -s "/Users/daviskregers/.bun/_bun" ] && source "/Users/daviskregers/.bun/_bun"

@@ -1,9 +1,9 @@
 # dotfiles
 
-My dotfiles. Generated using [homeshick](https://github.com/andsens/homeshick)
+My dotfiles.
 
 Installation:
 ```
-git clone https://github.com/andsens/homeshick.git $HOME/.homesick/repos/homeshick
+sudo pacman -S stow
 $HOME/.homesick/repos/homeshick/bin/homeshick clone daviskregers/dotfiles
 ```
