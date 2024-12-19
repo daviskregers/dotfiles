@@ -53,6 +53,9 @@ return {
                         vim.api.nvim_create_autocmd('BufWritePre', {
                             buffer = args.buf,
                             callback = function()
+                                if CONFIG_DISABLE_FORMATTING then
+                                    return
+                                end
                                 vim.lsp.buf.format({ bufnr = args.buf, id = client.id })
                             end,
                         })

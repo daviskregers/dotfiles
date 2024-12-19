@@ -2,6 +2,7 @@
     "diagnostics.globals": [
         "vim",
         "events",
-        "CONFIG_TEST_COMMANDS"
+        "CONFIG_TEST_COMMANDS",
+        "CONFIG_DISABLE_FORMATTING"
     ]
 }
