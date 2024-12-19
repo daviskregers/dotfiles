@@ -4,7 +4,7 @@
 if [[ $# -eq 1 ]]; then
     selected=$1
 else
-    default_directories="~/projects/ ~/projects/edurio ~/.homesick/repos"
+    default_directories="~/projects/* ~/.homesick/repos"
     find_args="-mindepth 1 -maxdepth 1 -type d | fzf"
     indexed_projects=$(while IFS= read -r line; do
         echo -n "~/projects/$line "
