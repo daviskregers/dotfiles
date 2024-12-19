@@ -56,7 +56,7 @@ vim.cmd([[
     set nofoldenable
 ]])
 
-local colorcolumn   = require("custom.colorcolumn")
+local colorcolumn   = require('custom.colorcolumn')
 vim.opt.colorcolumn = colorcolumn.colorcolumn
 vim.opt.textwidth   = colorcolumn.textwidth
 

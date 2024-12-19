@@ -37,15 +37,8 @@ vim.keymap.set("n", "]t", ":lua require('trouble').next({skip_groups = true, jum
     { desc = "Next trouble item" })
 
 -- terminals
-local job_id = 0
-vim.keymap.set("n", "<leader>ts", function()
-    vim.cmd.vnew()
-    vim.cmd.term()
-    vim.cmd.wincmd("J")
-    vim.api.nvim_win_set_height(0, 5)
-    job_id = vim.bo.channel
-end, { desc = "Scratch terminal" })
+vim.keymap.set("n", "<leader>tf", "<cmd>ToggleFloatingTerminal<CR>", { desc = "Scratch terminal" })
+vim.keymap.set("n", "<leader>tg", "<cmd>ToggleGitTerminal<CR>", { desc = "LazyGit" })
+vim.keymap.set("n", "<leader>ts", "<cmd>ToggleScratchTerminal<CR>", { desc = "Scratch terminal" })
 
-vim.keymap.set("n", "<leader>th", function()
-    vim.fn.chansend(job_id, { "echo hi\r\n" })
-end)
+vim.keymap.set("t", "<esc><esc>", "<c-\\><c-n>")
