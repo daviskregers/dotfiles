@@ -7,6 +7,6 @@ return {
             ignore_terminal = true,
         })
 
-        vim.keymap.set('n', '<leader>q', require('whitespace-nvim').trim, {desc = "remove trailing whitespace"})
+        vim.keymap.set('n', '<leader>q', require('whitespace-nvim').trim, { desc = "remove trailing whitespace" })
     end
 }
