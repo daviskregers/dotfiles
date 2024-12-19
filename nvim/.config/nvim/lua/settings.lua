@@ -1,4 +1,6 @@
+-- remap leader
 vim.g.mapleader        = " "
+vim.g.maplocalleader   = "\\"
 
 -- preserve chonker cursor in insert
 vim.opt.guicursor      = ""
@@ -33,20 +35,6 @@ vim.opt.scrolloff      = 8
 vim.opt.signcolumn     = "yes"
 vim.opt.isfname:append("@-@")
 
--- colorcolumn
-vim.opt.textwidth      = 80
-
-local M                = {}
-M.range                = function(from, to)
-    local result = {}
-    for var = from, to do
-        table.insert(result, var)
-    end
-    return result
-end
-
-vim.opt.colorcolumn    = table.concat(M.range(80, 240), ",")
-
 -- cursorline
 vim.opt.cursorline     = true
 
@@ -68,11 +56,30 @@ vim.cmd([[
     set nofoldenable
 ]])
 
-vim.opt.runtimepath:append(',~/.config/nvim/lua/plugin')
+local colorcolumn   = require("custom.colorcolumn")
+vim.opt.colorcolumn = colorcolumn.colorcolumn
+vim.opt.textwidth   = colorcolumn.textwidth
 
 vim.api.nvim_create_augroup("Tiltfile", { clear = true })
-vim.api.nvim_create_autocmd({"BufNewFile", "BufRead"}, {
+vim.api.nvim_create_autocmd({ "BufNewFile", "BufRead" }, {
     group = "Tiltfile",
     pattern = { "Tiltfile" },
     command = 'silent! set syntax=starlark}',
+})
+
+vim.api.nvim_create_autocmd("TextYankPost", {
+    desc = "Highlight when yanking text",
+    group = vim.api.nvim_create_augroup("highlight-yank", { clear = true }),
+    callback = function()
+        vim.highlight.on_yank()
+    end,
+})
+
+vim.api.nvim_create_autocmd("TermOpen", {
+    desc = "Custom settings for terminal",
+    group = vim.api.nvim_create_augroup("terminal-open", { clear = true }),
+    callback = function()
+        vim.opt.nu             = false
+        vim.opt.relativenumber = false
+    end,
 })
