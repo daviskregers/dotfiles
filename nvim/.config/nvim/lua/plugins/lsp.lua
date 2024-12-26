@@ -25,6 +25,7 @@ return {
         config = function()
             local capabilities = require("blink.cmp").get_lsp_capabilities()
             require("lspconfig").lua_ls.setup { capabilities = capabilities }
+            require("lspconfig").gopls.setup {}
 
             vim.keymap.set("n", "<leader>f", function() vim.lsp.buf.format() end)
 
