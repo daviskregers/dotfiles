@@ -9,7 +9,6 @@ alias dotupd="dotfiles_update"
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-
 (
     cd ~/.dotfiles
     if [[ `(git status --porcelain)` ]]; then
@@ -18,7 +17,6 @@ NC='\033[0m' # No Color
         printf "${RED}-------------------------------------------------------------${NC}\n"
     fi
 )
-
 
 # zsh
 alias rcs="source ~/.zshrc"
@@ -119,20 +117,6 @@ vmrss() {
         sleep 1
     done
 }
-
-## UPDATE REMINDER
-
-if [[ $ARCH != "Darwin" && $RUNNING_FROM_PROFILE != 1 ]]; then
-  FILE=/opt/update-reminder/is-offline-updates-ready
-  if test -f "$FILE"; then
-    bash $FILE
-    if [ $? -eq 0 ]; then
-      echo "Updates required. Run 'upgrade-packages' to install."
-    else
-      echo "No updates found."
-    fi
-  fi
-fi
 
 ## Screens
 
