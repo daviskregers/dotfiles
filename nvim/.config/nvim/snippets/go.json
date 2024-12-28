@@ -1,0 +1,10 @@
+{
+  "test": {
+    "prefix": "test",
+    "body": [
+      "func Test${1:Foo}(t *testing.T) {",
+      "    ${2:t.Error(\"Unimplemented\")}",
+      "}"
+    ]
+  }
+}
