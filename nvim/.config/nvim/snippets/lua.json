@@ -1,0 +1,17 @@
+{
+  "project_config_commands": {
+    "prefix": "project_config_commands",
+    "body": [
+      "CONFIG_TEST_COMMANDS = {",
+      "    [\"*\"] = {",
+      "        run = \"${1:go run main.go}\",",
+      "        test = \"${2:go test}\",",
+      "        lint = \"${3:go golangci-lint run}\",",
+      "        watch = \"${4:gowatch test}\",",
+      "        build = \"${5:go build main.go}\",",
+      "        clean = \"${6:go clean}\",",
+      "    }",
+      "}"
+    ]
+  }
+}
