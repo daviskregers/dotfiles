@@ -17,5 +17,13 @@
       "    }",
       "}"
     ]
+  },
+  "ife": {
+    "prefix": "ife",
+    "body": [
+      "if err != nil {",
+      "    ${2:log.Fatalf(\"Error encountered: %v\", err)}",
+      "}"
+    ]
   }
 }
