@@ -1,4 +1,4 @@
-eval "$(direnv hook zsh)"
+# eval "$(direnv hook zsh)"
 
 if [[ -d "$HOME/.oh-my-zsh" ]]; then
     export ZSH="$HOME/.oh-my-zsh"
@@ -17,4 +17,4 @@ source ~/.variables
 source $ZSH/oh-my-zsh.sh
 source ~/.functions
 
-neofetch
+fastfetch

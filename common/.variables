@@ -4,15 +4,6 @@
 # so we check for .variables at the end.
 ARCH=$(uname)
 
-if [[ $0 =~ ^.*\.variables$ ]]; then
-    if [ $ARCH = "Linux" ] ; then
-        dir=$(readlink -f "$0")
-    else
-        dir=$(readlink "$0")
-    fi
-    export DOTFILES="$(dirname $dir)"
-fi
-
 if [[ -f ~/.edurioalias ]]; then
   source ~/.edurioalias
 fi
@@ -56,10 +47,6 @@ PATH=/opt/update-reminder:$PATH
 PATH=/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH
 PATH=$(go env GOBIN):$(go env GOPATH)/bin:$PATH
 
-export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
-
 # pnpm
 export PNPM_HOME=$(dirname $(dirname $(pnpm store path)))
 case ":$PATH:" in
@@ -67,9 +54,6 @@ case ":$PATH:" in
   *) export PATH="$PNPM_HOME:$PATH" ;;
 esac
 # pnpm end
-
-# bun completions
-[ -s "$HOME/.bun/_bun" ] && source "$HOME/.bun/_bun"
 
 # OTHER
 export COMPOSE_DOCKER_CLI_BUILD=1
@@ -79,38 +63,4 @@ export QT_QPA_PLATFORMTHEME="qt5ct"
 export REDSHIFT_LOCATION=56.946285:24.105078
 export SAM_CLI_TELEMETRY=0
 
-# NVM
-export NVM_DIR="$HOME/.nvm"
-[ -s "/opt/homebrew/opt/nvm/nvm.sh" ] && \. "/opt/homebrew/opt/nvm/nvm.sh"  # This loads nvm
-[ -s "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/opt/homebrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
-
-# OVERRIDES
-# source $DOTFILES/.overrides
-
 [ "$XDG_CURRENT_DESKTOP" = "KDE" ] || [ "$XDG_CURRENT_DESKTOP" = "GNOME" ] || export QT_QPA_PLATFORMTHEME="qt5ct"
-
-# bun completions
-[ -s "/Users/daviskregers/.bun/_bun" ] && source "/Users/daviskregers/.bun/_bun"
-
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-
-# bun
-export BUN_INSTALL="$HOME/.bun"
-export PATH="$BUN_INSTALL/bin:$PATH"
-
-# bun completions
-[ -s "/Users/daviskregers/.bun/_bun" ] && source "/Users/daviskregers/.bun/_bun"
