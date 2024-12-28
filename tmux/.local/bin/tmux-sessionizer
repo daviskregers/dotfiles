@@ -4,30 +4,30 @@
 if [[ $# -eq 1 ]]; then
     selected=$1
 else
-    default_directories="~/projects/* ~/.homesick/repos"
+    default_directories="~/projects/* ~/.dotfiles"
     find_args="-mindepth 1 -maxdepth 1 -type d | fzf"
-    indexed_projects=$(while IFS= read -r line; do
-        echo -n "~/projects/$line "
-    done < "$HOME/projects/.project-directory-index")
-    $indexed_projects="${indexed_projects%" "}"
-
-    selected=$(eval "find $default_directories $indexed_projects $find_args")
+    selected=$(eval "find $default_directories $find_args")
 fi
 
 if [[ -z $selected ]]; then
+    echo "nothing selected"
     exit 0
 fi
 
 selected_name=$(basename "$selected" | tr . _)
 tmux_running=$(pgrep tmux)
 
+echo "SELECTED: $selected, $selected_name"
+
 if [[ -z $TMUX ]] && [[ -z $tmux_running ]]; then
     tmux new-session -s $selected_name -c $selected
+    echo "Created session $selected_name, $selected"
     exit 0
 fi
 
-if ! tmux has-session -t=$selected_name 2> /dev/null; then
+if ! tmux has-session -t $selected_name 2> /dev/null; then
     tmux new-session -ds $selected_name -c $selected
+    echo "Added session $selected_name, $selected"
 fi
 
 tmux switch-client -t $selected_name
