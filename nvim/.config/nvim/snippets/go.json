@@ -6,5 +6,16 @@
       "    ${2:t.Error(\"Unimplemented\")}",
       "}"
     ]
+  },
+  "setup": {
+    "prefix": "setup",
+    "body": [
+      "func setup${1:TestCase}(t *testing.T) func(t *testing.T) {",
+      "    ${2:t.Log(\"setup sub test\")}",
+      "    return func(t *testing.T) {",
+      "        ${3:t.Log(\"teardown sub test\")}",
+      "    }",
+      "}"
+    ]
   }
 }
