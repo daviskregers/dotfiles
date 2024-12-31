@@ -5,6 +5,7 @@ alias ls="ls --color=auto"
 alias l="ls -lah --color=auto"
 alias shdn="shutdown now"
 alias dotupd="dotfiles_update"
+alias vim="nvim"
 
 RED='\033[0;31m'
 NC='\033[0m' # No Color
