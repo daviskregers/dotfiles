@@ -1,2 +1,6 @@
 home/.config/nvim/plugin/
 gtk/.config/gtk-3.0/bookmarks
+tmux/.tmux/plugins/*
+!tmux/.tmux/plugins/tpm
+
+*.swp
