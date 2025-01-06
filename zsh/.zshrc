@@ -1,9 +1,9 @@
 # eval "$(direnv hook zsh)"
 
-if [[ -d "$HOME/.oh-my-zsh" ]]; then
-    export ZSH="$HOME/.oh-my-zsh"
-else
+if [[ -d "/usr/share/oh-my-zsh" ]]; then
     export ZSH="/usr/share/oh-my-zsh"
+else
+    export ZSH="$HOME/.oh-my-zsh"
 fi
 
 if [[ -d "$HOME/.oh-my-zsh-custom" ]]; then
