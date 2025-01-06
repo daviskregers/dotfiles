@@ -20,12 +20,26 @@ return {
                     }
                 }
             },
-            "saghen/blink.cmp"
+            "saghen/blink.cmp",
+            "williamboman/mason.nvim",
+            "williamboman/mason-lspconfig.nvim",
         },
         config = function()
             local capabilities = require("blink.cmp").get_lsp_capabilities()
-            require("lspconfig").lua_ls.setup { capabilities = capabilities }
-            require("lspconfig").gopls.setup {}
+            local lspconfig = require("lspconfig")
+
+            require("mason").setup()
+            require("mason-lspconfig").setup()
+            require("mason-lspconfig").setup_handlers {
+                function(server_name) -- default handler (optional)
+                    require("lspconfig")[server_name].setup {}
+                end,
+            }
+
+
+            lspconfig.lua_ls.setup { capabilities = capabilities }
+            lspconfig.gopls.setup {}
+            lspconfig.intelephense.setup {}
 
             vim.keymap.set("n", "<leader>f", function() vim.lsp.buf.format() end)
 
@@ -64,5 +78,17 @@ return {
                 end
             })
         end
-    }
+    },
+    {
+        'https://git.sr.ht/~whynothugo/lsp_lines.nvim',
+        config = function()
+            require('lsp_lines').setup()
+            vim.keymap.set(
+                '',
+                '<Leader>dl',
+                require('lsp_lines').toggle,
+                { desc = 'Toggle lsp_lines' }
+            )
+        end,
+    },
 }
