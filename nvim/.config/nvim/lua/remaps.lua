@@ -37,7 +37,7 @@ vim.keymap.set("n", "]t", ":lua require('trouble').next({skip_groups = true, jum
     { desc = "Next trouble item" })
 
 -- terminals
-vim.keymap.set("n", "<leader>tf", "<cmd>ToggleFloatingTerminal<CR>", { desc = "Scratch terminal" })
+vim.keymap.set("n", "<leader>tS", "<cmd>ToggleFloatingTerminal<CR>", { desc = "Scratch terminal" })
 vim.keymap.set("n", "<leader>tg", "<cmd>ToggleGitTerminal<CR>", { desc = "LazyGit" })
 vim.keymap.set("n", "<leader>ts", "<cmd>ToggleScratchTerminal<CR>", { desc = "Scratch terminal" })
 
