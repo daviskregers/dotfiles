@@ -4,12 +4,13 @@
     "body": [
       "CONFIG_TEST_COMMANDS = {",
       "    [\"*\"] = {",
-      "        run = \"${1:go run .}\",",
-      "        test = \"${2:go test -v}\",",
+      "        build = \"${1:go build .}\",",
+      "        clean = \"${2:go clean}\",",
       "        lint = \"${3:go golangci-lint run}\",",
-      "        watch = \"${4:gowatch test}\",",
-      "        build = \"${5:go build .}\",",
-      "        clean = \"${6:go clean}\",",
+      "        run = \"${4:go run .}\",",
+      "        test = \"${5:go test -v}\",",
+      "        watch = \"${6:gowatch test}\",",
+      "        format = \"${7:go fmt .}\",",
       "    }",
       "}"
     ]

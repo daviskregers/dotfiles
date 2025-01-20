@@ -163,12 +163,13 @@ vim.api.nvim_create_autocmd('User', {
         end
 
         local types = {
-            { "e", "test" },
-            { "l", "lint" },
-            { "w", "watch" },
-            { "r", "run" },
             { "b", "build" },
             { "c", "clean" },
+            { "e", "test" },
+            { "f", "format" },
+            { "l", "lint" },
+            { "r", "run" },
+            { "w", "watch" },
         }
 
         for filetype, commands in pairs(defaultTestCommands) do
