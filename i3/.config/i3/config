@@ -34,7 +34,7 @@ exec --no-startup-id xss-lock --transfer-sleep-lock -- i3lock --nofork
 # and nm-applet is a desktop environment-independent system tray GUI for it.
 exec --no-startup-id nm-applet
 
-exec setxkbmap lv -variant apostrophe
+exec --no-startup-id setxkbmap lv -variant apostrophe
 
 set $i3status_command notify-send starting i3status && i3status -c ~/.config/i3status/config
 set $refresh_i3status killall -SIGUSR1 $i3status_command
