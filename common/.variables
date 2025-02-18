@@ -53,6 +53,7 @@ export NVM_DIR="$HOME/.nvm"
 
 # pnpm
 export PNPM_HOME=$(dirname $(dirname $(pnpm store path)))
+export COREPACK_ENABLE_AUTO_PIN=0
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
   *) export PATH="$PNPM_HOME:$PATH" ;;
@@ -66,5 +67,6 @@ export DOTFILES_ENABLE_KEYPAD="on"
 export QT_QPA_PLATFORMTHEME="qt5ct"
 export REDSHIFT_LOCATION=56.946285:24.105078
 export SAM_CLI_TELEMETRY=0
+
 
 [ "$XDG_CURRENT_DESKTOP" = "KDE" ] || [ "$XDG_CURRENT_DESKTOP" = "GNOME" ] || export QT_QPA_PLATFORMTHEME="qt5ct"
