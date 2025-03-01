@@ -1,0 +1,25 @@
+{
+  "laravel_factory_class": {
+    "prefix": "larafac",
+    "body": [
+      "class ${1:Post}Factory extends Factory",
+      "{",
+      "    protected \\$model = ${1:Post}::class;",
+      "    public function definition(): array",
+      "    {",
+      "        return [",
+      "        ];",
+      "    }",
+      "}"
+    ]
+  },
+  "laravel_model_factory": {
+    "prefix": "laramfac",
+    "body": [
+      "protected static function newFactory()",
+      "{",
+      "    return ${1:PostFactory}::new();",
+      "}"
+    ]
+  }
+}
