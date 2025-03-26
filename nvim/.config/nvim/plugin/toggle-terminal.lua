@@ -104,7 +104,7 @@ vim.api.nvim_create_user_command("RunScratchCommand", function(args)
         toggle_scratch_terminal()
     end
 
-    vim.fn.chansend(state.scratch.job_id, { command .. " \r\n" })
+    vim.fn.chansend(state.scratch.job_id, { command, "" })
 end, {
     nargs = 1,
 })
