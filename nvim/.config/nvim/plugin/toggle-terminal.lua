@@ -147,13 +147,13 @@ vim.api.nvim_create_autocmd('User', {
     pattern = 'ConfigLocalFinished',
     callback = function()
         if CONFIG_TEST_COMMANDS ~= nil then
-            print('Overriding test commands')
-            print(vim.inspect(CONFIG_TEST_COMMANDS))
+            -- print('Overriding test commands')
+            -- print(vim.inspect(CONFIG_TEST_COMMANDS))
             for filetype, commands in pairs(CONFIG_TEST_COMMANDS) do
-                print(string.format('Overriding test commands for %s', filetype))
-                print(vim.inspect(commands))
+                -- print(string.format('Overriding test commands for %s', filetype))
+                -- print(vim.inspect(commands))
                 for command, value in pairs(commands) do
-                    print(string.format('[%s] Overriding %s with %s', filetype, command, value))
+                    -- print(string.format('[%s] Overriding %s with %s', filetype, command, value))
                     if defaultTestCommands[filetype] == nil then
                         defaultTestCommands[filetype] = {}
                     end
