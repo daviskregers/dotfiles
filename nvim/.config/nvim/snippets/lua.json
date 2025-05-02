@@ -8,7 +8,7 @@
       "        clean = \"${2:go clean}\",",
       "        lint = \"${3:go golangci-lint run}\",",
       "        run = \"${4:go run .}\",",
-      "        test = \"${5:go test -v}\",",
+      "        test = \"${5:go test -v ./...}\",",
       "        watch = \"${6:gowatch test}\",",
       "        format = \"${7:go fmt .}\",",
       "    }",
