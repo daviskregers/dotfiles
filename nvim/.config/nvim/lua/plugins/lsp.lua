@@ -29,13 +29,9 @@ return {
             local lspconfig = require("lspconfig")
 
             require("mason").setup()
-            require("mason-lspconfig").setup()
-            require("mason-lspconfig").setup_handlers {
-                function(server_name) -- default handler (optional)
-                    require("lspconfig")[server_name].setup {}
-                end,
+            require("mason-lspconfig").setup {
+                automatic_enable = true,
             }
-
 
             lspconfig.lua_ls.setup { capabilities = capabilities }
             lspconfig.gopls.setup {}
