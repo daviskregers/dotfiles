@@ -8,7 +8,7 @@ return {
         build = ":TSUpdate",
         config = function()
             require 'nvim-treesitter.configs'.setup {
-                ensure_installed = { "c", "lua", "vim", "vimdoc", "query", "markdown", "markdown_inline" },
+                ensure_installed = { "c", "lua", "vim", "vimdoc", "query", "markdown", "markdown_inline", "python" },
                 sync_install = false,
                 ignore_install = {},
                 auto_install = false,
@@ -33,6 +33,10 @@ return {
                     },
                 },
             }
+
+            vim.cmd([[
+              autocmd BufNewFile,BufRead Tiltfile set filetype=starlark
+            ]])
 
             -- vim.cmd [[ hi @function.builtin.lua guifg=pink ]]
         end
