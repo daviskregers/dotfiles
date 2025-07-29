@@ -58,7 +58,7 @@ vim.cmd([[
 
 local colorcolumn   = require('custom.colorcolumn')
 vim.opt.colorcolumn = colorcolumn.colorcolumn
-vim.opt.textwidth   = colorcolumn.textwidth
+-- vim.opt.textwidth   = colorcolumn.textwidth
 
 vim.api.nvim_create_augroup("Tiltfile", { clear = true })
 vim.api.nvim_create_autocmd({ "BufNewFile", "BufRead" }, {
