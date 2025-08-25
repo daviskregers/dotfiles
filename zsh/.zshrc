@@ -18,3 +18,6 @@ source $ZSH/oh-my-zsh.sh
 source ~/.functions
 
 fastfetch
+
+# opencode
+export PATH=/Users/daviskregers/.opencode/bin:$PATH
