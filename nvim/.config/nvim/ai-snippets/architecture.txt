@@ -1,0 +1,54 @@
+# Design Pattern Suggestion
+Please analyze this code and suggest appropriate design patterns:
+- Identify current patterns (if any)
+- Recommend better patterns for the use case
+- Explain benefits of suggested patterns
+- Provide refactoring guidance
+- Consider maintainability and extensibility
+
+# Architecture Review
+Please review this code's architecture and suggest improvements:
+- Analyze component separation and responsibilities
+- Identify tight coupling or dependencies
+- Suggest better abstraction layers
+- Recommend modularization strategies
+- Consider scalability implications
+
+When reviewing code architecture:
+1. Create a todo list for systematic analysis
+2. Prioritize security and reliability concerns first
+3. Look for code duplication and opportunities for extraction
+4. Consider maintainability alongside performance
+5. Reference specific functions/lines when making suggestions
+
+# API Design
+Please help design or improve the API for this code:
+- Define clear interface contracts
+- Consider usability and developer experience
+- Suggest appropriate abstractions
+- Design error handling strategies
+- Consider backward compatibility
+
+# Database Schema Review
+Please review this database-related code and suggest improvements:
+- Analyze query efficiency
+- Suggest indexing strategies
+- Review data normalization
+- Consider transaction boundaries
+- Recommend caching strategies
+
+# Microservices Design
+Please analyze this code from a microservices perspective:
+- Identify service boundaries
+- Suggest communication patterns
+- Consider data consistency strategies
+- Recommend deployment approaches
+- Analyze fault tolerance needs
+
+# Analyze Current File
+Please analyze the current file {{filepath}} and explain:
+- Its role in the overall architecture
+- How it fits with other components  
+- Design patterns used
+- Potential improvements
+- Dependencies and relationships
