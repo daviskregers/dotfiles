@@ -1,0 +1,96 @@
+# Code Review
+Please review this code from {{location}} for potential issues, bugs, and improvements. Focus on:
+- Logic errors and edge cases
+- Performance optimizations  
+- Code clarity and maintainability
+- Security considerations
+
+Use this systematic approach:
+1. Create a todo list with specific issues found
+2. Prioritize security issues first, then critical bugs, then performance/maintainability
+3. Work through issues one by one with clear progress tracking
+4. Reference specific line numbers when identifying problems
+5. Apply fixes systematically and verify improvements
+
+{{selection}}
+
+# Add Documentation
+Please add comprehensive documentation to this {{filetype}} code in {{filepath}}:
+
+{{selection}}
+
+Include:
+- Function/method descriptions
+- Parameter explanations
+- Return value descriptions
+- Usage examples
+- Any important notes or warnings
+
+# Refactor for Readability
+Please refactor this code to improve readability while maintaining the same functionality. Focus on:
+- Clear variable and function names
+- Proper code organization
+- Reducing complexity
+- Following best practices
+
+# Optimize Performance
+Please analyze this code for performance improvements. Consider:
+- Algorithm efficiency
+- Memory usage
+- I/O operations
+- Caching opportunities
+- Bottleneck identification
+
+# Add Error Handling
+Please improve the error handling in this code by:
+- Adding appropriate try-catch blocks
+- Validating input parameters
+- Providing meaningful error messages
+- Handling edge cases gracefully
+- Following error handling best practices
+
+# Security Audit
+Please perform a comprehensive security audit of this code. Check for:
+- Input validation and sanitization
+- Path traversal vulnerabilities
+- Command injection risks
+- Arbitrary code execution possibilities
+- File access controls
+- Buffer/memory safety issues
+- Authentication/authorization bypasses
+
+Prioritize security fixes above all other improvements.
+
+# Systematic Debugging
+When debugging this code issue:
+1. Create a todo list to track investigation steps
+2. Identify the specific problem with line number references
+3. Trace through the execution flow step by step
+4. Test edge cases and boundary conditions
+5. Apply fixes incrementally with verification
+6. Document the root cause and solution
+
+# Comprehensive Code Analysis
+Please perform a comprehensive analysis of this codebase following this methodology:
+
+**Phase 1: Issue Identification**
+1. Create a todo list for tracking all findings
+2. Scan for security vulnerabilities (highest priority)
+3. Identify logic errors and edge cases
+4. Find performance bottlenecks
+5. Note maintainability issues
+
+**Phase 2: Systematic Fixes**  
+1. Work through todo list in priority order: Security → Bugs → Performance → Maintainability
+2. Reference specific line numbers for each issue
+3. Apply fixes one by one with verification
+4. Update todo status as work progresses
+5. Test edge cases after each fix
+
+**Phase 3: Final Review**
+1. Verify all critical issues are resolved
+2. Document any remaining non-critical improvements
+3. Assess overall code quality improvements
+4. Provide summary of changes made
+
+This approach ensures thorough, prioritized, and trackable code improvements.
