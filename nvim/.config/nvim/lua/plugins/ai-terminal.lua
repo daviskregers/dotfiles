@@ -4,6 +4,21 @@ return {
         dir = vim.fn.stdpath("config"),
         name = "ai-terminal",
         config = function()
+            -- Utility function to escape terminal input
+            local function escape_terminal_input(input)
+                if not input or type(input) ~= "string" then
+                    return ""
+                end
+                
+                -- Remove control characters except newlines and tabs
+                input = input:gsub("[\1-\8\11-\12\14-\31\127]", "")
+                
+                -- Escape terminal escape sequences
+                input = input:gsub("\27", "")  -- Remove ESC character
+                
+                return input
+            end
+
             -- State management for AI client terminals
             local ai_state = {
                 claude = {
@@ -547,21 +562,6 @@ return {
                 file_mtimes = {},
                 last_check_time = 0
             }
-
-            -- Utility function to escape terminal input
-            local function escape_terminal_input(input)
-                if not input or type(input) ~= "string" then
-                    return ""
-                end
-                
-                -- Remove control characters except newlines and tabs
-                input = input:gsub("[\1-\8\11-\12\14-\31\127]", "")
-                
-                -- Escape terminal escape sequences
-                input = input:gsub("\27", "")  -- Remove ESC character
-                
-                return input
-            end
 
             -- Utility function to sanitize file paths
             local function sanitize_file_path(path, base_dir)
