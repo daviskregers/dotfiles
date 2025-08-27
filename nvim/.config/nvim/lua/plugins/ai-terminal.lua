@@ -9,13 +9,13 @@ return {
                 if not input or type(input) ~= "string" then
                     return ""
                 end
-                
+
                 -- Remove control characters except newlines and tabs
                 input = input:gsub("[\1-\8\11-\12\14-\31\127]", "")
-                
+
                 -- Escape terminal escape sequences
-                input = input:gsub("\27", "")  -- Remove ESC character
-                
+                input = input:gsub("\27", "") -- Remove ESC character
+
                 return input
             end
 
@@ -106,7 +106,7 @@ return {
 
             -- Toggle Cursor Agent terminal
             local function toggle_cursor_agent_terminal()
-                toggle_ai_terminal("cursor_agent", nil) -- Will just open a regular terminal for now
+                toggle_ai_terminal("cursor_agent", "cursor-agent") -- Will just open a regular terminal for now
             end
 
             -- Multiline Input Function
@@ -114,14 +114,14 @@ return {
                 opts = opts or {}
                 local prompt = opts.prompt or "Enter text:"
                 local default = opts.default or ""
-                
+
                 -- Create a floating window for multiline input
                 local buf = vim.api.nvim_create_buf(false, true)
                 local width = math.min(80, vim.o.columns - 10)
                 local height = math.min(20, vim.o.lines - 10)
                 local row = math.floor((vim.o.lines - height) / 2)
                 local col = math.floor((vim.o.columns - width) / 2)
-                
+
                 local win = vim.api.nvim_open_win(buf, true, {
                     relative = "editor",
                     width = width,
@@ -132,18 +132,18 @@ return {
                     title = " " .. prompt .. " ",
                     title_pos = "center",
                 })
-                
+
                 -- Set buffer options
                 vim.bo[buf].buftype = "nofile"
-                vim.bo[buf].filetype = "markdown"  -- For syntax highlighting
-                
+                vim.bo[buf].filetype = "markdown" -- For syntax highlighting
+
                 -- Add instructions and default content
                 local instructions = {
                     "-- " .. prompt,
                     "-- Press Ctrl+S to submit, Ctrl+C or Esc to cancel",
                     "",
                 }
-                
+
                 if default ~= "" then
                     local default_lines = vim.split(default, "\n")
                     for _, line in ipairs(default_lines) do
@@ -152,29 +152,29 @@ return {
                 else
                     table.insert(instructions, "")
                 end
-                
+
                 vim.api.nvim_buf_set_lines(buf, 0, -1, false, instructions)
-                
+
                 -- Position cursor after instructions
-                vim.api.nvim_win_set_cursor(win, {#instructions, 0})
-                
+                vim.api.nvim_win_set_cursor(win, { #instructions, 0 })
+
                 -- Set up keymaps for the input window
                 local function submit()
                     local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
-                    
+
                     -- Remove instruction lines (first 3 lines)
                     local content_lines = {}
                     for i = 4, #lines do
                         table.insert(content_lines, lines[i])
                     end
-                    
+
                     -- Remove trailing empty lines
                     while #content_lines > 0 and content_lines[#content_lines] == "" do
                         table.remove(content_lines)
                     end
-                    
+
                     local content = table.concat(content_lines, "\n")
-                    
+
                     -- Safely close window and cleanup buffer
                     pcall(function()
                         if vim.api.nvim_win_is_valid(win) then
@@ -186,7 +186,7 @@ return {
                             vim.api.nvim_buf_delete(buf, { force = true })
                         end
                     end)
-                    
+
                     -- Call callback with content
                     if content ~= "" then
                         callback(content)
@@ -194,7 +194,7 @@ return {
                         callback(nil)
                     end
                 end
-                
+
                 local function cancel()
                     -- Safely close window and cleanup buffer
                     pcall(function()
@@ -209,12 +209,12 @@ return {
                     end)
                     callback(nil)
                 end
-                
+
                 -- Set up key mappings for the input buffer
-                vim.keymap.set({"n", "i"}, "<C-s>", submit, { buffer = buf, nowait = true })
-                vim.keymap.set({"n", "i"}, "<C-c>", cancel, { buffer = buf, nowait = true })
+                vim.keymap.set({ "n", "i" }, "<C-s>", submit, { buffer = buf, nowait = true })
+                vim.keymap.set({ "n", "i" }, "<C-c>", cancel, { buffer = buf, nowait = true })
                 vim.keymap.set("n", "<Esc>", cancel, { buffer = buf, nowait = true })
-                
+
                 -- Start in insert mode at the end of the buffer
                 vim.cmd("startinsert")
             end
@@ -276,31 +276,32 @@ return {
                     end
 
                     -- Format the message to send to AI terminal
-                    local file_path = vim.fn.expand('%:.')  -- Relative path from current working directory
-                    local file_name = vim.fn.expand('%:t')  -- Just the filename
+                    local file_path = vim.fn.expand('%:.') -- Relative path from current working directory
+                    local file_name = vim.fn.expand('%:t') -- Just the filename
                     local start_line = start_pos[2]
                     local end_line = end_pos[2]
-                    
+
                     local location_info
                     if start_line == end_line then
                         location_info = string.format("From %s:%d", file_path, start_line)
                     else
                         location_info = string.format("From %s:%d-%d", file_path, start_line, end_line)
                     end
-                    
-                    local message = string.format("%s\n\n```%s\n%s\n```\n\n%s", location_info, vim.bo.filetype, selected_code, prompt)
+
+                    local message = string.format("%s\n\n```%s\n%s\n```\n\n%s", location_info, vim.bo.filetype,
+                        selected_code, prompt)
 
                     -- Store current window for later restoration
                     local current_win = vim.api.nvim_get_current_win()
-                    
+
                     -- Switch to terminal window and handle focus properly
                     vim.api.nvim_set_current_win(client.win)
-                    
+
                     -- Use vim.schedule to ensure proper timing for terminal operations
                     vim.schedule(function()
                         -- Enter insert mode in terminal
                         vim.cmd('startinsert')
-                        
+
                         -- Send message with appropriate delay for Claude vs other terminals
                         vim.defer_fn(function()
                             if active == "claude" then
@@ -354,20 +355,20 @@ return {
                     end
 
                     -- Format the message to send to AI terminal
-                    local file_path = vim.fn.expand('%:.')  -- Relative path from current working directory
+                    local file_path = vim.fn.expand('%:.') -- Relative path from current working directory
                     local message = string.format("Working with file: %s\n\n%s", file_path, prompt)
 
                     -- Store current window for later restoration
                     local current_win = vim.api.nvim_get_current_win()
-                    
+
                     -- Switch to terminal window and handle focus properly
                     vim.api.nvim_set_current_win(client.win)
-                    
+
                     -- Use vim.schedule to ensure proper timing for terminal operations
                     vim.schedule(function()
                         -- Enter insert mode in terminal
                         vim.cmd('startinsert')
-                        
+
                         -- Send message with appropriate delay for Claude vs other terminals
                         vim.defer_fn(function()
                             if active == "claude" then
@@ -421,25 +422,25 @@ return {
                     end
 
                     -- Format the message to send to AI terminal
-                    local file_path = vim.fn.expand('%:.')  -- Relative path from current working directory
+                    local file_path = vim.fn.expand('%:.') -- Relative path from current working directory
                     local message = string.format("Working with file: %s\n\n%s\n\n", file_path, prompt)
 
                     -- Store current window for later restoration
                     local current_win = vim.api.nvim_get_current_win()
-                    
+
                     -- Switch to terminal window and handle focus properly
                     vim.api.nvim_set_current_win(client.win)
-                    
+
                     -- Use vim.schedule to ensure proper timing for terminal operations
                     vim.schedule(function()
                         -- Enter insert mode in terminal
                         vim.cmd('startinsert')
-                        
+
                         -- Send message without auto-submit
                         vim.defer_fn(function()
                             -- Send the message to the terminal input
                             vim.fn.chansend(client.job_id, escape_terminal_input(message))
-                            
+
                             -- Return focus to original window after sending message
                             vim.defer_fn(function()
                                 if vim.api.nvim_win_is_valid(current_win) then
@@ -510,36 +511,37 @@ return {
                     end
 
                     -- Format the message to send to AI terminal
-                    local file_path = vim.fn.expand('%:.')  -- Relative path from current working directory
-                    local file_name = vim.fn.expand('%:t')  -- Just the filename
+                    local file_path = vim.fn.expand('%:.') -- Relative path from current working directory
+                    local file_name = vim.fn.expand('%:t') -- Just the filename
                     local start_line = start_pos[2]
                     local end_line = end_pos[2]
-                    
+
                     local location_info
                     if start_line == end_line then
                         location_info = string.format("From %s:%d", file_path, start_line)
                     else
                         location_info = string.format("From %s:%d-%d", file_path, start_line, end_line)
                     end
-                    
-                    local message = string.format("%s\n\n```%s\n%s\n```\n\n%s\n\n", location_info, vim.bo.filetype, selected_code, prompt)
+
+                    local message = string.format("%s\n\n```%s\n%s\n```\n\n%s\n\n", location_info, vim.bo.filetype,
+                        selected_code, prompt)
 
                     -- Store current window for later restoration
                     local current_win = vim.api.nvim_get_current_win()
-                    
+
                     -- Switch to terminal window and handle focus properly
                     vim.api.nvim_set_current_win(client.win)
-                    
+
                     -- Use vim.schedule to ensure proper timing for terminal operations
                     vim.schedule(function()
                         -- Enter insert mode in terminal
                         vim.cmd('startinsert')
-                        
+
                         -- Send message without auto-submit
                         vim.defer_fn(function()
                             -- Send the message to the terminal input
                             vim.fn.chansend(client.job_id, escape_terminal_input(message))
-                            
+
                             -- Return focus to original window after sending message
                             vim.defer_fn(function()
                                 if vim.api.nvim_win_is_valid(current_win) then
@@ -551,7 +553,7 @@ return {
 
                     print("Code added to " .. active .. " terminal (not submitted)")
                 end)
-                
+
                 -- Clear visual selection by pressing escape
                 vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", false)
             end
@@ -568,34 +570,34 @@ return {
                 if not path or type(path) ~= "string" then
                     return nil
                 end
-                
+
                 -- Remove any null bytes
                 path = path:gsub("%z", "")
-                
+
                 -- Normalize path separators
                 path = path:gsub("\\", "/")
-                
+
                 -- Remove any path traversal attempts
                 path = path:gsub("%.%./", "")
                 path = path:gsub("%.%.", "")
-                
+
                 -- Ensure the path doesn't start with /
                 if path:match("^/") then
                     return nil
                 end
-                
+
                 -- Build full path
                 local full_path = base_dir .. "/" .. path
-                
+
                 -- Resolve to absolute path and ensure it's within base directory
                 local resolved_path = vim.fn.resolve(full_path)
                 local resolved_base = vim.fn.resolve(base_dir)
-                
+
                 -- Check if the resolved path starts with the resolved base directory
                 if not resolved_path:find("^" .. vim.pesc(resolved_base)) then
                     return nil
                 end
-                
+
                 return resolved_path
             end
 
@@ -621,7 +623,7 @@ return {
                                 -- Single pass trim: remove leading and trailing whitespace
                                 snippets[current_snippet] = content:match("^%s*(.-)%s*$") or content
                             end
-                            
+
                             -- Start new snippet
                             current_snippet = line:match("^#%s+(.+)")
                             current_content = {}
@@ -640,44 +642,45 @@ return {
                 end)
 
                 file:close()
-                
+
                 if not success then
-                    vim.notify("Error parsing snippet file " .. filepath .. ": " .. tostring(result), vim.log.levels.ERROR)
+                    vim.notify("Error parsing snippet file " .. filepath .. ": " .. tostring(result),
+                        vim.log.levels.ERROR)
                 end
-                
+
                 return snippets
             end
 
             local function load_global_snippets()
                 local current_time = vim.loop.hrtime()
                 local cache_ttl = 5 * 1e9 -- 5 seconds in nanoseconds
-                
+
                 -- Check if cache is still valid (not older than TTL)
                 if current_time - snippet_cache.last_check_time < cache_ttl then
                     return snippet_cache.global_snippets
                 end
-                
+
                 local snippets = {}
                 local ai_snippets_dir = vim.fn.stdpath("config") .. "/ai-snippets"
                 local needs_update = false
-                
+
                 -- Get all .txt files in the ai-snippets directory
                 local files = vim.fn.glob(ai_snippets_dir .. "/*.txt", false, true)
-                
+
                 for _, filepath in ipairs(files) do
                     local stat = vim.loop.fs_stat(filepath)
                     local cached_mtime = snippet_cache.file_mtimes[filepath]
-                    
+
                     -- Check if file was modified since last cache
                     if not stat or not cached_mtime or stat.mtime.sec ~= cached_mtime then
                         needs_update = true
                         if stat then
                             snippet_cache.file_mtimes[filepath] = stat.mtime.sec
                         end
-                        
+
                         local file_snippets = parse_snippet_file(filepath)
                         local category = vim.fn.fnamemodify(filepath, ":t:r") -- Get filename without extension
-                        
+
                         for name, content in pairs(file_snippets) do
                             snippets[name] = {
                                 content = content,
@@ -687,7 +690,7 @@ return {
                         end
                     end
                 end
-                
+
                 -- If any files were updated, rebuild cache; otherwise return cached version
                 if needs_update then
                     -- Rebuild entire cache since we need consistent state
@@ -695,7 +698,7 @@ return {
                     for _, filepath in ipairs(files) do
                         local file_snippets = parse_snippet_file(filepath)
                         local category = vim.fn.fnamemodify(filepath, ":t:r")
-                        
+
                         for name, content in pairs(file_snippets) do
                             snippets[name] = {
                                 content = content,
@@ -704,19 +707,19 @@ return {
                             }
                         end
                     end
-                    
+
                     snippet_cache.global_snippets = snippets
                     snippet_cache.last_check_time = current_time
                 else
                     snippets = snippet_cache.global_snippets
                 end
-                
+
                 return snippets
             end
 
             local function load_project_snippets()
                 local snippets = {}
-                
+
                 -- Check if AI_SNIPPETS is defined in the global scope (from .nvim.lua)
                 if _G.AI_SNIPPETS and type(_G.AI_SNIPPETS) == "table" then
                     for name, content in pairs(_G.AI_SNIPPETS) do
@@ -727,25 +730,25 @@ return {
                         }
                     end
                 end
-                
+
                 return snippets
             end
 
             local function load_all_snippets()
                 local snippets = {}
-                
+
                 -- Load global snippets
                 local global_snippets = load_global_snippets()
                 for name, snippet_data in pairs(global_snippets) do
                     snippets[name] = snippet_data
                 end
-                
+
                 -- Load project snippets (they take precedence for same names)
                 local project_snippets = load_project_snippets()
                 for name, snippet_data in pairs(project_snippets) do
                     snippets[name] = snippet_data
                 end
-                
+
                 return snippets
             end
 
@@ -763,21 +766,21 @@ return {
             -- Process placeholders in snippet content
             local function process_placeholders(content, context)
                 context = context or {}
-                
+
                 -- Get current file information
                 local filepath = vim.fn.expand('%:.')
                 local filename = vim.fn.expand('%:t')
                 local filetype = vim.bo.filetype
-                
+
                 -- Replace placeholders
                 content = content:gsub("{{filepath}}", filepath)
                 content = content:gsub("{{filename}}", filename)
                 content = content:gsub("{{filetype}}", filetype)
-                
+
                 -- Handle selection-based placeholders
                 if context.selection then
                     content = content:gsub("{{selection}}", context.selection)
-                    
+
                     if context.location then
                         content = content:gsub("{{location}}", context.location)
                     end
@@ -786,7 +789,7 @@ return {
                     content = content:gsub("{{selection}}", "")
                     content = content:gsub("{{location}}", filepath)
                 end
-                
+
                 return content
             end
 
@@ -804,7 +807,7 @@ return {
 
                 local snippets = load_all_snippets()
                 local snippet_data = snippets[snippet_name]
-                
+
                 if not snippet_data then
                     print("Snippet '" .. snippet_name .. "' not found")
                     return
@@ -814,20 +817,20 @@ return {
 
                 -- Store current window for later restoration
                 local current_win = vim.api.nvim_get_current_win()
-                
+
                 -- Switch to terminal window and handle focus properly
                 vim.api.nvim_set_current_win(client.win)
-                
+
                 -- Use vim.schedule to ensure proper timing for terminal operations
                 vim.schedule(function()
                     -- Enter insert mode in terminal
                     vim.cmd('startinsert')
-                    
+
                     -- Send snippet content without auto-submit
                     vim.defer_fn(function()
                         -- Send the snippet content to the terminal input
                         vim.fn.chansend(client.job_id, escape_terminal_input(content))
-                        
+
                         -- Return focus to original window after sending content
                         vim.defer_fn(function()
                             if vim.api.nvim_win_is_valid(current_win) then
@@ -843,19 +846,18 @@ return {
             -- Get current context for placeholders
             local function get_current_context()
                 local context = {}
-                
+
                 -- Check if there's a visual selection
                 local start_pos = vim.fn.getpos("'<")
                 local end_pos = vim.fn.getpos("'>")
-                
-                if start_pos[2] ~= 0 and end_pos[2] ~= 0 and 
-                   (start_pos[2] ~= end_pos[2] or start_pos[3] ~= end_pos[3]) then
-                    
+
+                if start_pos[2] ~= 0 and end_pos[2] ~= 0 and
+                    (start_pos[2] ~= end_pos[2] or start_pos[3] ~= end_pos[3]) then
                     local lines = vim.fn.getline(start_pos[2], end_pos[2])
                     if type(lines) == "string" then
                         lines = { lines }
                     end
-                    
+
                     -- Handle partial line selections
                     if #lines > 0 then
                         if #lines == 1 then
@@ -874,21 +876,21 @@ return {
                             lines[#lines] = string.sub(lines[#lines], 1, end_col)
                         end
                     end
-                    
+
                     context.selection = table.concat(lines, "\n")
-                    
+
                     -- Create location info
                     local file_path = vim.fn.expand('%:.')
                     local start_line = start_pos[2]
                     local end_line = end_pos[2]
-                    
+
                     if start_line == end_line then
                         context.location = string.format("From %s:%d", file_path, start_line)
                     else
                         context.location = string.format("From %s:%d-%d", file_path, start_line, end_line)
                     end
                 end
-                
+
                 return context
             end
 
@@ -934,7 +936,8 @@ return {
                     previewer = require("telescope.previewers").new_buffer_previewer({
                         title = "Snippet Content",
                         define_preview = function(self, entry, status)
-                            vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, vim.split(entry.value.content, "\n"))
+                            vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false,
+                                vim.split(entry.value.content, "\n"))
                             vim.api.nvim_buf_set_option(self.state.bufnr, "filetype", "markdown")
                         end
                     }),
@@ -956,7 +959,7 @@ return {
             -- AI Snippet command function that handles both direct snippet name and picker
             local function ai_snippet_command(opts)
                 local snippet_name = opts.args
-                
+
                 if snippet_name and snippet_name ~= "" then
                     -- Direct snippet insertion with context
                     local context = get_current_context()
@@ -973,15 +976,15 @@ return {
                 local ai_snippets_dir = vim.fn.stdpath("config") .. "/ai-snippets"
                 local files = vim.fn.glob(ai_snippets_dir .. "/*.txt", false, true)
                 local categories = {}
-                
+
                 for _, filepath in ipairs(files) do
                     local category = vim.fn.fnamemodify(filepath, ":t:r")
                     table.insert(categories, category)
                 end
-                
+
                 -- Add option to create new category
                 table.insert(categories, "[Create new category]")
-                
+
                 -- Select category
                 vim.ui.select(categories, {
                     prompt = "Select category for new snippet:",
@@ -989,9 +992,9 @@ return {
                     if not selected_category then
                         return
                     end
-                    
+
                     local category = selected_category
-                    
+
                     -- Handle new category creation
                     if selected_category == "[Create new category]" then
                         vim.ui.input({
@@ -1008,12 +1011,12 @@ return {
                             end
                             category = new_category
                         end)
-                        
+
                         if not category or category == "[Create new category]" then
                             return
                         end
                     end
-                    
+
                     -- Get snippet name
                     vim.ui.input({
                         prompt = "Enter snippet name: ",
@@ -1021,14 +1024,15 @@ return {
                         if not snippet_name or snippet_name == "" then
                             return
                         end
-                        
+
                         -- Sanitize snippet name
-                        snippet_name = snippet_name:gsub("[^%w%s%-_]", ""):gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
+                        snippet_name = snippet_name:gsub("[^%w%s%-_]", ""):gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$",
+                            "")
                         if snippet_name == "" then
                             vim.notify("Error: Invalid snippet name", vim.log.levels.ERROR)
                             return
                         end
-                        
+
                         -- Get snippet content
                         multiline_input({
                             prompt = "Enter snippet content: ",
@@ -1036,7 +1040,7 @@ return {
                             if not snippet_content or snippet_content == "" then
                                 return
                             end
-                            
+
                             -- Save snippet to file (with path sanitization)
                             local sanitized_filename = sanitize_file_path(category .. ".txt", ai_snippets_dir)
                             if not sanitized_filename then
@@ -1045,7 +1049,7 @@ return {
                             end
                             local category_file = sanitized_filename
                             local file, err = io.open(category_file, "a")
-                            
+
                             if file then
                                 local success, write_err = pcall(function()
                                     -- Add newlines before the new snippet if file exists and has content
@@ -1053,20 +1057,23 @@ return {
                                     if file_stat and file_stat.size > 0 then
                                         file:write("\n\n")
                                     end
-                                    
+
                                     file:write("# " .. snippet_name .. "\n")
                                     file:write(snippet_content .. "\n")
                                 end)
-                                
+
                                 file:close()
-                                
+
                                 if success then
                                     print("Snippet '" .. snippet_name .. "' added to category '" .. category .. "'")
                                 else
-                                    vim.notify("Error writing to file " .. category_file .. ": " .. tostring(write_err), vim.log.levels.ERROR)
+                                    vim.notify("Error writing to file " .. category_file .. ": " .. tostring(write_err),
+                                        vim.log.levels.ERROR)
                                 end
                             else
-                                vim.notify("Error: Could not open file " .. category_file .. ": " .. (err or "unknown error"), vim.log.levels.ERROR)
+                                vim.notify(
+                                    "Error: Could not open file " .. category_file .. ": " .. (err or "unknown error"),
+                                    vim.log.levels.ERROR)
                             end
                         end)
                     end)
@@ -1078,7 +1085,7 @@ return {
             vim.api.nvim_create_user_command("ToggleOpenCodeTerminal", toggle_opencode_terminal, {})
             vim.api.nvim_create_user_command("ToggleCursorAgentTerminal", toggle_cursor_agent_terminal, {})
             vim.api.nvim_create_user_command("SendCodeToAI", send_code_to_ai, { range = true })
-            
+
             -- AI Snippet command with autocompletion
             vim.api.nvim_create_user_command("AISnippet", ai_snippet_command, {
                 nargs = "?",
@@ -1094,12 +1101,12 @@ return {
                 end,
                 desc = "Insert AI snippet (use without args to open picker, or specify snippet name)"
             })
-            
+
             -- Add new snippet functionality for project-specific snippets
             local function add_project_snippet()
                 -- Check if we're in a git repository or project directory
                 local nvim_config_file = vim.fn.getcwd() .. "/.nvim.lua"
-                
+
                 -- Get snippet name
                 vim.ui.input({
                     prompt = "Enter project snippet name: ",
@@ -1107,7 +1114,7 @@ return {
                     if not snippet_name or snippet_name == "" then
                         return
                     end
-                    
+
                     -- Get snippet content
                     multiline_input({
                         prompt = "Enter snippet content: ",
@@ -1115,7 +1122,7 @@ return {
                         if not snippet_content or snippet_content == "" then
                             return
                         end
-                        
+
                         -- Read existing .nvim.lua file or create new content
                         local existing_content = ""
                         local file, read_err = io.open(nvim_config_file, "r")
@@ -1125,12 +1132,14 @@ return {
                             if success and content then
                                 existing_content = content
                             else
-                                vim.notify("Error reading " .. nvim_config_file .. ": " .. tostring(content), vim.log.levels.WARN)
+                                vim.notify("Error reading " .. nvim_config_file .. ": " .. tostring(content),
+                                    vim.log.levels.WARN)
                             end
                         elseif read_err then
-                            vim.notify("Note: " .. nvim_config_file .. " does not exist, will create new file", vim.log.levels.INFO)
+                            vim.notify("Note: " .. nvim_config_file .. " does not exist, will create new file",
+                                vim.log.levels.INFO)
                         end
-                        
+
                         -- Parse or create AI_SNIPPETS table
                         local new_content
                         if existing_content:find("AI_SNIPPETS") then
@@ -1138,7 +1147,7 @@ return {
                             local before_snippets = existing_content:match("(.-)AI_SNIPPETS%s*=%s*{")
                             local after_snippets = existing_content:match("AI_SNIPPETS%s*=%s*{.-}(.*)")
                             local snippets_content = existing_content:match("AI_SNIPPETS%s*=%s*{(.-)}[^}]*$")
-                            
+
                             if before_snippets and after_snippets and snippets_content then
                                 -- Add comma if there are existing snippets
                                 local comma = snippets_content:match("%S") and "," or ""
@@ -1149,18 +1158,24 @@ return {
                                 else
                                     formatted_content = string.format('"%s"', snippet_content:gsub('"', '\\"'))
                                 end
-                                local new_snippet = string.format('%s\n  ["%s"] = %s', comma, snippet_name:gsub('"', '\\"'), formatted_content)
-                                new_content = before_snippets .. "AI_SNIPPETS = {" .. snippets_content .. new_snippet .. "\n}" .. after_snippets
+                                local new_snippet = string.format('%s\n  ["%s"] = %s', comma,
+                                    snippet_name:gsub('"', '\\"'), formatted_content)
+                                new_content = before_snippets ..
+                                    "AI_SNIPPETS = {" .. snippets_content .. new_snippet .. "\n}" .. after_snippets
                             else
                                 -- Fallback: append at the end
-                                new_content = existing_content .. string.format('\n\nAI_SNIPPETS = {\n  ["%s"] = "%s"\n}\n', snippet_name:gsub('"', '\\"'), snippet_content:gsub('"', '\\"'))
+                                new_content = existing_content ..
+                                    string.format('\n\nAI_SNIPPETS = {\n  ["%s"] = "%s"\n}\n',
+                                        snippet_name:gsub('"', '\\"'),
+                                        snippet_content:gsub('"', '\\"'))
                             end
                         else
                             -- Create new AI_SNIPPETS table
-                            local snippet_table = string.format('\nAI_SNIPPETS = {\n  ["%s"] = "%s"\n}\n', snippet_name:gsub('"', '\\"'), snippet_content:gsub('"', '\\"'))
+                            local snippet_table = string.format('\nAI_SNIPPETS = {\n  ["%s"] = "%s"\n}\n',
+                                snippet_name:gsub('"', '\\"'), snippet_content:gsub('"', '\\"'))
                             new_content = existing_content .. snippet_table
                         end
-                        
+
                         -- Write to .nvim.lua file
                         local output_file, write_err = io.open(nvim_config_file, "w")
                         if output_file then
@@ -1168,17 +1183,24 @@ return {
                                 output_file:write(new_content)
                             end)
                             output_file:close()
-                            
+
                             if success then
                                 -- Note: We don't automatically reload .nvim.lua for security reasons
                                 -- User should manually reload or restart Neovim
-                                vim.notify("Project snippet '" .. snippet_name .. "' added to .nvim.lua", vim.log.levels.INFO)
-                                vim.notify("Please reload the .nvim.lua file manually or restart Neovim to use the new snippet", vim.log.levels.INFO)
+                                vim.notify("Project snippet '" .. snippet_name .. "' added to .nvim.lua",
+                                    vim.log.levels.INFO)
+                                vim.notify(
+                                    "Please reload the .nvim.lua file manually or restart Neovim to use the new snippet",
+                                    vim.log.levels.INFO)
                             else
-                                vim.notify("Error writing to " .. nvim_config_file .. ": " .. tostring(err), vim.log.levels.ERROR)
+                                vim.notify("Error writing to " .. nvim_config_file .. ": " .. tostring(err),
+                                    vim.log.levels.ERROR)
                             end
                         else
-                            vim.notify("Error: Could not open " .. nvim_config_file .. " for writing: " .. (write_err or "unknown error"), vim.log.levels.ERROR)
+                            vim.notify(
+                                "Error: Could not open " ..
+                                nvim_config_file .. " for writing: " .. (write_err or "unknown error"),
+                                vim.log.levels.ERROR)
                         end
                     end)
                 end)
@@ -1188,7 +1210,7 @@ return {
             vim.api.nvim_create_user_command("AISnippetAdd", add_new_snippet, {
                 desc = "Add a new global AI snippet"
             })
-            
+
             -- Add new project snippet command
             vim.api.nvim_create_user_command("AISnippetAddProject", add_project_snippet, {
                 desc = "Add a new project-specific AI snippet"
@@ -1200,8 +1222,10 @@ return {
             vim.keymap.set("n", "<leader>zg", toggle_cursor_agent_terminal, { desc = "Toggle Cursor Agent terminal" })
             vim.keymap.set("n", "<leader>zs", send_file_to_ai, { desc = "Send file context to AI with prompt" })
             vim.keymap.set("v", "<leader>zs", send_code_to_ai, { desc = "Send selected code to AI with prompt" })
-            vim.keymap.set("n", "<leader>zS", send_file_to_ai_no_submit, { desc = "Send file context to AI (no auto-submit)" })
-            vim.keymap.set("v", "<leader>zS", send_code_to_ai_no_submit, { desc = "Send selected code to AI (no auto-submit)" })
+            vim.keymap.set("n", "<leader>zS", send_file_to_ai_no_submit,
+                { desc = "Send file context to AI (no auto-submit)" })
+            vim.keymap.set("v", "<leader>zS", send_code_to_ai_no_submit,
+                { desc = "Send selected code to AI (no auto-submit)" })
             vim.keymap.set("n", "<leader>zi", open_snippet_picker, { desc = "Open AI snippet picker" })
 
             -- Utility function to switch active AI client
@@ -1221,4 +1245,3 @@ return {
         end,
     }
 }
-
