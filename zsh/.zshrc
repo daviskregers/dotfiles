@@ -21,3 +21,7 @@ fastfetch
 
 # opencode
 export PATH=/Users/daviskregers/.opencode/bin:$PATH
+
+# Task Master aliases added on 9/1/2025
+alias tm='task-master'
+alias taskmaster='task-master'
