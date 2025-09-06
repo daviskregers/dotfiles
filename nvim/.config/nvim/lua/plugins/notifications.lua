@@ -43,7 +43,7 @@ return {
                 render = "default",
                 
                 -- Top-down or bottom-up
-                top_down = false,
+                top_down = true,
                 
                 -- FPS for animations
                 fps = 30,
