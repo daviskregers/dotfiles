@@ -29,7 +29,7 @@ return {
                     enable = true,             -- Enable file change detection
                     updatetime = 100,          -- updatetime when Claude Code is active (milliseconds)
                     timer_interval = 1000,     -- How often to check for file changes (milliseconds)
-                    show_notifications = true, -- Show notification when files are reloaded
+                    show_notifications = false, -- Use custom notifications instead
                 },
                 -- Git project settings
                 git = {
