@@ -89,6 +89,13 @@ Use uppercase versions (e.g., `<leader>tE`) to set additional arguments for comm
 - Auto-formatting on save (can be disabled with `CONFIG_DISABLE_FORMATTING`)
 - Custom colorcolumn configuration via `custom/colorcolumn.lua`
 
+## Tmux Integration
+The configuration integrates with tmux panes for AI and test functionality:
+- **AI Commands**: Route to `toggle_ai_tools` pane (found by title, not hardcoded ID)
+- **Test Commands**: Route to `toggle_zsh_t` pane (found by title, not hardcoded ID)
+- **Dynamic Detection**: Pane IDs are discovered at runtime for reliability
+- **Command Escaping**: Uses single quotes to prevent shell interpretation issues
+
 ## Local Configuration Support
 Projects can override settings by placing a `.nvim.lua` file in the project root. This file can define:
 - `CONFIG_TEST_COMMANDS` - Custom test/build/lint commands per filetype
@@ -111,9 +118,18 @@ Pre-defined AI prompts can be quickly inserted into terminals:
 - `:AISnippet` - Open telescope picker to select snippet
 - `:AISnippet <name>` - Insert specific snippet directly (supports tab completion)
 - `:AISnippetAdd` - Add new global snippet with category selection
-- `<leader>zi` - Open AI snippet picker
+- `<leader>zi` - Open AI snippet picker (auto-submit) - automatically sends selected snippet to AI
+- `<leader>zI` - Open AI snippet picker (no auto-submit) - inserts snippet without sending to AI
 - Global snippets stored in `~/.config/nvim/ai-snippets/*.txt`
 - Project snippets defined via `AI_SNIPPETS` in `.nvim.lua`
+
+## Code Quality Standards
+The configuration follows these quality standards:
+- **Security First**: Path traversal protection, command injection prevention, file validation
+- **Error Handling**: Centralized error reporting with `handle_error()` function
+- **Performance**: Optimized caching with race condition protection
+- **Maintainability**: Constants for magic numbers, refactored complex functions
+- **Reliability**: Dynamic pane detection, proper resource cleanup
 
 ## Snippets
 Custom snippets are available for Go, Lua, and PHP in VSCode-compatible JSON format under the `snippets/` directory.

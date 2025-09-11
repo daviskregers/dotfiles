@@ -1,3 +1,13 @@
+-- Import tmux utilities
+local tmux = require("tmux")
+
+-- Validate channel before sending in RunScratchCommand
+local function safe_chansend(job_id, data)
+    if job_id and job_id > 0 and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
+        vim.fn.chansend(job_id, data)
+    end
+end
+
 local state = {
     scratch = {
         buf = -1,
@@ -100,11 +110,38 @@ vim.api.nvim_create_user_command("ToggleScratchTerminal", toggle_scratch_termina
 vim.api.nvim_create_user_command("RunScratchCommand", function(args)
     local command = args['fargs'][1]
 
-    if not vim.api.nvim_win_is_valid(state.scratch.win) or state.scratch.job_id == nil then
-        toggle_scratch_terminal()
-    end
+    -- Check if we're in tmux and test pane exists
+    if tmux.is_tmux() then
+        -- Find test pane by title
+        local panes = tmux.list_panes()
+        local test_pane_id = nil
+        for _, pane in ipairs(panes) do
+            if pane.title and pane.title:match("toggle_zsh_t") then
+                test_pane_id = pane.id
+                break
+            end
+        end
 
-    safe_chansend(state.scratch.job_id, { command, "" })
+        if test_pane_id then
+            -- Use tmux pane for test commands
+            tmux.send_to_test_pane(command)
+            -- print("Command sent to tmux test pane (" .. test_pane_id .. ": toggle_zsh_t): " .. command)
+        else
+            -- Fallback to internal terminal if test pane not found
+            if not vim.api.nvim_win_is_valid(state.scratch.win) or state.scratch.job_id == nil then
+                toggle_scratch_terminal()
+            end
+            safe_chansend(state.scratch.job_id, { command, "" })
+            -- print("Command sent to internal terminal (test pane not found): " .. command)
+        end
+    else
+        -- Fallback to internal terminal if not in tmux
+        if not vim.api.nvim_win_is_valid(state.scratch.win) or state.scratch.job_id == nil then
+            toggle_scratch_terminal()
+        end
+        safe_chansend(state.scratch.job_id, { command, "" })
+        print("Command sent to internal terminal: " .. command)
+    end
 end, {
     nargs = 1,
 })
@@ -221,10 +258,3 @@ vim.api.nvim_create_autocmd("VimLeavePre", {
     desc = "Clean up terminal jobs on exit",
     callback = cleanup_all_terminals
 })
-
--- Validate channel before sending in RunScratchCommand
-local function safe_chansend(job_id, data)
-    if job_id and job_id > 0 and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
-        vim.fn.chansend(job_id, data)
-    end
-end
