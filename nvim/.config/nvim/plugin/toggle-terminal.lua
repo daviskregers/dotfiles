@@ -104,7 +104,7 @@ vim.api.nvim_create_user_command("RunScratchCommand", function(args)
         toggle_scratch_terminal()
     end
 
-    vim.fn.chansend(state.scratch.job_id, { command, "" })
+    safe_chansend(state.scratch.job_id, { command, "" })
 end, {
     nargs = 1,
 })
@@ -207,3 +207,24 @@ vim.api.nvim_create_autocmd('User', {
         end
     end
 })
+
+local function cleanup_all_terminals()
+    for name, terminal in pairs(state) do
+        if terminal.job_id and terminal.job_id > 0 then
+            vim.fn.jobstop(terminal.job_id)
+        end
+    end
+end
+
+-- Auto-cleanup on Neovim exit
+vim.api.nvim_create_autocmd("VimLeavePre", {
+    desc = "Clean up terminal jobs on exit",
+    callback = cleanup_all_terminals
+})
+
+-- Validate channel before sending in RunScratchCommand
+local function safe_chansend(job_id, data)
+    if job_id and job_id > 0 and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
+        vim.fn.chansend(job_id, data)
+    end
+end
