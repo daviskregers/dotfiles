@@ -30,4 +30,7 @@ return {
         top = 0,
         bottom = 0,
     },
+    keys = {
+        { key = "Enter", mods = "SHIFT", action = wezterm.action { SendString = "\x1b\r" } },
+    }
 }
