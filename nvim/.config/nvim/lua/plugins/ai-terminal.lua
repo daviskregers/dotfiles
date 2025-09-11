@@ -94,6 +94,37 @@ return {
                 end
             end
 
+            local function cleanup_ai_terminals()
+                for name, client in pairs(ai_state) do
+                    if type(client) ~= "table" or not client.win then
+                        goto continue
+                    end
+
+                    if client.job_id and client.job_id > 0 then
+                        vim.fn.jobstop(client.job_id)
+                    end
+                    if client.win > 0 and vim.api.nvim_win_is_valid(client.win) then
+                        vim.api.nvim_win_close(client.win, true)
+                    end
+                    -- Reset state
+                    ai_state[name].win = -1
+                    ai_state[name].job_id = -1
+                    ::continue::
+                end
+            end
+
+            -- Auto-cleanup on Neovim exit
+            vim.api.nvim_create_autocmd("VimLeavePre", {
+                desc = "Clean up AI terminal jobs on exit",
+                callback = cleanup_ai_terminals
+            })
+
+            local function safe_chansend(job_id, data)
+                if job_id and job_id > 0 and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
+                    vim.fn.chansend(job_id, data)
+                end
+            end
+
             -- Toggle Claude terminal
             local function toggle_claude_terminal()
                 toggle_ai_terminal("claude", "claude")
@@ -306,7 +337,7 @@ return {
                         vim.defer_fn(function()
                             if active == "claude" then
                                 -- For claude-code, send the message then submit
-                                vim.fn.chansend(client.job_id, escape_terminal_input(message))
+                                safe_chansend(client.job_id, escape_terminal_input(message))
                                 vim.defer_fn(function()
                                     vim.fn.feedkeys("\r", "n") -- Enter key to submit
                                     -- Return focus to original window after submission
@@ -318,7 +349,7 @@ return {
                                 end, 100)
                             else
                                 -- For other terminals, send the formatted message and submit
-                                vim.fn.chansend(client.job_id, escape_terminal_input(message) .. "\n")
+                                safe_chansend(client.job_id, escape_terminal_input(message) .. "\n")
                                 -- Return focus to original window
                                 vim.defer_fn(function()
                                     if vim.api.nvim_win_is_valid(current_win) then
@@ -373,7 +404,7 @@ return {
                         vim.defer_fn(function()
                             if active == "claude" then
                                 -- For claude-code, send the message then submit
-                                vim.fn.chansend(client.job_id, escape_terminal_input(message))
+                                safe_chansend(client.job_id, escape_terminal_input(message))
                                 vim.defer_fn(function()
                                     vim.fn.feedkeys("\r", "n") -- Enter key to submit
                                     -- Return focus to original window after submission
@@ -385,7 +416,7 @@ return {
                                 end, 100)
                             else
                                 -- For other terminals, send the formatted message and submit
-                                vim.fn.chansend(client.job_id, escape_terminal_input(message) .. "\n")
+                                safe_chansend(client.job_id, escape_terminal_input(message) .. "\n")
                                 -- Return focus to original window
                                 vim.defer_fn(function()
                                     if vim.api.nvim_win_is_valid(current_win) then
@@ -439,7 +470,7 @@ return {
                         -- Send message without auto-submit
                         vim.defer_fn(function()
                             -- Send the message to the terminal input
-                            vim.fn.chansend(client.job_id, escape_terminal_input(message))
+                            safe_chansend(client.job_id, escape_terminal_input(message))
 
                             -- Return focus to original window after sending message
                             vim.defer_fn(function()
@@ -540,7 +571,7 @@ return {
                         -- Send message without auto-submit
                         vim.defer_fn(function()
                             -- Send the message to the terminal input
-                            vim.fn.chansend(client.job_id, escape_terminal_input(message))
+                            safe_chansend(client.job_id, escape_terminal_input(message))
 
                             -- Return focus to original window after sending message
                             vim.defer_fn(function()
@@ -829,7 +860,7 @@ return {
                     -- Send snippet content without auto-submit
                     vim.defer_fn(function()
                         -- Send the snippet content to the terminal input
-                        vim.fn.chansend(client.job_id, escape_terminal_input(content))
+                        safe_chansend(client.job_id, escape_terminal_input(content))
 
                         -- Return focus to original window after sending content
                         vim.defer_fn(function()
@@ -1227,6 +1258,8 @@ return {
             vim.keymap.set("v", "<leader>zS", send_code_to_ai_no_submit,
                 { desc = "Send selected code to AI (no auto-submit)" })
             vim.keymap.set("n", "<leader>zi", open_snippet_picker, { desc = "Open AI snippet picker" })
+            vim.keymap.set("n", "<leader>zX", cleanup_ai_terminals, { desc = "Cleanup all AI terminals" })
+
 
             -- Utility function to switch active AI client
             local function set_active_ai_client()
