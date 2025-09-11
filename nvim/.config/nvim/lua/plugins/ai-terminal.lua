@@ -4,6 +4,25 @@ return {
         dir = vim.fn.stdpath("config"),
         name = "ai-terminal",
         config = function()
+            -- Import tmux utilities
+            local tmux = require("tmux")
+            
+            -- Constants
+            local CONSTANTS = {
+                MULTILINE_INPUT_WIDTH = 80,
+                MULTILINE_INPUT_HEIGHT = 20,
+                MULTILINE_INPUT_PADDING = 10,
+                CACHE_TTL_SECONDS = 5,
+                INSTRUCTION_LINES_COUNT = 3,
+                MUTEX_TIMEOUT_MS = 100
+            }
+            
+            -- Centralized error handling
+            local function handle_error(message, level)
+                level = level or vim.log.levels.ERROR
+                vim.notify(message, level)
+            end
+            
             -- Utility function to escape terminal input
             local function escape_terminal_input(input)
                 if not input or type(input) ~= "string" then
@@ -15,129 +34,108 @@ return {
 
                 -- Escape terminal escape sequences
                 input = input:gsub("\27", "") -- Remove ESC character
+                
+                -- Escape shell metacharacters to prevent command injection
+                input = input:gsub("([%$`%\\])", "\\%1") -- Escape $, `, \
+                input = input:gsub("([\"'])", "\\%1") -- Escape quotes
+                input = input:gsub("([;&|])", "\\%1") -- Escape command separators
 
                 return input
             end
 
-            -- State management for AI client terminals
+            -- State management for AI clients (now using tmux)
             local ai_state = {
                 claude = {
-                    buf = -1,
-                    win = -1,
-                    job_id = -1,
+                    active = false,
                 },
                 opencode = {
-                    buf = -1,
-                    win = -1,
-                    job_id = -1,
+                    active = false,
                 },
                 cursor_agent = {
-                    buf = -1,
-                    win = -1,
-                    job_id = -1,
+                    active = false,
                 },
                 active_client = "claude", -- Track which client is currently active
             }
 
-            -- Create a vsplit window for AI terminals (always right split)
-            local function create_ai_terminal_window(opts)
-                opts = opts or {}
-                local cols = vim.o.columns
-                local width = opts.width or math.floor(cols * 0.3) -- 30% of screen width
-
-                local buf = nil
-                if vim.api.nvim_buf_is_valid(opts.buf) then
-                    buf = opts.buf
-                else
-                    buf = vim.api.nvim_create_buf(false, true)
+            -- Check if tmux AI pane is available
+            local function check_ai_pane()
+                if not tmux.is_tmux() then
+                    handle_error("Not running in tmux - AI functionality requires tmux", vim.log.levels.WARN)
+                    return false
                 end
-
-                local win_config = {
-                    split = 'right',
-                    win = vim.api.nvim_get_current_win(),
-                    width = width,
-                }
-
-                local win = vim.api.nvim_open_win(buf, true, win_config)
-
-                return { buf = buf, win = win }
+                
+                -- Find AI pane by title instead of hardcoded ID
+                local panes = tmux.list_panes()
+                local ai_pane_id = nil
+                for _, pane in ipairs(panes) do
+                    if pane.title and pane.title:match("toggle_ai_tools") then
+                        ai_pane_id = pane.id
+                        break
+                    end
+                end
+                
+                if not ai_pane_id then
+                    handle_error("AI pane (toggle_ai_tools) not found - please create it first", vim.log.levels.WARN)
+                    return false
+                end
+                
+                return true, ai_pane_id
             end
 
-            -- Generic function to toggle AI client terminals
-            local function toggle_ai_terminal(client_name, command)
+            -- Generic function to activate AI client (now using tmux)
+            local function activate_ai_client(client_name, command)
+                if not check_ai_pane() then
+                    return
+                end
+                
                 local client = ai_state[client_name]
-
-                if not vim.api.nvim_win_is_valid(client.win) then
-                    -- Create or show terminal
-                    local result = create_ai_terminal_window({ buf = client.buf })
-                    ai_state[client_name].buf = result.buf
-                    ai_state[client_name].win = result.win
+                
+                if not client.active then
+                    -- Activate client
+                    ai_state[client_name].active = true
                     ai_state.active_client = client_name
-
-                    -- Start terminal if not already a terminal buffer
-                    if vim.api.nvim_buf_is_valid(result.buf) and vim.bo[result.buf].buftype ~= "terminal" then
-                        if command then
-                            vim.cmd.term(command)
-                        else
-                            vim.cmd.term()
-                        end
+                    
+                    -- Send command to tmux pane if provided
+                    if command then
+                        tmux.send_to_ai_pane(command)
                     end
-
-                    -- Update job_id for sending commands (ensure buffer is still valid)
-                    if vim.api.nvim_buf_is_valid(result.buf) then
-                        ai_state[client_name].job_id = vim.bo[result.buf].channel
-                    end
+                    
+                    vim.notify("Activated " .. client_name .. " AI client (using tmux ALT+A pane)", vim.log.levels.INFO)
                 else
-                    -- Hide terminal
-                    vim.api.nvim_win_hide(client.win)
-                    ai_state[client_name].win = -1
+                    -- Deactivate client
+                    ai_state[client_name].active = false
+                    vim.notify("Deactivated " .. client_name .. " AI client", vim.log.levels.INFO)
                 end
             end
 
-            local function cleanup_ai_terminals()
+            local function cleanup_ai_clients()
                 for name, client in pairs(ai_state) do
-                    if type(client) ~= "table" or not client.win then
-                        goto continue
+                    if type(client) == "table" and client.active then
+                        client.active = false
                     end
-
-                    if client.job_id and client.job_id > 0 then
-                        vim.fn.jobstop(client.job_id)
-                    end
-                    if client.win > 0 and vim.api.nvim_win_is_valid(client.win) then
-                        vim.api.nvim_win_close(client.win, true)
-                    end
-                    -- Reset state
-                    ai_state[name].win = -1
-                    ai_state[name].job_id = -1
-                    ::continue::
                 end
+                vim.notify("Deactivated all AI clients", vim.log.levels.INFO)
             end
 
             -- Auto-cleanup on Neovim exit
             vim.api.nvim_create_autocmd("VimLeavePre", {
-                desc = "Clean up AI terminal jobs on exit",
-                callback = cleanup_ai_terminals
+                desc = "Clean up AI clients on exit",
+                callback = cleanup_ai_clients
             })
 
-            local function safe_chansend(job_id, data)
-                if job_id and job_id > 0 and vim.fn.jobwait({ job_id }, 0)[1] == -1 then
-                    vim.fn.chansend(job_id, data)
-                end
-            end
-
-            -- Toggle Claude terminal
+            -- Toggle Claude AI client
             local function toggle_claude_terminal()
-                toggle_ai_terminal("claude", "claude")
+                activate_ai_client("claude", "claude")
             end
 
-            -- Toggle OpenCode terminal
+            -- Toggle OpenCode AI client
             local function toggle_opencode_terminal()
-                toggle_ai_terminal("opencode", nil) -- Will just open a regular terminal for now
+                activate_ai_client("opencode", nil)
             end
 
-            -- Toggle Cursor Agent terminal
+            -- Toggle Cursor Agent AI client
             local function toggle_cursor_agent_terminal()
-                toggle_ai_terminal("cursor_agent", "cursor-agent") -- Will just open a regular terminal for now
+                activate_ai_client("cursor_agent", "cursor-agent")
             end
 
             -- Multiline Input Function
@@ -148,8 +146,8 @@ return {
 
                 -- Create a floating window for multiline input
                 local buf = vim.api.nvim_create_buf(false, true)
-                local width = math.min(80, vim.o.columns - 10)
-                local height = math.min(20, vim.o.lines - 10)
+                local width = math.min(CONSTANTS.MULTILINE_INPUT_WIDTH, vim.o.columns - CONSTANTS.MULTILINE_INPUT_PADDING)
+                local height = math.min(CONSTANTS.MULTILINE_INPUT_HEIGHT, vim.o.lines - CONSTANTS.MULTILINE_INPUT_PADDING)
                 local row = math.floor((vim.o.lines - height) / 2)
                 local col = math.floor((vim.o.columns - width) / 2)
 
@@ -189,13 +187,27 @@ return {
                 -- Position cursor after instructions
                 vim.api.nvim_win_set_cursor(win, { #instructions, 0 })
 
+                -- Cleanup function to ensure resources are freed
+                local function cleanup()
+                    pcall(function()
+                        if vim.api.nvim_win_is_valid(win) then
+                            vim.api.nvim_win_close(win, true)
+                        end
+                    end)
+                    pcall(function()
+                        if vim.api.nvim_buf_is_valid(buf) then
+                            vim.api.nvim_buf_delete(buf, { force = true })
+                        end
+                    end)
+                end
+
                 -- Set up keymaps for the input window
                 local function submit()
                     local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
 
-                    -- Remove instruction lines (first 3 lines)
+                    -- Remove instruction lines (first N lines)
                     local content_lines = {}
-                    for i = 4, #lines do
+                    for i = CONSTANTS.INSTRUCTION_LINES_COUNT + 1, #lines do
                         table.insert(content_lines, lines[i])
                     end
 
@@ -206,17 +218,8 @@ return {
 
                     local content = table.concat(content_lines, "\n")
 
-                    -- Safely close window and cleanup buffer
-                    pcall(function()
-                        if vim.api.nvim_win_is_valid(win) then
-                            vim.api.nvim_win_close(win, true)
-                        end
-                    end)
-                    pcall(function()
-                        if vim.api.nvim_buf_is_valid(buf) then
-                            vim.api.nvim_buf_delete(buf, { force = true })
-                        end
-                    end)
+                    -- Cleanup resources
+                    cleanup()
 
                     -- Call callback with content
                     if content ~= "" then
@@ -227,17 +230,8 @@ return {
                 end
 
                 local function cancel()
-                    -- Safely close window and cleanup buffer
-                    pcall(function()
-                        if vim.api.nvim_win_is_valid(win) then
-                            vim.api.nvim_win_close(win, true)
-                        end
-                    end)
-                    pcall(function()
-                        if vim.api.nvim_buf_is_valid(buf) then
-                            vim.api.nvim_buf_delete(buf, { force = true })
-                        end
-                    end)
+                    -- Cleanup resources
+                    cleanup()
                     callback(nil)
                 end
 
@@ -246,20 +240,30 @@ return {
                 vim.keymap.set({ "n", "i" }, "<C-c>", cancel, { buffer = buf, nowait = true })
                 vim.keymap.set("n", "<Esc>", cancel, { buffer = buf, nowait = true })
 
+                -- Ensure cleanup on buffer deletion
+                vim.api.nvim_create_autocmd("BufDelete", {
+                    buffer = buf,
+                    once = true,
+                    callback = cleanup
+                })
+
                 -- Start in insert mode at the end of the buffer
                 vim.cmd("startinsert")
             end
 
-            -- Get selected text and prompt for input
-            local function send_code_to_ai()
-                -- Get the current active AI client
+            -- Shared function to get selected text and format message
+            local function get_selected_text_and_format_message(prompt_suffix, auto_submit)
+                -- Ensure tmux pane exists
+                if not check_ai_pane() then
+                    return
+                end
+                
+                -- Auto-activate default client if none is active
                 local active = ai_state.active_client
                 local client = ai_state[active]
-
-                -- Ensure terminal is open and valid
-                if not vim.api.nvim_win_is_valid(client.win) or not vim.api.nvim_buf_is_valid(client.buf) or client.job_id == -1 then
-                    print("No active AI terminal. Please open one first with <leader>z + c/o/g")
-                    return
+                if not client.active then
+                    client.active = true
+                    vim.notify("Auto-activated " .. active .. " AI client", vim.log.levels.INFO)
                 end
 
                 -- Get selected text
@@ -267,7 +271,7 @@ return {
                 local end_pos = vim.fn.getpos("'>")
 
                 if start_pos[2] == 0 or end_pos[2] == 0 then
-                    print("No text selected. Please select code first.")
+                    handle_error("No text selected. Please select code first.", vim.log.levels.WARN)
                     return
                 end
 
@@ -299,7 +303,7 @@ return {
 
                 -- Get user prompt with multiline input
                 multiline_input({
-                    prompt = "Enter prompt for " .. active .. ": ",
+                    prompt = "Enter prompt for " .. active .. prompt_suffix,
                     default = "",
                 }, function(prompt)
                     if not prompt or prompt == "" then
@@ -308,7 +312,6 @@ return {
 
                     -- Format the message to send to AI terminal
                     local file_path = vim.fn.expand('%:.') -- Relative path from current working directory
-                    local file_name = vim.fn.expand('%:t') -- Just the filename
                     local start_line = start_pos[2]
                     local end_line = end_pos[2]
 
@@ -319,61 +322,46 @@ return {
                         location_info = string.format("From %s:%d-%d", file_path, start_line, end_line)
                     end
 
-                    local message = string.format("%s\n\n```%s\n%s\n```\n\n%s", location_info, vim.bo.filetype,
-                        selected_code, prompt)
+                    local message_format = auto_submit and "%s\n\n```%s\n%s\n```\n\n%s" or "%s\n\n```%s\n%s\n```\n\n%s\n\n"
+                    local message = string.format(message_format, location_info, vim.bo.filetype, selected_code, prompt)
 
-                    -- Store current window for later restoration
-                    local current_win = vim.api.nvim_get_current_win()
-
-                    -- Switch to terminal window and handle focus properly
-                    vim.api.nvim_set_current_win(client.win)
-
-                    -- Use vim.schedule to ensure proper timing for terminal operations
-                    vim.schedule(function()
-                        -- Enter insert mode in terminal
-                        vim.cmd('startinsert')
-
-                        -- Send message with appropriate delay for Claude vs other terminals
-                        vim.defer_fn(function()
-                            if active == "claude" then
-                                -- For claude-code, send the message then submit
-                                safe_chansend(client.job_id, escape_terminal_input(message))
-                                vim.defer_fn(function()
-                                    vim.fn.feedkeys("\r", "n") -- Enter key to submit
-                                    -- Return focus to original window after submission
-                                    vim.defer_fn(function()
-                                        if vim.api.nvim_win_is_valid(current_win) then
-                                            vim.api.nvim_set_current_win(current_win)
-                                        end
-                                    end, 200)
-                                end, 100)
-                            else
-                                -- For other terminals, send the formatted message and submit
-                                safe_chansend(client.job_id, escape_terminal_input(message) .. "\n")
-                                -- Return focus to original window
-                                vim.defer_fn(function()
-                                    if vim.api.nvim_win_is_valid(current_win) then
-                                        vim.api.nvim_set_current_win(current_win)
-                                    end
-                                end, 200)
-                            end
-                        end, 50)
-                    end)
-
-                    print("Code sent to " .. active .. " terminal")
+                    -- Send message to tmux AI pane
+                    if auto_submit then
+                        if active == "claude" then
+                            -- For claude-code, send the message then submit
+                            tmux.send_text_to_ai_pane(escape_terminal_input(message))
+                            tmux.send_to_ai_pane("") -- Send Enter to submit
+                        else
+                            -- For other terminals, send the formatted message and submit
+                            tmux.send_to_ai_pane(escape_terminal_input(message))
+                        end
+                        vim.notify("Code sent to " .. active .. " AI client (tmux ALT+A pane)", vim.log.levels.INFO)
+                    else
+                        -- Send message to tmux AI pane without submitting
+                        tmux.send_text_to_ai_pane(escape_terminal_input(message))
+                        vim.notify("Code added to " .. active .. " AI client (tmux ALT+A pane, not submitted)", vim.log.levels.INFO)
+                    end
                 end)
+            end
+
+            -- Get selected text and prompt for input
+            local function send_code_to_ai()
+                get_selected_text_and_format_message(": ", true)
             end
 
             -- Send current file context to AI (normal mode)
             local function send_file_to_ai()
-                -- Get the current active AI client
+                -- Ensure tmux pane exists
+                if not check_ai_pane() then
+                    return
+                end
+                
+                -- Auto-activate default client if none is active
                 local active = ai_state.active_client
                 local client = ai_state[active]
-
-                -- Ensure terminal is open and valid
-                if not vim.api.nvim_win_is_valid(client.win) or not vim.api.nvim_buf_is_valid(client.buf) or client.job_id == -1 then
-                    print("No active AI terminal. Please open one first with <leader>z + c/o/g")
-                    return
+                if not client.active then
+                    client.active = true
+                    vim.notify("Auto-activated " .. active .. " AI client", vim.log.levels.INFO)
                 end
 
                 -- Get user prompt with multiline input
@@ -389,58 +377,33 @@ return {
                     local file_path = vim.fn.expand('%:.') -- Relative path from current working directory
                     local message = string.format("Working with file: %s\n\n%s", file_path, prompt)
 
-                    -- Store current window for later restoration
-                    local current_win = vim.api.nvim_get_current_win()
+                    -- Send message to tmux AI pane
+                    if active == "claude" then
+                        -- For claude-code, send the message then submit
+                        tmux.send_text_to_ai_pane(escape_terminal_input(message))
+                        tmux.send_to_ai_pane("") -- Send Enter to submit
+                    else
+                        -- For other terminals, send the formatted message and submit
+                        tmux.send_to_ai_pane(escape_terminal_input(message))
+                    end
 
-                    -- Switch to terminal window and handle focus properly
-                    vim.api.nvim_set_current_win(client.win)
-
-                    -- Use vim.schedule to ensure proper timing for terminal operations
-                    vim.schedule(function()
-                        -- Enter insert mode in terminal
-                        vim.cmd('startinsert')
-
-                        -- Send message with appropriate delay for Claude vs other terminals
-                        vim.defer_fn(function()
-                            if active == "claude" then
-                                -- For claude-code, send the message then submit
-                                safe_chansend(client.job_id, escape_terminal_input(message))
-                                vim.defer_fn(function()
-                                    vim.fn.feedkeys("\r", "n") -- Enter key to submit
-                                    -- Return focus to original window after submission
-                                    vim.defer_fn(function()
-                                        if vim.api.nvim_win_is_valid(current_win) then
-                                            vim.api.nvim_set_current_win(current_win)
-                                        end
-                                    end, 200)
-                                end, 100)
-                            else
-                                -- For other terminals, send the formatted message and submit
-                                safe_chansend(client.job_id, escape_terminal_input(message) .. "\n")
-                                -- Return focus to original window
-                                vim.defer_fn(function()
-                                    if vim.api.nvim_win_is_valid(current_win) then
-                                        vim.api.nvim_set_current_win(current_win)
-                                    end
-                                end, 200)
-                            end
-                        end, 50)
-                    end)
-
-                    print("File context sent to " .. active .. " terminal")
+                    vim.notify("File context sent to " .. active .. " AI client (tmux ALT+A pane)", vim.log.levels.INFO)
                 end)
             end
 
             -- Send current file context to AI without auto-submit (normal mode)
             local function send_file_to_ai_no_submit()
-                -- Get the current active AI client
+                -- Ensure tmux pane exists
+                if not check_ai_pane() then
+                    return
+                end
+                
+                -- Auto-activate default client if none is active
                 local active = ai_state.active_client
                 local client = ai_state[active]
-
-                -- Ensure terminal is open and valid
-                if not vim.api.nvim_win_is_valid(client.win) or not vim.api.nvim_buf_is_valid(client.buf) or client.job_id == -1 then
-                    print("No active AI terminal. Please open one first with <leader>z + c/o/g")
-                    return
+                if not client.active then
+                    client.active = true
+                    vim.notify("Auto-activated " .. active .. " AI client", vim.log.levels.INFO)
                 end
 
                 -- Get user prompt with multiline input
@@ -456,135 +419,16 @@ return {
                     local file_path = vim.fn.expand('%:.') -- Relative path from current working directory
                     local message = string.format("Working with file: %s\n\n%s\n\n", file_path, prompt)
 
-                    -- Store current window for later restoration
-                    local current_win = vim.api.nvim_get_current_win()
+                    -- Send message to tmux AI pane without submitting
+                    tmux.send_text_to_ai_pane(escape_terminal_input(message))
 
-                    -- Switch to terminal window and handle focus properly
-                    vim.api.nvim_set_current_win(client.win)
-
-                    -- Use vim.schedule to ensure proper timing for terminal operations
-                    vim.schedule(function()
-                        -- Enter insert mode in terminal
-                        vim.cmd('startinsert')
-
-                        -- Send message without auto-submit
-                        vim.defer_fn(function()
-                            -- Send the message to the terminal input
-                            safe_chansend(client.job_id, escape_terminal_input(message))
-
-                            -- Return focus to original window after sending message
-                            vim.defer_fn(function()
-                                if vim.api.nvim_win_is_valid(current_win) then
-                                    vim.api.nvim_set_current_win(current_win)
-                                end
-                            end, 100)
-                        end, 50)
-                    end)
-
-                    print("Message added to " .. active .. " terminal (not submitted)")
+                    vim.notify("Message added to " .. active .. " AI client (tmux ALT+A pane, not submitted)", vim.log.levels.INFO)
                 end)
             end
 
             -- Send selected code to AI without auto-submit (visual mode)
             local function send_code_to_ai_no_submit()
-                -- Get the current active AI client
-                local active = ai_state.active_client
-                local client = ai_state[active]
-
-                -- Ensure terminal is open and valid
-                if not vim.api.nvim_win_is_valid(client.win) or not vim.api.nvim_buf_is_valid(client.buf) or client.job_id == -1 then
-                    print("No active AI terminal. Please open one first with <leader>z + c/o/g")
-                    return
-                end
-
-                -- Get selected text
-                local start_pos = vim.fn.getpos("'<")
-                local end_pos = vim.fn.getpos("'>")
-
-                if start_pos[2] == 0 or end_pos[2] == 0 then
-                    print("No text selected. Please select code first.")
-                    return
-                end
-
-                local lines = vim.fn.getline(start_pos[2], end_pos[2])
-                if type(lines) == "string" then
-                    lines = { lines }
-                end
-
-                -- Handle partial line selections
-                if #lines > 0 then
-                    if #lines == 1 then
-                        -- Single line selection - ensure positions are within bounds
-                        local line_len = #lines[1]
-                        local start_col = math.max(1, math.min(start_pos[3], line_len))
-                        local end_col = math.max(start_col, math.min(end_pos[3], line_len))
-                        lines[1] = string.sub(lines[1], start_col, end_col)
-                    else
-                        -- Multi-line selection - ensure positions are within bounds
-                        local first_line_len = #lines[1]
-                        local last_line_len = #lines[#lines]
-                        local start_col = math.max(1, math.min(start_pos[3], first_line_len))
-                        local end_col = math.max(1, math.min(end_pos[3], last_line_len))
-                        lines[1] = string.sub(lines[1], start_col)
-                        lines[#lines] = string.sub(lines[#lines], 1, end_col)
-                    end
-                end
-
-                local selected_code = table.concat(lines, "\n")
-
-                -- Get user prompt with multiline input
-                multiline_input({
-                    prompt = "Enter prompt for " .. active .. " (no auto-submit): ",
-                    default = "",
-                }, function(prompt)
-                    if not prompt or prompt == "" then
-                        return
-                    end
-
-                    -- Format the message to send to AI terminal
-                    local file_path = vim.fn.expand('%:.') -- Relative path from current working directory
-                    local file_name = vim.fn.expand('%:t') -- Just the filename
-                    local start_line = start_pos[2]
-                    local end_line = end_pos[2]
-
-                    local location_info
-                    if start_line == end_line then
-                        location_info = string.format("From %s:%d", file_path, start_line)
-                    else
-                        location_info = string.format("From %s:%d-%d", file_path, start_line, end_line)
-                    end
-
-                    local message = string.format("%s\n\n```%s\n%s\n```\n\n%s\n\n", location_info, vim.bo.filetype,
-                        selected_code, prompt)
-
-                    -- Store current window for later restoration
-                    local current_win = vim.api.nvim_get_current_win()
-
-                    -- Switch to terminal window and handle focus properly
-                    vim.api.nvim_set_current_win(client.win)
-
-                    -- Use vim.schedule to ensure proper timing for terminal operations
-                    vim.schedule(function()
-                        -- Enter insert mode in terminal
-                        vim.cmd('startinsert')
-
-                        -- Send message without auto-submit
-                        vim.defer_fn(function()
-                            -- Send the message to the terminal input
-                            safe_chansend(client.job_id, escape_terminal_input(message))
-
-                            -- Return focus to original window after sending message
-                            vim.defer_fn(function()
-                                if vim.api.nvim_win_is_valid(current_win) then
-                                    vim.api.nvim_set_current_win(current_win)
-                                end
-                            end, 100)
-                        end, 50)
-                    end)
-
-                    print("Code added to " .. active .. " terminal (not submitted)")
-                end)
-
+                get_selected_text_and_format_message(" (no auto-submit): ", false)
                 -- Clear visual selection by pressing escape
                 vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "n", false)
             end
@@ -593,7 +437,8 @@ return {
             local snippet_cache = {
                 global_snippets = {},
                 file_mtimes = {},
-                last_check_time = 0
+                last_check_time = 0,
+                loading = false -- Simple mutex to prevent concurrent access
             }
 
             -- Utility function to sanitize file paths
@@ -608,9 +453,12 @@ return {
                 -- Normalize path separators
                 path = path:gsub("\\", "/")
 
-                -- Remove any path traversal attempts
-                path = path:gsub("%.%./", "")
-                path = path:gsub("%.%.", "")
+                -- Remove any path traversal attempts (more comprehensive)
+                path = path:gsub("%.%./", "") -- Remove ../
+                path = path:gsub("%.%./", "") -- Remove remaining ../
+                path = path:gsub("%.%.", "") -- Remove ..
+                path = path:gsub("%.%.", "") -- Remove remaining ..
+                path = path:gsub("//+", "/") -- Normalize multiple slashes
 
                 -- Ensure the path doesn't start with /
                 if path:match("^/") then
@@ -634,6 +482,20 @@ return {
 
             local function parse_snippet_file(filepath)
                 local snippets = {}
+                
+                -- Validate file path before opening
+                if not filepath or type(filepath) ~= "string" or filepath == "" then
+                    vim.notify("Invalid file path provided", vim.log.levels.ERROR)
+                    return snippets
+                end
+                
+                -- Check if file exists and is readable
+                local stat = vim.loop.fs_stat(filepath)
+                if not stat or stat.type ~= "file" then
+                    vim.notify("File does not exist or is not a regular file: " .. filepath, vim.log.levels.WARN)
+                    return snippets
+                end
+                
                 local file, err = io.open(filepath, "r")
                 if not file then
                     if err then
@@ -684,12 +546,25 @@ return {
 
             local function load_global_snippets()
                 local current_time = vim.loop.hrtime()
-                local cache_ttl = 5 * 1e9 -- 5 seconds in nanoseconds
+                local cache_ttl = CONSTANTS.CACHE_TTL_SECONDS * 1e9 -- Convert seconds to nanoseconds
 
                 -- Check if cache is still valid (not older than TTL)
                 if current_time - snippet_cache.last_check_time < cache_ttl then
                     return snippet_cache.global_snippets
                 end
+                
+                -- Prevent concurrent access
+                if snippet_cache.loading then
+                    -- Wait a bit and return cached version if still loading
+                    vim.defer_fn(function()
+                        if snippet_cache.loading then
+                            snippet_cache.loading = false
+                        end
+                    end, CONSTANTS.MUTEX_TIMEOUT_MS)
+                    return snippet_cache.global_snippets
+                end
+                
+                snippet_cache.loading = true
 
                 local snippets = {}
                 local ai_snippets_dir = vim.fn.stdpath("config") .. "/ai-snippets"
@@ -698,8 +573,14 @@ return {
                 -- Get all .txt files in the ai-snippets directory
                 local files = vim.fn.glob(ai_snippets_dir .. "/*.txt", false, true)
 
+                -- Cache file stats to avoid redundant calls
+                local file_stats = {}
                 for _, filepath in ipairs(files) do
-                    local stat = vim.loop.fs_stat(filepath)
+                    file_stats[filepath] = vim.loop.fs_stat(filepath)
+                end
+                
+                for _, filepath in ipairs(files) do
+                    local stat = file_stats[filepath]
                     local cached_mtime = snippet_cache.file_mtimes[filepath]
 
                     -- Check if file was modified since last cache
@@ -724,26 +605,16 @@ return {
 
                 -- If any files were updated, rebuild cache; otherwise return cached version
                 if needs_update then
-                    -- Rebuild entire cache since we need consistent state
-                    snippets = {}
-                    for _, filepath in ipairs(files) do
-                        local file_snippets = parse_snippet_file(filepath)
-                        local category = vim.fn.fnamemodify(filepath, ":t:r")
-
-                        for name, content in pairs(file_snippets) do
-                            snippets[name] = {
-                                content = content,
-                                category = category,
-                                display_name = string.format("[%s] %s", category, name)
-                            }
-                        end
-                    end
-
+                    -- The snippets table already contains all the loaded snippets from the first loop
+                    -- Just update the cache
                     snippet_cache.global_snippets = snippets
                     snippet_cache.last_check_time = current_time
                 else
                     snippets = snippet_cache.global_snippets
                 end
+                
+                -- Release the mutex
+                snippet_cache.loading = false
 
                 return snippets
             end
@@ -770,15 +641,20 @@ return {
 
                 -- Load global snippets
                 local global_snippets = load_global_snippets()
+                local global_count = 0
                 for name, snippet_data in pairs(global_snippets) do
                     snippets[name] = snippet_data
+                    global_count = global_count + 1
                 end
 
                 -- Load project snippets (they take precedence for same names)
                 local project_snippets = load_project_snippets()
+                local project_count = 0
                 for name, snippet_data in pairs(project_snippets) do
                     snippets[name] = snippet_data
+                    project_count = project_count + 1
                 end
+
 
                 return snippets
             end
@@ -826,52 +702,65 @@ return {
 
             -- Insert snippet into AI terminal
             local function insert_ai_snippet(snippet_name, context)
-                -- Get the current active AI client
+                -- Ensure tmux pane exists
+                if not check_ai_pane() then
+                    return
+                end
+                
+                -- Auto-activate default client if none is active
                 local active = ai_state.active_client
                 local client = ai_state[active]
-
-                -- Ensure terminal is open and valid
-                if not vim.api.nvim_win_is_valid(client.win) or not vim.api.nvim_buf_is_valid(client.buf) or client.job_id == -1 then
-                    print("No active AI terminal. Please open one first with <leader>z + c/o/g")
-                    return
+                if not client.active then
+                    client.active = true
+                    vim.notify("Auto-activated " .. active .. " AI client", vim.log.levels.INFO)
                 end
 
                 local snippets = load_all_snippets()
                 local snippet_data = snippets[snippet_name]
 
                 if not snippet_data then
-                    print("Snippet '" .. snippet_name .. "' not found")
+                    handle_error("Snippet '" .. snippet_name .. "' not found", vim.log.levels.WARN)
                     return
                 end
 
                 local content = process_placeholders(snippet_data.content, context)
 
-                -- Store current window for later restoration
-                local current_win = vim.api.nvim_get_current_win()
+                -- Send snippet content to tmux AI pane without submitting
+                tmux.send_text_to_ai_pane(escape_terminal_input(content))
 
-                -- Switch to terminal window and handle focus properly
-                vim.api.nvim_set_current_win(client.win)
+                vim.notify("Snippet '" .. snippet_name .. "' added to " .. active .. " AI client (tmux ALT+A pane, not submitted)", vim.log.levels.INFO)
+            end
 
-                -- Use vim.schedule to ensure proper timing for terminal operations
-                vim.schedule(function()
-                    -- Enter insert mode in terminal
-                    vim.cmd('startinsert')
+            -- Insert snippet into AI terminal with auto-submit
+            local function insert_ai_snippet_auto_submit(snippet_name, context)
+                -- Ensure tmux pane exists
+                if not check_ai_pane() then
+                    return
+                end
+                
+                -- Auto-activate default client if none is active
+                local active = ai_state.active_client
+                local client = ai_state[active]
+                if not client.active then
+                    client.active = true
+                    vim.notify("Auto-activated " .. active .. " AI client", vim.log.levels.INFO)
+                end
 
-                    -- Send snippet content without auto-submit
-                    vim.defer_fn(function()
-                        -- Send the snippet content to the terminal input
-                        safe_chansend(client.job_id, escape_terminal_input(content))
+                local snippets = load_all_snippets()
+                local snippet_data = snippets[snippet_name]
 
-                        -- Return focus to original window after sending content
-                        vim.defer_fn(function()
-                            if vim.api.nvim_win_is_valid(current_win) then
-                                vim.api.nvim_set_current_win(current_win)
-                            end
-                        end, 100)
-                    end, 50)
-                end)
+                if not snippet_data then
+                    handle_error("Snippet '" .. snippet_name .. "' not found", vim.log.levels.WARN)
+                    return
+                end
 
-                print("Snippet '" .. snippet_name .. "' inserted into " .. active .. " terminal")
+                local content = process_placeholders(snippet_data.content, context)
+
+                -- Send snippet content to tmux AI pane and auto-submit
+                tmux.send_text_to_ai_pane(escape_terminal_input(content))
+                tmux.send_to_ai_pane("") -- Send Enter to submit
+
+                vim.notify("Snippet '" .. snippet_name .. "' sent to " .. active .. " AI client (tmux ALT+A pane, auto-submitted)", vim.log.levels.INFO)
             end
 
             -- Get current context for placeholders
@@ -987,6 +876,68 @@ return {
                 })):find()
             end
 
+            -- Telescope picker for snippets with auto-submit
+            local function open_snippet_picker_auto_submit()
+                local pickers = require "telescope.pickers"
+                local finders = require "telescope.finders"
+                local conf = require "telescope.config".values
+                local actions = require "telescope.actions"
+                local action_state = require "telescope.actions.state"
+                local themes = require "telescope.themes"
+
+                local snippets = load_all_snippets()
+                local snippet_list = {}
+
+                for name, snippet_data in pairs(snippets) do
+                    table.insert(snippet_list, {
+                        name = name,
+                        display_name = snippet_data.display_name,
+                        content = snippet_data.content,
+                        category = snippet_data.category
+                    })
+                end
+
+                -- Sort by display name
+                table.sort(snippet_list, function(a, b)
+                    return a.display_name < b.display_name
+                end)
+
+                pickers.new(themes.get_ivy({
+                    prompt_title = "AI Snippets (Auto-Submit)",
+                    finder = finders.new_table({
+                        results = snippet_list,
+                        entry_maker = function(entry)
+                            return {
+                                value = entry,
+                                display = entry.display_name,
+                                ordinal = entry.display_name,
+                            }
+                        end,
+                    }),
+                    sorter = conf.generic_sorter({}),
+                    previewer = require("telescope.previewers").new_buffer_previewer({
+                        title = "Snippet Content",
+                        define_preview = function(self, entry, status)
+                            vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false,
+                                vim.split(entry.value.content, "\n"))
+                            vim.api.nvim_buf_set_option(self.state.bufnr, "filetype", "markdown")
+                        end
+                    }),
+                    attach_mappings = function(prompt_bufnr, map)
+                        actions.select_default:replace(function()
+                            actions.close(prompt_bufnr)
+                            local selection = action_state.get_selected_entry()
+                            if selection then
+                                -- Try to get current selection context for placeholders
+                                local context = get_current_context()
+                                insert_ai_snippet_auto_submit(selection.value.name, context)
+                            end
+                        end)
+                        return true
+                    end,
+                })):find()
+            end
+
             -- AI Snippet command function that handles both direct snippet name and picker
             local function ai_snippet_command(opts)
                 local snippet_name = opts.args
@@ -1001,9 +952,8 @@ return {
                 end
             end
 
-            -- Add new snippet functionality
-            local function add_new_snippet()
-                -- Get available categories from existing files
+            -- Helper function to get available categories
+            local function get_available_categories()
                 local ai_snippets_dir = vim.fn.stdpath("config") .. "/ai-snippets"
                 local files = vim.fn.glob(ai_snippets_dir .. "/*.txt", false, true)
                 local categories = {}
@@ -1015,8 +965,69 @@ return {
 
                 -- Add option to create new category
                 table.insert(categories, "[Create new category]")
+                return categories
+            end
 
-                -- Select category
+            -- Helper function to sanitize category name
+            local function sanitize_category_name(name)
+                if not name or name == "" then
+                    return nil
+                end
+                local sanitized = name:gsub("[^%w%-_]", ""):gsub("^%s+", ""):gsub("%s+$", "")
+                return sanitized ~= "" and sanitized or nil
+            end
+
+            -- Helper function to sanitize snippet name
+            local function sanitize_snippet_name(name)
+                if not name or name == "" then
+                    return nil
+                end
+                local sanitized = name:gsub("[^%w%s%-_]", ""):gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$", "")
+                return sanitized ~= "" and sanitized or nil
+            end
+
+            -- Helper function to save snippet to file
+            local function save_snippet_to_file(category, snippet_name, snippet_content)
+                local ai_snippets_dir = vim.fn.stdpath("config") .. "/ai-snippets"
+                local sanitized_filename = sanitize_file_path(category .. ".txt", ai_snippets_dir)
+                
+                if not sanitized_filename then
+                    handle_error("Invalid category name '" .. category .. "'")
+                    return false
+                end
+                
+                local file, err = io.open(sanitized_filename, "a")
+                if not file then
+                    handle_error("Could not open file " .. sanitized_filename .. ": " .. (err or "unknown error"))
+                    return false
+                end
+
+                local success, write_err = pcall(function()
+                    -- Add newlines before the new snippet if file exists and has content
+                    local file_stat = vim.loop.fs_stat(sanitized_filename)
+                    if file_stat and file_stat.size > 0 then
+                        file:write("\n\n")
+                    end
+
+                    file:write("# " .. snippet_name .. "\n")
+                    file:write(snippet_content .. "\n")
+                end)
+
+                file:close()
+
+                if success then
+                    vim.notify("Snippet '" .. snippet_name .. "' added to category '" .. category .. "'", vim.log.levels.INFO)
+                    return true
+                else
+                    handle_error("Error writing to file " .. sanitized_filename .. ": " .. tostring(write_err))
+                    return false
+                end
+            end
+
+            -- Add new snippet functionality
+            local function add_new_snippet()
+                local categories = get_available_categories()
+
                 vim.ui.select(categories, {
                     prompt = "Select category for new snippet:",
                 }, function(selected_category)
@@ -1031,82 +1042,39 @@ return {
                         vim.ui.input({
                             prompt = "Enter new category name: ",
                         }, function(new_category)
-                            if not new_category or new_category == "" then
+                            category = sanitize_category_name(new_category)
+                            if not category then
+                                handle_error("Invalid category name")
                                 return
                             end
-                            -- Sanitize category name
-                            new_category = new_category:gsub("[^%w%-_]", ""):gsub("^%s+", ""):gsub("%s+$", "")
-                            if new_category == "" then
-                                vim.notify("Error: Invalid category name", vim.log.levels.ERROR)
-                                return
-                            end
-                            category = new_category
+                            proceed_with_snippet_name(category)
                         end)
+                    else
+                        proceed_with_snippet_name(category)
+                    end
+                end)
+            end
 
-                        if not category or category == "[Create new category]" then
-                            return
-                        end
+            -- Helper function to proceed with snippet name input
+            local function proceed_with_snippet_name(category)
+                vim.ui.input({
+                    prompt = "Enter snippet name: ",
+                }, function(snippet_name)
+                    snippet_name = sanitize_snippet_name(snippet_name)
+                    if not snippet_name then
+                        handle_error("Invalid snippet name")
+                        return
                     end
 
-                    -- Get snippet name
-                    vim.ui.input({
-                        prompt = "Enter snippet name: ",
-                    }, function(snippet_name)
-                        if not snippet_name or snippet_name == "" then
+                    -- Get snippet content
+                    multiline_input({
+                        prompt = "Enter snippet content: ",
+                    }, function(snippet_content)
+                        if not snippet_content or snippet_content == "" then
                             return
                         end
 
-                        -- Sanitize snippet name
-                        snippet_name = snippet_name:gsub("[^%w%s%-_]", ""):gsub("%s+", " "):gsub("^%s+", ""):gsub("%s+$",
-                            "")
-                        if snippet_name == "" then
-                            vim.notify("Error: Invalid snippet name", vim.log.levels.ERROR)
-                            return
-                        end
-
-                        -- Get snippet content
-                        multiline_input({
-                            prompt = "Enter snippet content: ",
-                        }, function(snippet_content)
-                            if not snippet_content or snippet_content == "" then
-                                return
-                            end
-
-                            -- Save snippet to file (with path sanitization)
-                            local sanitized_filename = sanitize_file_path(category .. ".txt", ai_snippets_dir)
-                            if not sanitized_filename then
-                                vim.notify("Error: Invalid category name '" .. category .. "'", vim.log.levels.ERROR)
-                                return
-                            end
-                            local category_file = sanitized_filename
-                            local file, err = io.open(category_file, "a")
-
-                            if file then
-                                local success, write_err = pcall(function()
-                                    -- Add newlines before the new snippet if file exists and has content
-                                    local file_stat = vim.loop.fs_stat(category_file)
-                                    if file_stat and file_stat.size > 0 then
-                                        file:write("\n\n")
-                                    end
-
-                                    file:write("# " .. snippet_name .. "\n")
-                                    file:write(snippet_content .. "\n")
-                                end)
-
-                                file:close()
-
-                                if success then
-                                    print("Snippet '" .. snippet_name .. "' added to category '" .. category .. "'")
-                                else
-                                    vim.notify("Error writing to file " .. category_file .. ": " .. tostring(write_err),
-                                        vim.log.levels.ERROR)
-                                end
-                            else
-                                vim.notify(
-                                    "Error: Could not open file " .. category_file .. ": " .. (err or "unknown error"),
-                                    vim.log.levels.ERROR)
-                            end
-                        end)
+                        save_snippet_to_file(category, snippet_name, snippet_content)
                     end)
                 end)
             end
@@ -1257,8 +1225,9 @@ return {
                 { desc = "Send file context to AI (no auto-submit)" })
             vim.keymap.set("v", "<leader>zS", send_code_to_ai_no_submit,
                 { desc = "Send selected code to AI (no auto-submit)" })
-            vim.keymap.set("n", "<leader>zi", open_snippet_picker, { desc = "Open AI snippet picker" })
-            vim.keymap.set("n", "<leader>zX", cleanup_ai_terminals, { desc = "Cleanup all AI terminals" })
+            vim.keymap.set("n", "<leader>zi", open_snippet_picker_auto_submit, { desc = "Open AI snippet picker (auto-submit)" })
+            vim.keymap.set("n", "<leader>zI", open_snippet_picker, { desc = "Open AI snippet picker (no auto-submit)" })
+            vim.keymap.set("n", "<leader>zX", cleanup_ai_clients, { desc = "Cleanup all AI clients" })
 
 
             -- Utility function to switch active AI client
@@ -1269,7 +1238,7 @@ return {
                 }, function(choice)
                     if choice then
                         ai_state.active_client = choice
-                        print("Active AI client set to: " .. choice)
+                        vim.notify("Active AI client set to: " .. choice, vim.log.levels.INFO)
                     end
                 end)
             end
