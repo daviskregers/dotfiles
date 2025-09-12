@@ -65,10 +65,14 @@ fi
 
 # Find or create AI pane
 AI_PANE_NAME="ai_tools"
-PANE_ID="toggle_${AI_PANE_NAME}"
+BASE_PANE_ID="toggle_${AI_PANE_NAME}"
+# Use same title format as toggle-pane.sh
+AI_PANE_TITLE="[${WINDOW_ID}_${BASE_PANE_ID}]"
 
 # Check if AI pane already exists in current window
-EXISTING_AI_PANE=$(tmux list-panes -t "$SESSION_NAME:$WINDOW_ID" -F "#{pane_id}:#{pane_title}" 2>/dev/null | grep ":$PANE_ID$" | cut -d: -f1 | head -1)
+# Escape brackets for grep since they're special regex characters
+ESCAPED_AI_PANE_TITLE=$(echo "$AI_PANE_TITLE" | sed 's/\[/\\[/g; s/\]/\\]/g')
+EXISTING_AI_PANE=$(tmux list-panes -t "$SESSION_NAME:$WINDOW_ID" -F "#{pane_id}:#{pane_title}" 2>/dev/null | grep ":$ESCAPED_AI_PANE_TITLE$" | cut -d: -f1 | head -1)
 
 if [ -n "$EXISTING_AI_PANE" ]; then
     debug_log "Found existing AI pane: $EXISTING_AI_PANE"
@@ -82,7 +86,7 @@ else
     sleep 0.1
     
     # Find the newly created AI pane
-    AI_PANE=$(tmux list-panes -t "$SESSION_NAME:$WINDOW_ID" -F "#{pane_id}:#{pane_title}" 2>/dev/null | grep ":$PANE_ID$" | cut -d: -f1 | head -1)
+    AI_PANE=$(tmux list-panes -t "$SESSION_NAME:$WINDOW_ID" -F "#{pane_id}:#{pane_title}" 2>/dev/null | grep ":$ESCAPED_AI_PANE_TITLE$" | cut -d: -f1 | head -1)
     
     if [ -z "$AI_PANE" ]; then
         debug_log "ERROR: Failed to create AI pane"
