@@ -31,16 +31,84 @@ if [[ "$(tmux display-message -p '#{pane_mode}')" != "copy-mode" ]]; then
     exit 1
 fi
 
-# Get the current line and extract the word at cursor position
-cursor_y=$(tmux display-message -p '#{copy_cursor_y}')
-cursor_x=$(tmux display-message -p '#{copy_cursor_x}')
+# Try to get selected text using tmux copy buffer
+selected_text=""
 
+# Try to capture the current selection by temporarily copying it
+# This works by sending copy command and then reading the buffer
 if [[ "$DEBUG" == "1" ]]; then
-    echo "Cursor position: X=$cursor_x, Y=$cursor_y" >> "$debug_log"
+    echo "Attempting to capture selection..." >> "$debug_log"
+fi
+
+# Save current clipboard content
+old_buffer=$(tmux show-buffer 2>/dev/null || echo "")
+
+# Try to copy current selection (this will fail silently if no selection)
+tmux send-keys -X copy-selection 2>/dev/null || true
+
+# Get the new buffer content
+new_buffer=$(tmux show-buffer 2>/dev/null || echo "")
+
+# If buffer changed, we had a selection
+if [[ "$new_buffer" != "$old_buffer" ]] && [[ -n "$new_buffer" ]]; then
+    selected_text="$new_buffer"
+    if [[ "$DEBUG" == "1" ]]; then
+        echo "Found visual selection: '$selected_text'" >> "$debug_log"
+    fi
+    # Restore old buffer if we had one
+    if [[ -n "$old_buffer" ]]; then
+        echo "$old_buffer" | tmux load-buffer -
+    fi
+else
+    if [[ "$DEBUG" == "1" ]]; then
+        echo "No visual selection detected" >> "$debug_log"
+    fi
+fi
+
+# If no selection, fall back to cursor position
+if [[ -z "$selected_text" ]]; then
+    if [[ "$DEBUG" == "1" ]]; then
+        echo "No selection found, using cursor position" >> "$debug_log"
+    fi
+    
+    # Get the current line and extract the word at cursor position
+    cursor_y=$(tmux display-message -p '#{copy_cursor_y}' 2>/dev/null || echo "0")
+    cursor_x=$(tmux display-message -p '#{copy_cursor_x}' 2>/dev/null || echo "0")
+
+    # Validate cursor position values
+    if [[ ! "$cursor_y" =~ ^[0-9]+$ ]]; then
+        cursor_y="0"
+    fi
+    if [[ ! "$cursor_x" =~ ^[0-9]+$ ]]; then
+        cursor_x="0"
+    fi
+
+    if [[ "$DEBUG" == "1" ]]; then
+        echo "Cursor position: X=$cursor_x, Y=$cursor_y" >> "$debug_log"
+    fi
 fi
 
 # Use tmux's built-in variables to get the exact line at cursor
-current_line=$(tmux display-message -p '#{copy_cursor_line}')
+# Fallback for macOS compatibility
+current_line=$(tmux display-message -p '#{copy_cursor_line}' 2>/dev/null || echo "")
+
+# If copy_cursor_line is not available or empty, use capture-pane fallback
+if [[ -z "$current_line" ]]; then
+    if [[ "$DEBUG" == "1" ]]; then
+        echo "copy_cursor_line not available, using capture-pane fallback" >> "$debug_log"
+    fi
+    
+    # Capture the pane content and get the line at cursor position
+    # cursor_y is 0-indexed from top of pane content
+    pane_content=$(tmux capture-pane -p -t "$current_pane_id")
+    current_line=$(echo "$pane_content" | sed -n "$((cursor_y + 1))p")
+    
+    if [[ "$DEBUG" == "1" ]]; then
+        echo "Captured pane content (first 5 lines):" >> "$debug_log"
+        echo "$pane_content" | head -5 >> "$debug_log"
+        echo "Extracted line at cursor_y=$cursor_y: '$current_line'" >> "$debug_log"
+    fi
+fi
 
 if [[ "$DEBUG" == "1" ]]; then
     echo "Line at cursor: '$current_line'" >> "$debug_log"
@@ -50,18 +118,32 @@ fi
 original_line="$current_line"
 cleaned_line=$(echo "$current_line" | sed 's/^[[:space:]]*│[[:space:]]*//' | sed 's/[[:space:]]*│[[:space:]]*$//' | sed 's/\x1b\[[0-9;]*m//g')
 
-# Calculate how many characters were removed from the beginning by comparing prefixes
-prefix_removed=0
-while [[ $prefix_removed -lt ${#original_line} ]] && [[ $prefix_removed -lt ${#cleaned_line} ]]; do
-    if [[ "${original_line:$prefix_removed:1}" == "${cleaned_line:$prefix_removed:1}" ]]; then
-        ((prefix_removed++))
-    else
-        break
-    fi
-done
+# Detect OS for platform-specific handling
+OS="$(uname -s)"
 
-# Adjust cursor position to account for removed prefix
-adjusted_cursor_x=$((cursor_x - prefix_removed))
+if [[ "$OS" == "Darwin" ]]; then
+    # macOS: Simplified approach - don't adjust cursor position due to tmux differences
+    adjusted_cursor_x=$cursor_x
+    if [[ "$DEBUG" == "1" ]]; then
+        echo "macOS detected: using original cursor position" >> "$debug_log"
+    fi
+else
+    # Linux: Original logic for prefix removal
+    prefix_removed=0
+    while [[ $prefix_removed -lt ${#original_line} ]] && [[ $prefix_removed -lt ${#cleaned_line} ]]; do
+        if [[ "${original_line:$prefix_removed:1}" == "${cleaned_line:$prefix_removed:1}" ]]; then
+            ((prefix_removed++))
+        else
+            break
+        fi
+    done
+    
+    # Adjust cursor position to account for removed prefix
+    adjusted_cursor_x=$((cursor_x - prefix_removed))
+    if [[ "$DEBUG" == "1" ]]; then
+        echo "Linux detected: adjusting cursor position by $prefix_removed chars" >> "$debug_log"
+    fi
+fi
 
 if [[ "$DEBUG" == "1" ]]; then
     echo "Original line: '$original_line'" >> "$debug_log"
@@ -239,24 +321,32 @@ find_file_pattern_at_cursor() {
     return 0
 }
 
-# Use the cursor-aware pattern matching
-if find_file_pattern_at_cursor "$cleaned_line" "$adjusted_cursor_x"; then
+# Only do cursor-based pattern matching if we don't have a visual selection
+if [[ -z "$selected_text" ]]; then
+    # Use the cursor-aware pattern matching
+    if find_file_pattern_at_cursor "$cleaned_line" "$adjusted_cursor_x"; then
+        if [[ "$DEBUG" == "1" ]]; then
+            echo "Found file pattern under cursor: '$file_pattern'" >> "$debug_log"
+        fi
+    else
+        if [[ "$DEBUG" == "1" ]]; then
+            echo "ERROR: No file pattern found under cursor in line: '$cleaned_line'" >> "$debug_log"
+        fi
+        tmux display-message "No file pattern found under cursor in current line"
+        exit 1
+    fi
+fi
+
+# If we don't already have selected text from visual selection, use the found file pattern
+if [[ -z "$selected_text" ]]; then
+    selected_text="$file_pattern"
     if [[ "$DEBUG" == "1" ]]; then
-        echo "Found file pattern under cursor: '$file_pattern'" >> "$debug_log"
+        echo "Selected file pattern from cursor: '$selected_text'" >> "$debug_log"
     fi
 else
     if [[ "$DEBUG" == "1" ]]; then
-        echo "ERROR: No file pattern found under cursor in line: '$cleaned_line'" >> "$debug_log"
+        echo "Using visual selection: '$selected_text'" >> "$debug_log"
     fi
-    tmux display-message "No file pattern found under cursor in current line"
-    exit 1
-fi
-
-# Use the found file pattern directly
-selected_text="$file_pattern"
-
-if [[ "$DEBUG" == "1" ]]; then
-    echo "Selected file pattern: '$selected_text'" >> "$debug_log"
 fi
 
 # Parse the selected file pattern to extract file path and line number
@@ -326,43 +416,9 @@ if [[ -z "$target_pane" ]]; then
     exit 1
 fi
 
-# Check if file exists
+# Let neovim handle file existence - no need to check here
 if [[ "$DEBUG" == "1" ]]; then
-    echo "Checking file: $file_path" >> "$debug_log"
-fi
-
-if [[ ! -f "$file_path" ]]; then
-    if [[ "$DEBUG" == "1" ]]; then
-        echo "ERROR: File not found: $file_path" >> "$debug_log"
-    fi
-    
-    # Check if it's a directory instead
-    if [[ -d "$file_path" ]]; then
-        error_msg="❌ '$file_path' is a directory, not a file"
-        if [[ "$DEBUG" == "1" ]]; then
-            echo "Displaying error: $error_msg" >> "$debug_log"
-        fi
-        # Display error message using tmux
-        tmux display-message -d 5000 "$error_msg"
-    else
-        # Check if the parent directory exists
-        parent_dir=$(dirname "$file_path")
-        if [[ -d "$parent_dir" ]]; then
-            error_msg="❌ File not found: '$file_path' (directory exists)"
-        else
-            error_msg="❌ File not found: '$file_path' (directory doesn't exist)"
-        fi
-        if [[ "$DEBUG" == "1" ]]; then
-            echo "Displaying error: $error_msg" >> "$debug_log"
-        fi
-        # Display error message using tmux
-        tmux display-message -d 5000 "$error_msg"
-    fi
-    exit 1
-fi
-
-if [[ "$DEBUG" == "1" ]]; then
-    echo "SUCCESS: File exists: $file_path" >> "$debug_log"
+    echo "Passing file to neovim: $file_path" >> "$debug_log"
 fi
 
 # Send commands to target pane (without exiting copy mode)
