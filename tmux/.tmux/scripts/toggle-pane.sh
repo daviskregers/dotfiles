@@ -98,7 +98,7 @@ else
         fi
     else
         # Pane doesn't exist anywhere for this window, create it
-        if tmux split-window -h -t "$SESSION_NAME:$WINDOW_NAME" -c "#{pane_current_path}" 2>/dev/null; then
+        if tmux split-window -h -p 30 -t "$SESSION_NAME:$WINDOW_NAME" -c "#{pane_current_path}" 2>/dev/null; then
             # Get the new pane ID by listing panes and finding the last one
             NEW_PANE=$(tmux list-panes -t "$SESSION_NAME:$WINDOW_NAME" -F "#{pane_id}" 2>/dev/null | tail -1)
             if [ -n "$NEW_PANE" ]; then
