@@ -49,7 +49,9 @@ debug_log "Toggle request: COMMAND='$COMMAND', PANE_NAME='$PANE_NAME', SESSION=$
 
 # Create hidden session name for this main session
 HIDDEN_SESSION="_hidden_${SESSION_NAME}"
-PANE_ID="toggle_${PANE_NAME}"
+BASE_PANE_ID="toggle_${PANE_NAME}"
+# Create unique pane title that includes window identifier and is less likely to be overwritten
+PANE_TITLE="[${WINDOW_NAME}_${BASE_PANE_ID}]"
 
 # Function to ensure hidden session exists
 ensure_hidden_session() {
@@ -62,9 +64,11 @@ ensure_hidden_session() {
 }
 
 # Check if pane already exists in current window
-EXISTING_PANE=$(tmux list-panes -t "$SESSION_NAME:$WINDOW_NAME" -F "#{pane_id}:#{pane_title}" 2>/dev/null | grep ":$PANE_ID$" | cut -d: -f1 | head -1)
+# Escape brackets for grep since they're special regex characters
+ESCAPED_PANE_TITLE=$(echo "$PANE_TITLE" | sed 's/\[/\\[/g; s/\]/\\]/g')
+EXISTING_PANE=$(tmux list-panes -t "$SESSION_NAME:$WINDOW_NAME" -F "#{pane_id}:#{pane_title}" 2>/dev/null | grep ":$ESCAPED_PANE_TITLE$" | cut -d: -f1 | head -1)
 
-debug_log "Checking for existing pane with title '$PANE_ID' in $SESSION_NAME:$WINDOW_NAME"
+debug_log "Checking for existing pane with title '$PANE_TITLE' in $SESSION_NAME:$WINDOW_NAME"
 # List all panes in current window for debugging
 ALL_PANES=$(tmux list-panes -t "$SESSION_NAME:$WINDOW_NAME" -F "#{pane_id}:#{pane_title}" 2>/dev/null || echo "none")
 debug_log "All panes in current window: $ALL_PANES"
@@ -75,7 +79,7 @@ if [ -n "$EXISTING_PANE" ]; then
     ensure_hidden_session
     
     # Create a unique window name in hidden session that includes the original window
-    HIDDEN_WINDOW_NAME="${PANE_ID}_${WINDOW_NAME}"
+    HIDDEN_WINDOW_NAME="${BASE_PANE_ID}_${WINDOW_NAME}"
     
     # Break the pane into a window in the hidden session
     debug_log "Moving pane $EXISTING_PANE to hidden session window: $HIDDEN_WINDOW_NAME"
@@ -87,7 +91,7 @@ if [ -n "$EXISTING_PANE" ]; then
 else
     # Check if pane exists in hidden session for this specific window
     ensure_hidden_session
-    HIDDEN_WINDOW_NAME="${PANE_ID}_${WINDOW_NAME}"
+    HIDDEN_WINDOW_NAME="${BASE_PANE_ID}_${WINDOW_NAME}"
     HIDDEN_WINDOW=$(tmux list-windows -t "$HIDDEN_SESSION" -F "#{window_name}" 2>/dev/null | grep "^${HIDDEN_WINDOW_NAME}$" | head -1)
     
     debug_log "Looking for hidden window: $HIDDEN_WINDOW_NAME"
@@ -109,7 +113,7 @@ else
             NEW_PANE=$(tmux list-panes -t "$SESSION_NAME:$WINDOW_NAME" -F "#{pane_id}" 2>/dev/null | tail -1)
             if [ -n "$NEW_PANE" ]; then
                 tmux send-keys -t "$NEW_PANE" "$COMMAND" Enter 2>/dev/null || true
-                tmux select-pane -t "$NEW_PANE" -T "$PANE_ID" 2>/dev/null || true
+                tmux select-pane -t "$NEW_PANE" -T "$PANE_TITLE" 2>/dev/null || true
             fi
         fi
     fi
