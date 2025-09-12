@@ -10,22 +10,42 @@
 COMMAND="$1"
 PANE_NAME="${2:-$(basename "$COMMAND")}"
 
+# Debug mode - create /tmp/toggle-pane-debug to enable
+DEBUG_FILE="/tmp/toggle-pane-debug"
+if [ -f "$DEBUG_FILE" ]; then
+    DEBUG=1
+    DEBUG_LOG="/tmp/toggle-pane-debug.log"
+else
+    DEBUG=0
+fi
+
+debug_log() {
+    if [ "$DEBUG" = "1" ]; then
+        echo "$(date '+%H:%M:%S') [$$] $*" >> "$DEBUG_LOG"
+    fi
+}
+
 # Get session and window from environment variables (set by keybinding) or current context
 if [ -n "$TMUX_SESSION" ] && [ -n "$TMUX_WINDOW" ]; then
     # Use environment variables set by the keybinding
     SESSION_NAME="$TMUX_SESSION"
     WINDOW_NAME="$TMUX_WINDOW"
+    debug_log "Using env vars: SESSION=$SESSION_NAME, WINDOW=$WINDOW_NAME"
 else
     # Fall back to current tmux context
     SESSION_NAME=$(tmux display-message -p '#S' 2>/dev/null || echo "")
-    WINDOW_NAME=$(tmux display-message -p '#W' 2>/dev/null || echo "")
+    WINDOW_NAME=$(tmux display-message -p '#{window_id}' 2>/dev/null || echo "")
+    debug_log "Using current context: SESSION=$SESSION_NAME, WINDOW=$WINDOW_NAME"
 fi
 
 # Validate that we have valid session and window names
 if [ -z "$SESSION_NAME" ] || [ -z "$WINDOW_NAME" ]; then
+    debug_log "ERROR: Missing session or window name"
     echo "Error: Could not determine tmux session or window" >&2
     exit 1
 fi
+
+debug_log "Toggle request: COMMAND='$COMMAND', PANE_NAME='$PANE_NAME', SESSION=$SESSION_NAME, WINDOW=$WINDOW_NAME"
 
 # Create hidden session name for this main session
 HIDDEN_SESSION="_hidden_${SESSION_NAME}"
@@ -44,6 +64,9 @@ ensure_hidden_session() {
 # Check if pane already exists in current window
 EXISTING_PANE=$(tmux list-panes -t "$SESSION_NAME:$WINDOW_NAME" -F "#{pane_id}:#{pane_title}" 2>/dev/null | grep ":$PANE_ID$" | cut -d: -f1 | head -1)
 
+debug_log "Checking for existing pane with title '$PANE_ID' in $SESSION_NAME:$WINDOW_NAME"
+debug_log "Existing pane found: '$EXISTING_PANE'"
+
 if [ -n "$EXISTING_PANE" ]; then
     # Pane exists in current window, hide it by moving it to the hidden session
     ensure_hidden_session
@@ -52,15 +75,20 @@ if [ -n "$EXISTING_PANE" ]; then
     HIDDEN_WINDOW_NAME="${PANE_ID}_${WINDOW_NAME}"
     
     # Break the pane into a window in the hidden session
+    debug_log "Moving pane $EXISTING_PANE to hidden session window: $HIDDEN_WINDOW_NAME"
     if tmux break-pane -s "$EXISTING_PANE" -d -t "$HIDDEN_SESSION" -n "$HIDDEN_WINDOW_NAME" 2>/dev/null; then
-        # Successfully moved to hidden session
-        true
+        debug_log "Successfully moved pane to hidden session"
+    else
+        debug_log "Failed to move pane to hidden session"
     fi
 else
     # Check if pane exists in hidden session for this specific window
     ensure_hidden_session
     HIDDEN_WINDOW_NAME="${PANE_ID}_${WINDOW_NAME}"
     HIDDEN_WINDOW=$(tmux list-windows -t "$HIDDEN_SESSION" -F "#{window_name}" 2>/dev/null | grep "^${HIDDEN_WINDOW_NAME}$" | head -1)
+    
+    debug_log "Looking for hidden window: $HIDDEN_WINDOW_NAME"
+    debug_log "Hidden window found: '$HIDDEN_WINDOW'"
     
     if [ -n "$HIDDEN_WINDOW" ]; then
         # Pane exists in hidden session for this window, restore it
