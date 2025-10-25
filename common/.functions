@@ -32,6 +32,7 @@ alias obsidian='cd ~/Library/Mobile\ Documents/iCloud~md~obsidian/Documents/Obsi
 alias ga="git add"
 alias gs="git status"
 alias gp="git push"
+alias gpa='for remote in $(git remote); do git push $remote; done'
 alias gpl="git push"
 alias gd="git diff"
 alias gc="git checkout"
