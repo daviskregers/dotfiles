@@ -67,13 +67,12 @@ return {
                 end,
             })
 
-            vim.keymap.set('n', '<leader>ct', function()
+            vim.keymap.set('n', '<leader>u', function()
                 local suggest = require("copilot.suggestion")
 
                 suggest.toggle_auto_trigger()
 
-
-                if vim.b.autopilot_suggestion_auto_trigger then
+                if vim.b.copilot_suggestion_auto_trigger then
                     vim.notify('Enabled copilot suggestions')
                 else
                     vim.notify('Disabled copilot suggestions')
@@ -113,5 +112,6 @@ return {
                 end
             end, { desc = 'Dismiss Copilot suggestion' })
         end,
+
     }
 }
