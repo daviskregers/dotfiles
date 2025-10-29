@@ -15,7 +15,23 @@ return {
                 nerd_font_variant = 'mono'
             },
 
-            signature = { enabled = true }
+            signature = { enabled = true },
+
+            sources = {
+                default = { 'lsp', 'path', 'snippets', 'buffer' },
+                per_filetype = {
+                    sql = { 'dadbod', 'buffer' },
+                    mysql = { 'dadbod', 'buffer' },
+                    plsql = { 'dadbod', 'buffer' },
+                },
+                providers = {
+                    dadbod = {
+                        name = 'Dadbod',
+                        module = 'vim_dadbod_completion.blink',
+                        score_offset = 85,
+                    },
+                },
+            },
         },
     }
 }

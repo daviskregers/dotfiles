@@ -1,36 +1,52 @@
--- nvim-dbee: Interactive database client for Neovim
--- Supports MySQL, PostgreSQL, SQLite, and more
--- Connections are saved to ~/.local/share/nvim/dbee/persistence.json (outside dotfiles)
+-- vim-dadbod: Database interface for Vim
+-- Supports MySQL, PostgreSQL, SQLite, MongoDB, and more
+-- Provides database interaction with UI, autocomplete, and query execution
 --
 -- Usage:
---   <leader>db - Toggle database UI drawer
+--   <leader>db - Toggle Dadbod UI
 --   In UI:
---     - Use 'add' item to create new connections
---     - Select database to connect
---     - Execute queries in editor
+--     - Add connections with environment variables
+--     - Browse database schema
+--     - Execute queries with results display
 --
--- Connection examples:
+-- Connection examples (stored in ~/.local/share/nvim/dadbod_ui):
 --   MySQL:    mysql://user:password@localhost:3306/database
---   With env: mysql://{{env "DB_USER"}}:{{env "DB_PASSWORD"}}@localhost/mydb
+--   With env: mysql://{{DB_USER}}:{{DB_PASSWORD}}@localhost/mydb
 --   Postgres: postgres://user:password@localhost:5432/database
 --   SQLite:   /absolute/path/to/database.db
 
 return {
-    "kndndrj/nvim-dbee",
-    dependencies = {
-        "MunifTanjim/nui.nvim",
+    -- vim-dadbod: Core database interface
+    {
+        "tpope/vim-dadbod",
     },
-    build = function()
-        -- Install the database client backend
-        require("dbee").install()
-    end,
-    config = function()
-        require("dbee").setup({
-        })
 
-        -- Keybinding to toggle database UI
-        vim.keymap.set("n", "<leader>db", function()
-            require("dbee").toggle()
-        end, { desc = "Toggle Database UI" })
-    end,
+    -- vim-dadbod-ui: UI wrapper for vim-dadbod
+    {
+        "kristijanhusak/vim-dadbod-ui",
+        dependencies = {
+            { "tpope/vim-dadbod", lazy = true },
+            { "kristijanhusak/vim-dadbod-completion", ft = { "sql", "mysql", "plsql" }, lazy = true },
+        },
+        cmd = {
+            "DBUI",
+            "DBUIToggle",
+            "DBUIAddConnection",
+            "DBUIFindBuffer",
+        },
+        init = function()
+            -- Dadbod-ui configuration
+            vim.g.db_ui_use_nerd_fonts = 1
+            vim.g.db_ui_show_database_icon = 1
+            vim.g.db_ui_force_echo_notifications = 1
+            vim.g.db_ui_win_position = "right"
+            vim.g.db_ui_winwidth = 40
+
+            -- Save connection info in a separate file (not in dotfiles)
+            vim.g.db_ui_save_location = vim.fn.stdpath("data") .. "/dadbod_ui"
+
+            -- Keybinding to toggle dadbod UI
+            vim.keymap.set("n", "<leader>db", "<cmd>DBUIToggle<cr>", { desc = "Toggle Dadbod UI" })
+        end,
+    },
 }
