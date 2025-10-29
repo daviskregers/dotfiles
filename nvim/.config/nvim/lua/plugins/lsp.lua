@@ -26,17 +26,16 @@ return {
         },
         config = function()
             local capabilities = require("blink.cmp").get_lsp_capabilities()
-            local lspconfig = require("lspconfig")
 
             require("mason").setup()
             require("mason-lspconfig").setup {
                 automatic_enable = true,
             }
 
-            lspconfig.lua_ls.setup { capabilities = capabilities }
-            lspconfig.gopls.setup {}
-            lspconfig.intelephense.setup {}
-            lspconfig.omnisharp.setup {
+            vim.lsp.config('lua_ls', { capabilities = capabilities })
+            vim.lsp.config('gopls', {})
+            vim.lsp.config('intelephense', {})
+            vim.lsp.config('omnisharp', {
                 settings = {
                     FormattingOptions = {
                         -- Enables support for reading code style, naming convention and analyzer
@@ -75,7 +74,7 @@ return {
                         IncludePrereleases = true,
                     },
                 },
-            }
+            })
 
             vim.keymap.set("n", "<leader>f", function() vim.lsp.buf.format() end)
 

@@ -43,100 +43,6 @@ return {
                 return input
             end
 
-            -- State management for AI clients (now using tmux)
-            local ai_state = {
-                claude = {
-                    active = false,
-                },
-                opencode = {
-                    active = false,
-                },
-                cursor_agent = {
-                    active = false,
-                },
-                active_client = "claude", -- Track which client is currently active
-            }
-
-            -- Check if tmux AI pane is available
-            local function check_ai_pane()
-                if not tmux.is_tmux() then
-                    handle_error("Not running in tmux - AI functionality requires tmux", vim.log.levels.WARN)
-                    return false
-                end
-                
-                -- Find AI pane by title instead of hardcoded ID
-                local panes = tmux.list_panes()
-                local ai_pane_id = nil
-                for _, pane in ipairs(panes) do
-                    if pane.title and pane.title:match("toggle_ai_tools") then
-                        ai_pane_id = pane.id
-                        break
-                    end
-                end
-                
-                if not ai_pane_id then
-                    handle_error("AI pane (toggle_ai_tools) not found - please create it first", vim.log.levels.WARN)
-                    return false
-                end
-                
-                return true, ai_pane_id
-            end
-
-            -- Generic function to activate AI client (now using tmux)
-            local function activate_ai_client(client_name, command)
-                if not check_ai_pane() then
-                    return
-                end
-                
-                local client = ai_state[client_name]
-                
-                if not client.active then
-                    -- Activate client
-                    ai_state[client_name].active = true
-                    ai_state.active_client = client_name
-                    
-                    -- Send command to tmux pane if provided
-                    if command then
-                        tmux.send_to_ai_pane(command)
-                    end
-                    
-                    vim.notify("Activated " .. client_name .. " AI client (using tmux ALT+A pane)", vim.log.levels.INFO)
-                else
-                    -- Deactivate client
-                    ai_state[client_name].active = false
-                    vim.notify("Deactivated " .. client_name .. " AI client", vim.log.levels.INFO)
-                end
-            end
-
-            local function cleanup_ai_clients()
-                for name, client in pairs(ai_state) do
-                    if type(client) == "table" and client.active then
-                        client.active = false
-                    end
-                end
-                vim.notify("Deactivated all AI clients", vim.log.levels.INFO)
-            end
-
-            -- Auto-cleanup on Neovim exit
-            vim.api.nvim_create_autocmd("VimLeavePre", {
-                desc = "Clean up AI clients on exit",
-                callback = cleanup_ai_clients
-            })
-
-            -- Toggle Claude AI client
-            local function toggle_claude_terminal()
-                activate_ai_client("claude", "claude")
-            end
-
-            -- Toggle OpenCode AI client
-            local function toggle_opencode_terminal()
-                activate_ai_client("opencode", nil)
-            end
-
-            -- Toggle Cursor Agent AI client
-            local function toggle_cursor_agent_terminal()
-                activate_ai_client("cursor_agent", "cursor-agent")
-            end
 
             -- Multiline Input Function
             local function multiline_input(opts, callback)
@@ -253,17 +159,9 @@ return {
 
             -- Shared function to get selected text and format message
             local function get_selected_text_and_format_message(prompt_suffix, auto_submit)
-                -- Ensure tmux pane exists
-                if not check_ai_pane() then
+                if not tmux.is_tmux() then
+                    handle_error("Not running in tmux - AI functionality requires tmux", vim.log.levels.WARN)
                     return
-                end
-                
-                -- Auto-activate default client if none is active
-                local active = ai_state.active_client
-                local client = ai_state[active]
-                if not client.active then
-                    client.active = true
-                    vim.notify("Auto-activated " .. active .. " AI client", vim.log.levels.INFO)
                 end
 
                 -- Get selected text
@@ -303,7 +201,7 @@ return {
 
                 -- Get user prompt with multiline input
                 multiline_input({
-                    prompt = "Enter prompt for " .. active .. prompt_suffix,
+                    prompt = "Enter prompt for AI" .. prompt_suffix,
                     default = "",
                 }, function(prompt)
                     if not prompt or prompt == "" then
@@ -325,21 +223,14 @@ return {
                     local message_format = auto_submit and "%s\n\n```%s\n%s\n```\n\n%s" or "%s\n\n```%s\n%s\n```\n\n%s\n\n"
                     local message = string.format(message_format, location_info, vim.bo.filetype, selected_code, prompt)
 
-                    -- Send message to tmux AI pane
+                    -- Send message to AI toggle (toggle 3)
                     if auto_submit then
-                        if active == "claude" then
-                            -- For claude-code, send the message then submit
-                            tmux.send_text_to_ai_pane(escape_terminal_input(message))
-                            tmux.send_to_ai_pane("") -- Send Enter to submit
-                        else
-                            -- For other terminals, send the formatted message and submit
-                            tmux.send_to_ai_pane(escape_terminal_input(message))
-                        end
-                        vim.notify("Code sent to " .. active .. " AI client (tmux ALT+A pane)", vim.log.levels.INFO)
-                    else
-                        -- Send message to tmux AI pane without submitting
                         tmux.send_text_to_ai_pane(escape_terminal_input(message))
-                        vim.notify("Code added to " .. active .. " AI client (tmux ALT+A pane, not submitted)", vim.log.levels.INFO)
+                        tmux.send_to_ai_pane("") -- Send Enter to submit
+                        vim.notify("Code sent to AI (toggle 3: C-a K)", vim.log.levels.INFO)
+                    else
+                        tmux.send_text_to_ai_pane(escape_terminal_input(message))
+                        vim.notify("Code added to AI (toggle 3: C-a K, not submitted)", vim.log.levels.INFO)
                     end
                 end)
             end
@@ -351,22 +242,14 @@ return {
 
             -- Send current file context to AI (normal mode)
             local function send_file_to_ai()
-                -- Ensure tmux pane exists
-                if not check_ai_pane() then
+                if not tmux.is_tmux() then
+                    handle_error("Not running in tmux - AI functionality requires tmux", vim.log.levels.WARN)
                     return
-                end
-                
-                -- Auto-activate default client if none is active
-                local active = ai_state.active_client
-                local client = ai_state[active]
-                if not client.active then
-                    client.active = true
-                    vim.notify("Auto-activated " .. active .. " AI client", vim.log.levels.INFO)
                 end
 
                 -- Get user prompt with multiline input
                 multiline_input({
-                    prompt = "Enter prompt for " .. active .. " (file context): ",
+                    prompt = "Enter prompt for AI (file context): ",
                     default = "",
                 }, function(prompt)
                     if not prompt or prompt == "" then
@@ -377,38 +260,24 @@ return {
                     local file_path = vim.fn.expand('%:.') -- Relative path from current working directory
                     local message = string.format("Working with file: %s\n\n%s", file_path, prompt)
 
-                    -- Send message to tmux AI pane
-                    if active == "claude" then
-                        -- For claude-code, send the message then submit
-                        tmux.send_text_to_ai_pane(escape_terminal_input(message))
-                        tmux.send_to_ai_pane("") -- Send Enter to submit
-                    else
-                        -- For other terminals, send the formatted message and submit
-                        tmux.send_to_ai_pane(escape_terminal_input(message))
-                    end
+                    -- Send message to AI toggle (toggle 3)
+                    tmux.send_text_to_ai_pane(escape_terminal_input(message))
+                    tmux.send_to_ai_pane("") -- Send Enter to submit
 
-                    vim.notify("File context sent to " .. active .. " AI client (tmux ALT+A pane)", vim.log.levels.INFO)
+                    vim.notify("File context sent to AI (toggle 3: C-a K)", vim.log.levels.INFO)
                 end)
             end
 
             -- Send current file context to AI without auto-submit (normal mode)
             local function send_file_to_ai_no_submit()
-                -- Ensure tmux pane exists
-                if not check_ai_pane() then
+                if not tmux.is_tmux() then
+                    handle_error("Not running in tmux - AI functionality requires tmux", vim.log.levels.WARN)
                     return
-                end
-                
-                -- Auto-activate default client if none is active
-                local active = ai_state.active_client
-                local client = ai_state[active]
-                if not client.active then
-                    client.active = true
-                    vim.notify("Auto-activated " .. active .. " AI client", vim.log.levels.INFO)
                 end
 
                 -- Get user prompt with multiline input
                 multiline_input({
-                    prompt = "Enter prompt for " .. active .. " (file context, no auto-submit): ",
+                    prompt = "Enter prompt for AI (file context, no auto-submit): ",
                     default = "",
                 }, function(prompt)
                     if not prompt or prompt == "" then
@@ -419,10 +288,10 @@ return {
                     local file_path = vim.fn.expand('%:.') -- Relative path from current working directory
                     local message = string.format("Working with file: %s\n\n%s\n\n", file_path, prompt)
 
-                    -- Send message to tmux AI pane without submitting
+                    -- Send message to AI toggle without submitting
                     tmux.send_text_to_ai_pane(escape_terminal_input(message))
 
-                    vim.notify("Message added to " .. active .. " AI client (tmux ALT+A pane, not submitted)", vim.log.levels.INFO)
+                    vim.notify("Message added to AI (toggle 3: C-a K, not submitted)", vim.log.levels.INFO)
                 end)
             end
 
@@ -702,17 +571,9 @@ return {
 
             -- Insert snippet into AI terminal
             local function insert_ai_snippet(snippet_name, context)
-                -- Ensure tmux pane exists
-                if not check_ai_pane() then
+                if not tmux.is_tmux() then
+                    handle_error("Not running in tmux - AI functionality requires tmux", vim.log.levels.WARN)
                     return
-                end
-                
-                -- Auto-activate default client if none is active
-                local active = ai_state.active_client
-                local client = ai_state[active]
-                if not client.active then
-                    client.active = true
-                    vim.notify("Auto-activated " .. active .. " AI client", vim.log.levels.INFO)
                 end
 
                 local snippets = load_all_snippets()
@@ -725,25 +586,17 @@ return {
 
                 local content = process_placeholders(snippet_data.content, context)
 
-                -- Send snippet content to tmux AI pane without submitting
+                -- Send snippet content to AI toggle without submitting
                 tmux.send_text_to_ai_pane(escape_terminal_input(content))
 
-                vim.notify("Snippet '" .. snippet_name .. "' added to " .. active .. " AI client (tmux ALT+A pane, not submitted)", vim.log.levels.INFO)
+                vim.notify("Snippet '" .. snippet_name .. "' added to AI (toggle 3: C-a K, not submitted)", vim.log.levels.INFO)
             end
 
             -- Insert snippet into AI terminal with auto-submit
             local function insert_ai_snippet_auto_submit(snippet_name, context)
-                -- Ensure tmux pane exists
-                if not check_ai_pane() then
+                if not tmux.is_tmux() then
+                    handle_error("Not running in tmux - AI functionality requires tmux", vim.log.levels.WARN)
                     return
-                end
-                
-                -- Auto-activate default client if none is active
-                local active = ai_state.active_client
-                local client = ai_state[active]
-                if not client.active then
-                    client.active = true
-                    vim.notify("Auto-activated " .. active .. " AI client", vim.log.levels.INFO)
                 end
 
                 local snippets = load_all_snippets()
@@ -756,11 +609,11 @@ return {
 
                 local content = process_placeholders(snippet_data.content, context)
 
-                -- Send snippet content to tmux AI pane and auto-submit
+                -- Send snippet content to AI toggle and auto-submit
                 tmux.send_text_to_ai_pane(escape_terminal_input(content))
                 tmux.send_to_ai_pane("") -- Send Enter to submit
 
-                vim.notify("Snippet '" .. snippet_name .. "' sent to " .. active .. " AI client (tmux ALT+A pane, auto-submitted)", vim.log.levels.INFO)
+                vim.notify("Snippet '" .. snippet_name .. "' sent to AI (toggle 3: C-a K, auto-submitted)", vim.log.levels.INFO)
             end
 
             -- Get current context for placeholders
@@ -1080,9 +933,6 @@ return {
             end
 
             -- Create user commands
-            vim.api.nvim_create_user_command("ToggleClaudeTerminal", toggle_claude_terminal, {})
-            vim.api.nvim_create_user_command("ToggleOpenCodeTerminal", toggle_opencode_terminal, {})
-            vim.api.nvim_create_user_command("ToggleCursorAgentTerminal", toggle_cursor_agent_terminal, {})
             vim.api.nvim_create_user_command("SendCodeToAI", send_code_to_ai, { range = true })
 
             -- AI Snippet command with autocompletion
@@ -1216,9 +1066,6 @@ return {
             })
 
             -- Set up keybindings
-            vim.keymap.set("n", "<leader>zc", toggle_claude_terminal, { desc = "Toggle Claude terminal" })
-            vim.keymap.set("n", "<leader>zo", toggle_opencode_terminal, { desc = "Toggle OpenCode terminal" })
-            vim.keymap.set("n", "<leader>zg", toggle_cursor_agent_terminal, { desc = "Toggle Cursor Agent terminal" })
             vim.keymap.set("n", "<leader>zs", send_file_to_ai, { desc = "Send file context to AI with prompt" })
             vim.keymap.set("v", "<leader>zs", send_code_to_ai, { desc = "Send selected code to AI with prompt" })
             vim.keymap.set("n", "<leader>zS", send_file_to_ai_no_submit,
@@ -1227,23 +1074,6 @@ return {
                 { desc = "Send selected code to AI (no auto-submit)" })
             vim.keymap.set("n", "<leader>zi", open_snippet_picker_auto_submit, { desc = "Open AI snippet picker (auto-submit)" })
             vim.keymap.set("n", "<leader>zI", open_snippet_picker, { desc = "Open AI snippet picker (no auto-submit)" })
-            vim.keymap.set("n", "<leader>zX", cleanup_ai_clients, { desc = "Cleanup all AI clients" })
-
-
-            -- Utility function to switch active AI client
-            local function set_active_ai_client()
-                local clients = { "claude", "opencode", "cursor_agent" }
-                vim.ui.select(clients, {
-                    prompt = "Select active AI client:",
-                }, function(choice)
-                    if choice then
-                        ai_state.active_client = choice
-                        vim.notify("Active AI client set to: " .. choice, vim.log.levels.INFO)
-                    end
-                end)
-            end
-
-            vim.keymap.set("n", "<leader>za", set_active_ai_client, { desc = "Set active AI client" })
         end,
     }
 }
