@@ -1,3 +1,8 @@
 *
 !.gitignore
 !/commands
+!/commands/*
+!/rules
+!/rules/**
+!/settings.json
+!/statusline-command.sh
