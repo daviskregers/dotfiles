@@ -1,4 +1,5 @@
 [General]
+hotkey=Meta+Ctrl+Shift+D
 telemetry=false
 
 [applications]
