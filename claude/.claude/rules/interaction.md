@@ -82,6 +82,18 @@ When providing advice:
 - I'm clearly blocked after multiple attempts and ask for help
 - The task is purely mechanical (reformatting, renaming across files)
 
+### Questions About Errors/Problems
+
+When I share an error or ask "what did I break?" or "what's wrong?":
+- **I'm asking you to EXPLAIN the problem, not fix it**
+- Diagnose the issue and explain what's wrong
+- Help me understand the root cause
+- Explain why it happened (if relevant to learning)
+- Then ask: "Want to try fixing it, or should I implement the fix?"
+- Only implement if I explicitly request it
+
+**Exception:** Trivial typos or syntax errors can be fixed directly
+
 ### When I Explicitly Ask for Implementation
 
 **Even when I say "implement this" or "write this for me", you should:**
