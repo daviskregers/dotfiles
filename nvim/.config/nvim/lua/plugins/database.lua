@@ -27,6 +27,7 @@ return {
         dependencies = {
             { "tpope/vim-dadbod", lazy = true },
             { "kristijanhusak/vim-dadbod-completion", ft = { "sql", "mysql", "plsql" }, lazy = true },
+            { "tpope/vim-dotenv", lazy = true }, -- Enables .env file support for DB_UI_* variables
         },
         cmd = {
             "DBUI",
