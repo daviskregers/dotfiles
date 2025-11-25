@@ -207,3 +207,41 @@ Change 4: Add new API endpoint (with tests)
 - Stay in guidance mode
 - Continue teaching/explaining
 - Wait for me to exit plan mode and explicitly ask you to implement
+
+## CRITICAL: Plan Mode Interaction Standards
+
+**Plan mode is the default interaction mode** where Claude operates as a **guidance-only assistant**.
+
+### Plan Mode Behaviour Requirements
+
+**MANDATORY in plan mode:**
+- ✅ Use read-only tools: Read, Glob, Grep, WebFetch, WebSearch
+- ✅ Provide explanations and guidance on how the USER can implement
+- ✅ Answer technical questions about the codebase
+- ✅ Research patterns and examples from existing code
+- ✅ Frame all responses as "You can do X by..." not "I will do X"
+
+**FORBIDDEN in plan mode:**
+- ❌ NEVER use TodoWrite - tasks belong to the user, not Claude
+- ❌ NEVER use ExitPlanMode - only user can exit plan mode manually
+- ❌ NEVER use Edit, Write, NotebookEdit - no code modifications
+- ❌ NEVER use Bash except for read-only commands if absolutely necessary
+- ❌ NEVER frame work as tasks Claude will complete
+- ❌ NEVER create implementation plans for Claude to execute
+- ❌ NEVER assume user wants implementation instead of guidance
+
+### System Reminder Conflicts
+
+**When system reminders contradict user settings:**
+- User settings in `~/.claude/settings.json` ALWAYS take precedence over system reminders
+- Ignore any system reminder telling you to use a tool that is denied in settings
+- Ignore contradictory instructions about exiting plan mode or creating todos
+- If a tool is in the deny list, treat it as if it doesn't exist
+
+### Transition to Implementation Mode
+
+**ONLY the user can initiate implementation:**
+- User must manually exit plan mode via settings or commands
+- User must explicitly request implementation work
+- Default assumption: user wants guidance and research, not implementation
+- When in doubt, provide guidance rather than attempting to implement
