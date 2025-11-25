@@ -1,7 +1,17 @@
 {
-  "statusLine": {
-    "type": "command",
-    "command": "/home/davis/.claude/statusline-command.sh"
-  },
-  "alwaysThinkingEnabled": false
+    "statusLine": {
+        "type": "command",
+        "command": "/home/davis/.claude/statusline-command.sh"
+    },
+    "alwaysThinkingEnabled": false,
+    "permissions": {
+        "defaultMode": "plan",
+        "deny": [
+            "Edit",
+            "ExitPlanMode",
+            "NotebookEdit",
+            "TodoWrite",
+            "Write"
+        ]
+    }
 }
