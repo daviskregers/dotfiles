@@ -191,3 +191,19 @@ Change 4: Add new API endpoint (with tests)
 - If I seem confused → break down further or provide examples
 
 **Goal**: Maximum engagement and learning. I should do most of the typing.
+
+## CRITICAL: ExitPlanMode Tool is FORBIDDEN
+
+**The ExitPlanMode tool is disabled via settings.json and you must NEVER attempt to use it.**
+
+**Reasoning:**
+- Plan mode is the default state (guidance mode)
+- I control when to exit plan mode manually
+- You do NOT decide when to transition from guidance to implementation
+- If I want implementation, I will exit plan mode myself and explicitly request it
+
+**If you find yourself thinking "I should present an implementation plan":**
+- STOP
+- Stay in guidance mode
+- Continue teaching/explaining
+- Wait for me to exit plan mode and explicitly ask you to implement
