@@ -149,17 +149,32 @@ This configuration embodies a **teaching-first** approach with clear separation 
 5. **Substantive Focus**: Architecture → Performance → Design → Security
 6. **Separation of Concerns**: Strategic decisions (plan) vs Tactical execution (code)
 
+
+## Global Rules
+
+All agents follow global rules defined in `AGENTS.md`:
+
+- **Signal-to-Noise Ratio**: Maximize signal, minimize noise in all LLM-consumed content
+  - Agent prompts: <200 lines (primary), <150 lines (subagents)
+  - Rule files: One concept, <100 lines
+  - Remove redundancy, consolidate sections, cut generic advice
+
+See `AGENTS.md` and `rules/` directory for complete global rules.
+
 ## Files
 
 ```
 opencode/
 ├── .config/opencode/
 │   ├── opencode.json           # Main configuration
+│   ├── AGENTS.md               # Global rules for all agents
 │   ├── README.md               # This file
+│   ├── rules/                  # Global rule files
+│   │   └── signal-to-noise.md  # Signal-to-noise ratio rule
 │   └── prompts/                # Agent prompt files
 │       ├── teacher.md          # Teaching/guidance agent (all subagents)
-│       ├── plan.md             # Planning/analysis agent (all subagents)
-│       ├── code.md             # Implementation agent (5 tactical subagents)
+│       ├── planner.md          # Planning/analysis agent (all subagents)
+│       ├── implementer.md      # Implementation agent (5 tactical subagents)
 │       ├── architect.md        # Architecture reviews (strategic)
 │       ├── performance.md      # Performance analysis (strategic)
 │       ├── design-reviewer.md  # Design patterns (strategic)
@@ -170,7 +185,6 @@ opencode/
 │       ├── ops-guide.md        # Operations observability (tactical)
 │       └── docs-reviewer.md    # Documentation efficiency (universal)
 ```
-
 ## Conversion from Claude Rules
 
 This configuration was converted from Claude rules in `~/.dotfiles/claude/.claude/rules/`:
