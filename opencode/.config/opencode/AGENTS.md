@@ -7,6 +7,7 @@ This file defines global rules that apply to ALL agents in this configuration.
 All agents must follow these rules from `rules/`:
 
 - **[Signal-to-Noise Ratio](rules/signal-to-noise.md)** - Maximize signal, minimize noise in all LLM-consumed content
+- **[Test-Driven Development](rules/tdd-first.md)** - Tests come FIRST, not last. RED → GREEN → REFACTOR for all new functionality
 
 ## Adding New Global Rules
 
