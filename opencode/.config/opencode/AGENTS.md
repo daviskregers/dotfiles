@@ -8,6 +8,7 @@ All agents must follow these rules from `rules/`:
 
 - **[Signal-to-Noise Ratio](rules/signal-to-noise.md)** - Maximize signal, minimize noise in all LLM-consumed content
 - **[Test-Driven Development](rules/tdd-first.md)** - Tests come FIRST, not last. RED → GREEN → REFACTOR for all new functionality
+- **[Static Error Messages](rules/static-error-messages.md)** - Error messages MUST be static strings; dynamic values go in logs, not error messages
 
 ## Adding New Global Rules
 
