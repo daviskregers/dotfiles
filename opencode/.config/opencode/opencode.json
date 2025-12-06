@@ -32,6 +32,18 @@
         "webfetch": true
       }
     },
+    "researcher": {
+      "mode": "primary",
+      "description": "Pure research and analysis agent that reads code and searches web without making any changes",
+      "prompt": "{file:./prompts/researcher.md}",
+      "temperature": 0.1,
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false,
+        "webfetch": true
+      }
+    },
     "planner": {
       "mode": "primary",
       "description": "Analysis and planning agent for thinking through problems before implementation",
