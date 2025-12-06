@@ -202,12 +202,46 @@ Watch for:
 
 **CRITICAL: Don't make giant leaps. Build complexity gradually.**
 
+**CRITICAL: Start with stubs, then add ONE behaviour at a time.**
+
+**First Test → Stub Implementation Pattern:**
+
+When creating a new handler/function, your FIRST implementation should be the simplest possible stub:
+
+```typescript
+// ✅ CORRECT - First implementation (minimal stub)
+export const handle = responseHandler(async (_event) => {
+  throw new EntityNotFoundError("Report not found");
+});
+
+// ❌ WRONG - First implementation (complete solution)
+export const handle = responseHandler(async (event) => {
+  const { id } = schema.parse(event.pathParameters);
+  const report = await getReport(id);
+  return ok(report);
+});
+```
+
+**Why stub first?**
+
+- Forces you to write ONE test at a time
+- Prevents implementing multiple behaviours at once
+- Ensures each test drives exactly ONE change
+- Makes RED → GREEN cycle obvious
+
+**Then build incrementally:**
+
+- Test 1: Handler exists → Stub that throws/returns hardcoded value
+- Test 2: Validates input → Add ONLY validation logic
+- Test 3: Retrieves data → Add ONLY data retrieval
+- Test 4: Transforms result → Add ONLY transformation
+
 **For each small step:**
 
 1. Identify ONE testable behaviour or scenario
 2. Write test for JUST that behaviour
 3. See it fail (RED)
-4. Implement minimum to pass (GREEN)
+4. Implement minimum to pass (GREEN) - **ADD ONLY ONE BEHAVIOUR**
 5. Refactor if needed
 6. Move to next small step
 
@@ -223,6 +257,30 @@ Watch for:
 - Step 1: Test "updateReportStatus updates database" → Implement → Pass
 - Step 2: Test "Handler catches warehouse errors" → Implement → Pass
 - Step 3: Test "Handler calls updateReportStatus on error" → Implement → Pass
+
+**Example - Feature: GET /report/{id} endpoint**
+
+**❌ Bad approach (implementing complete solution immediately):**
+
+- Test 1: "Handler returns 404 for non-existent report"
+- Implementation: Complete handler with validation + getReport() + ok() response ❌
+- Test 2: "Handler returns report data"
+- Test passes immediately (no RED phase) ❌ WRONG!
+
+**✅ Good approach (stub first, build incrementally):**
+
+- Step 1: Test "Handler exists and returns 404"
+  - Implementation: STUB that only throws EntityNotFoundError
+  - ✅ Test passes with stub
+- Step 2: Test "Handler rejects missing/invalid ID parameter"
+  - Implementation: Add ONLY Zod validation for path params
+  - ✅ Test passes with validation
+- Step 3: Test "Handler retrieves report from repository"
+  - Implementation: Replace throw with getReport() call
+  - ✅ Test passes with retrieval
+- Step 4: Test "Handler returns properly formatted response"
+  - Implementation: Wrap in ok() response builder
+  - ✅ Test passes with proper response
 
 ### TDD Process (MANDATORY)
 
@@ -286,13 +344,25 @@ When implementing:
 **MANDATORY workflow for every small increment:**
 
 1. **Break down** - Identify the smallest testable step
-2. **Run the test** - Verify it fails with expected error
-3. **Check failure message** - Ensure it's clear and meaningful
-4. **Implement code** - Write minimum to pass THIS step only
-5. **Run test again** - Verify it passes
-6. **Run linter** - Ensure code quality standards
-7. **Show proof** - Provide command output demonstrating RED and GREEN states
-8. **Repeat** - Move to next small increment
+2. **Write the test FIRST** - Do NOT create implementation files yet
+3. **Run the test** - Verify it fails with expected error (module not found, function throws, etc.)
+4. **Check failure message** - Ensure it's clear and meaningful
+5. **Implement code** - Write minimum to pass THIS step only
+6. **Run test again** - Verify it passes
+7. **Run linter** - Ensure code quality standards
+8. **Show proof** - Provide command output demonstrating RED and GREEN states
+9. **Repeat** - Move to next small increment
+
+**⚠️ CRITICAL RED PHASE VALIDATION:**
+
+If your test passes on the first run without implementation:
+
+- **YOU DID SOMETHING WRONG**
+- **STOP IMMEDIATELY**
+- The test is not testing new behaviour
+- You likely tested existing functionality instead of new functionality
+- Re-examine what needs to be tested
+- Write a test that WILL fail without new implementation
 
 **Format for showing proof (for each step):**
 
@@ -381,10 +451,17 @@ Remember: **Quality matters even in implementation mode. Fast, working code is b
 **NEVER do these:**
 
 - ❌ Writing implementation code before writing the test
+- ❌ Writing multiple tests at once (only ONE test at a time)
+- ❌ Creating implementation files before seeing tests fail
+- ❌ **Implementing complete solution on first test (start with stub!)**
+- ❌ **Adding multiple behaviours in one implementation step**
+- ❌ **Jumping from stub directly to full implementation without intermediate tests**
 - ❌ Writing one giant test for entire feature
 - ❌ Making huge leaps without intermediate tests
 - ❌ Saying "now write the test" after implementing
 - ❌ Skipping the RED phase (not verifying test fails first)
+- ❌ **Tests passing immediately** - This means you're testing existing functionality, not new behaviour
+- ❌ Continuing after tests pass without RED phase - STOP and reassess what you're testing
 - ❌ Not running tests to verify failures/passes
 - ❌ Not showing proof of RED and GREEN phases
 - ❌ Claiming "done" without running linter
@@ -393,16 +470,135 @@ Remember: **Quality matters even in implementation mode. Fast, working code is b
 **ALWAYS do these:**
 
 - ✅ Break work into 3-5 small, testable increments
+- ✅ Write ONE test at a time (never batch tests)
 - ✅ Write test FIRST for each small step (RED phase)
 - ✅ Run test to see it FAIL with meaningful message
-- ✅ Implement minimum code to pass THIS step (GREEN phase)
+- ✅ **VERIFY RED PHASE** - If test passes immediately, you did something wrong
+- ✅ **Start with simplest stub** - First implementation should be minimal
+- ✅ Implement minimum code to pass THIS step (GREEN phase) - **ONE behaviour only**
+- ✅ **Build incrementally** - stub → validate → retrieve → transform (not all at once!)
 - ✅ Run test to see it PASS
 - ✅ Run linter (REFACTOR phase)
 - ✅ Show command output at each phase
 - ✅ Re-read files before making changes
-- ✅ Repeat for next small increment
+- ✅ Repeat for next small increment (one test at a time)
+
+**RED PHASE CHECKPOINT:**
+
+After running your first test, ask yourself:
+- ❓ Did the test fail?
+  - YES → Good! Proceed to implementation (GREEN)
+  - NO → **STOP! You're testing existing functionality, not new behaviour. Reassess what needs to be tested.**
 
 **REMEMBER: If you're about to use the `edit` or `write` tool for implementation code and haven't broken it into small steps with tests, STOP. Break it down and write the test first.**
+
+### Critical Failure Mode: Tests Passing Immediately
+
+**⚠️ IF YOUR TEST PASSES ON FIRST RUN:**
+
+This is a **RED FLAG** indicating one of these problems:
+
+1. **You're testing existing functionality** - The code you're testing already works
+2. **You wrote implementation before the test** - You created files before seeing RED
+3. **The test doesn't test what you think it tests** - Logic error in test
+4. **You wrote multiple tests at once** - Some pass because of previous implementations
+
+**REQUIRED ACTIONS when tests pass immediately:**
+
+1. **STOP implementation immediately**
+2. **Analyze why the test passed:**
+   - Does the function/handler already exist?
+   - Is it calling existing repository/service functions?
+   - Did you create implementation files before running tests?
+3. **Delete or comment out implementation code**
+4. **Run test again to verify it fails**
+5. **Only proceed when you have confirmed RED phase**
+
+**Example of this failure:**
+
+```
+
+❌ BAD: Test passes immediately
+
+- Write test that calls handler
+- Handler doesn't exist yet → Create handler
+- Handler calls existing getReport() function
+- Test passes → ❌ NO RED PHASE
+- Declare success → ❌ WRONG
+
+✅ GOOD: Test fails first
+
+- Write test that calls handler
+- Run test → Fails with "Cannot find module" → ✅ RED
+- Create handler that throws NotImplementedError
+- Run test → Fails with "Not implemented" → ✅ Still RED
+- Implement handler to call getReport()
+- Run test → Passes → ✅ GREEN
+
+```
+
+**The test MUST fail before you write implementation. No exceptions.**
+
+### Critical Failure Mode: Implementing Complete Solution Immediately
+
+**⚠️ MOST COMMON MISTAKE: Implementing everything on the first test**
+
+**Symptom:** You write one test, implement a complete working solution, then write another test that passes immediately.
+
+**Why this happens:**
+
+1. You know the "final" implementation in your head
+2. You write the first test
+3. Instead of stub, you implement the COMPLETE solution
+4. Next test passes immediately (no RED phase)
+5. You realize you've already implemented everything
+
+**Example of this failure:**
+
+```
+
+Test 1: "Handler returns 404 for non-existent report"
+
+❌ WRONG Implementation:
+export const handle = responseHandler(async (event) => {
+const { id } = readReportParams.parse(event.pathParameters) // ← Added validation
+const report = await getReport(id) // ← Added retrieval
+return ok(report) // ← Added response
+})
+// This implements steps 1, 2, AND 3 all at once!
+
+Test 2: "Handler returns report data"
+✅ Passes immediately ← NO RED PHASE = WRONG!
+
+✅ CORRECT Implementation (Step 1 only):
+export const handle = responseHandler(async (\_event) => {
+throw new EntityNotFoundError('Report not found') // ← STUB ONLY
+})
+// Test passes ✅
+// Next test will drive adding validation
+
+```
+
+**REQUIRED ACTIONS to avoid this:**
+
+1. **Before implementing, ask: "What's the SIMPLEST thing that makes this test pass?"**
+2. **If answer includes multiple steps (validate + retrieve + transform), you're wrong**
+3. **Stub first: throw error, return hardcoded value, or return empty response**
+4. **Let NEXT test drive NEXT behaviour**
+
+**Signs you're doing it wrong:**
+
+- ⚠️ Your first implementation has 3+ lines of logic
+- ⚠️ Your first implementation calls external functions (like getReport())
+- ⚠️ Your first implementation has validation + retrieval + transformation
+- ⚠️ Your second test passes immediately without any code changes
+
+**Signs you're doing it right:**
+
+- ✅ Your first implementation is a one-line stub (throw/return)
+- ✅ Each test requires you to ADD code (not just verify existing code)
+- ✅ Every test has a RED phase before GREEN
+- ✅ You feel like you're making "baby steps" (that's good!)
 
 ## Invoking Specialized Subagents
 
