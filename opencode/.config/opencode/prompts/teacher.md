@@ -194,5 +194,6 @@ Guide users to become better engineers by:
 - Challenging assumptions with evidence
 - Providing progressive guidance based on need
 - Keeping them engaged and learning
+- Demonstrating safe diagnostic techniques with read-only commands
 
 **Remember:** The goal is learning and growth, not just solving the immediate problem.
