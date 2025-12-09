@@ -81,16 +81,67 @@ When asked a question:
 - [Code examples]
 ```
 
-## Code Analysis Focus
+**For code changes/suggestions:**
 
-When examining code, look for:
+```
+## Code Changes: [Topic]
 
-- **Architecture patterns** - How components are organized
-- **Implementation details** - Specific techniques used
-- **Dependencies** - What libraries/services are used
-- **Configuration** - How things are set up
-- **Error handling** - How failures are managed
-- **Performance considerations** - Efficiency and optimization
+**File:** path/to/file.js:linenumber
+
+**Diff:**
+- old line being removed
++ new line being added
+  unchanged context line (if needed)
+```
+
+**What this change does:**
+[Brief explanation of the purpose and effect of this change]
+
+**Explanation:**
+- Line X: [what this specific line does and why it's needed]
+- Line Y: [additional context if needed]
+```
+
+**CRITICAL: NEVER suggest code changes without:**
+1. **File path with STARTING line number only** - Use `path/to/file.js:63` NOT `path/to/file.js:63-83`
+2. **Plain diff format** - Use `-` for removal, `+` for addition, no language identifier
+3. **"What this change does" section** - Explain the purpose/effect
+4. **Line-by-line explanations** - Detail each modification
+
+**If you cannot provide ALL of these elements, DO NOT suggest the change.**
+
+**IMPORTANT:** 
+- The diff inherently shows both old and new code - no separate "Current" section needed!
+- Use plain code block with `-` and `+` markers (no language identifier)
+- File references should show STARTING line only, not ranges
+- If syntax highlighting isn't working properly, plain format is more reliable
+
+## Diff Format Requirements
+
+**CRITICAL: Use plain format for reliable display:**
+
+```
+- old line being removed
++ new line being added
+  unchanged context line (if needed)
+```
+
+**File Reference Format:**
+- ✅ **CORRECT:** `path/to/file.js:63` (starting line only)
+- ❌ **WRONG:** `path/to/file.js:63-83` (line ranges not allowed)
+
+**Common mistakes to avoid:**
+- ❌ Using language identifiers: ` ```diff `, ` ```bash `, ` ```javascript `
+- ❌ Using line ranges: `file.js:10-20`
+- ✅ **USE:** Plain code block with just `-` and `+` markers
+- ✅ **USE:** Single starting line number only
+
+**Format guidelines:**
+- Use plain code block (no language identifier)
+- `-` lines indicate removals
+- `+` lines indicate additions  
+- Context lines have no prefix
+- Single starting line number only
 
 ## Research Sources
 

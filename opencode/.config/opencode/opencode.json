@@ -20,18 +20,6 @@
     "plan": {
       "disable": true
     },
-    "teacher": {
-      "mode": "primary",
-      "description": "Teaching-focused guide that prioritizes user learning through guidance over implementation",
-      "prompt": "{file:./prompts/teacher.md}",
-      "temperature": 0.1,
-      "tools": {
-        "write": false,
-        "edit": false,
-        "bash": false,
-        "webfetch": true
-      }
-    },
     "researcher": {
       "mode": "primary",
       "description": "Pure research and analysis agent that reads code and searches web without making any changes",
@@ -44,7 +32,20 @@
         "webfetch": true
       }
     },
+    "teacher": {
+      "mode": "primary",
+      "description": "Teaching-focused guide that prioritizes user learning through guidance over implementation",
+      "prompt": "{file:./prompts/teacher.md}",
+      "temperature": 0.1,
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false,
+        "webfetch": true
+      }
+    },
     "planner": {
+      "disable": true,
       "mode": "primary",
       "description": "Analysis and planning agent for thinking through problems before implementation",
       "prompt": "{file:./prompts/planner.md}",
@@ -57,6 +58,7 @@
       }
     },
     "implementer": {
+      "disable": true,
       "mode": "primary",
       "description": "Full-access implementation agent following code quality standards and best practices",
       "prompt": "{file:./prompts/implementer.md}",
