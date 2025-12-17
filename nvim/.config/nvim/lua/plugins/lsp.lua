@@ -81,13 +81,20 @@ return {
             vim.api.nvim_create_autocmd('LspAttach', {
                 callback = function(args)
                     local opts = { buffer = args.buf }
+                    local term_opener = require("plugin.terminal-open-file")
 
                     vim.keymap.set("i", "<C-h>", function() vim.lsp.buf.signature_help() end, opts)
                     vim.keymap.set("n", "K", function() vim.lsp.buf.hover() end, opts)
                     vim.keymap.set("n", "[d", function() vim.diagnostic.goto_next() end, opts)
                     vim.keymap.set("n", "]d", function() vim.diagnostic.goto_prev() end, opts)
                     vim.keymap.set("n", "gca", function() vim.lsp.buf.code_action() end, opts)
-                    vim.keymap.set("n", "gd", function() vim.lsp.buf.definition() end, opts)
+                    vim.keymap.set("n", "gd", function()
+                        if term_opener.is_terminal_buffer() then
+                            term_opener.open_file_under_cusror()
+                            return
+                        end
+                        vim.lsp.buf.definition()
+                    end, opts)
                     vim.keymap.set("n", "grn", function() vim.lsp.buf.rename() end, opts)
                     vim.keymap.set("n", "grr", function() vim.lsp.buf.references() end, opts)
                     vim.keymap.set("n", "gvd", function() vim.diagnostic.open_float() end, opts)
