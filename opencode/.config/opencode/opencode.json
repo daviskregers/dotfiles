@@ -170,6 +170,18 @@
         "edit": false,
         "bash": false
       }
-    }
+    },
+    "commit-message-generator": {
+      "mode": "subagent",
+      "description": "Generates clear and concise commit messages based on code changes",
+      "prompt": "{file:./prompts/commit-messages.md}",
+      "temperature": 0.1,
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false
+      }
+    },
+
   }
 }
