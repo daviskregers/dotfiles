@@ -10,7 +10,7 @@ function M.do_in_non_terminal(action)
     for _, win_id in ipairs(windows) do
         local win_buf_id = vim.api.nvim_win_get_buf(win_id)
 
-        if not vim.api.nvim_buf_get_option(win_buf_id, "buftype"):match("terminal") then
+        if not vim.api.nvim_get_option_value("buftype", { buf = win_buf_id }):match("terminal") then
             vim.api.nvim_set_current_win(win_id)
             action()
             return
