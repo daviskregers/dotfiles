@@ -17,8 +17,8 @@ return {
                 opts = {
                     library = {
                         { path = "${3rd}/luv/library", words = { "vim%.uv" } },
-                    }
-                }
+                    },
+                },
             },
             "saghen/blink.cmp",
             "williamboman/mason.nvim",
@@ -28,14 +28,14 @@ return {
             local capabilities = require("blink.cmp").get_lsp_capabilities()
 
             require("mason").setup()
-            require("mason-lspconfig").setup {
+            require("mason-lspconfig").setup({
                 automatic_enable = true,
-            }
+            })
 
-            vim.lsp.config('lua_ls', { capabilities = capabilities })
-            vim.lsp.config('gopls', {})
-            vim.lsp.config('intelephense', {})
-            vim.lsp.config('omnisharp', {
+            vim.lsp.config("lua_ls", { capabilities = capabilities })
+            vim.lsp.config("gopls", {})
+            vim.lsp.config("intelephense", {})
+            vim.lsp.config("omnisharp", {
                 settings = {
                     FormattingOptions = {
                         -- Enables support for reading code style, naming convention and analyzer
@@ -76,18 +76,30 @@ return {
                 },
             })
 
-            vim.keymap.set("n", "<leader>f", function() vim.lsp.buf.format() end)
+            vim.keymap.set("n", "<leader>f", function()
+                vim.lsp.buf.format()
+            end)
 
-            vim.api.nvim_create_autocmd('LspAttach', {
+            vim.api.nvim_create_autocmd("LspAttach", {
                 callback = function(args)
                     local opts = { buffer = args.buf }
-                    local term_opener = require("plugin.terminal-open-file")
+                    local term_opener = require("custom.terminal-open-file")
 
-                    vim.keymap.set("i", "<C-h>", function() vim.lsp.buf.signature_help() end, opts)
-                    vim.keymap.set("n", "K", function() vim.lsp.buf.hover() end, opts)
-                    vim.keymap.set("n", "[d", function() vim.diagnostic.goto_next() end, opts)
-                    vim.keymap.set("n", "]d", function() vim.diagnostic.goto_prev() end, opts)
-                    vim.keymap.set("n", "gca", function() vim.lsp.buf.code_action() end, opts)
+                    vim.keymap.set("i", "<C-h>", function()
+                        vim.lsp.buf.signature_help()
+                    end, opts)
+                    vim.keymap.set("n", "K", function()
+                        vim.lsp.buf.hover()
+                    end, opts)
+                    vim.keymap.set("n", "[d", function()
+                        vim.diagnostic.goto_next()
+                    end, opts)
+                    vim.keymap.set("n", "]d", function()
+                        vim.diagnostic.goto_prev()
+                    end, opts)
+                    vim.keymap.set("n", "gca", function()
+                        vim.lsp.buf.code_action()
+                    end, opts)
                     vim.keymap.set("n", "gd", function()
                         if term_opener.is_terminal_buffer() then
                             term_opener.open_file_under_cusror()
@@ -95,10 +107,18 @@ return {
                         end
                         vim.lsp.buf.definition()
                     end, opts)
-                    vim.keymap.set("n", "grn", function() vim.lsp.buf.rename() end, opts)
-                    vim.keymap.set("n", "grr", function() vim.lsp.buf.references() end, opts)
-                    vim.keymap.set("n", "gvd", function() vim.diagnostic.open_float() end, opts)
-                    vim.keymap.set("n", "gws", function() vim.lsp.buf.workspace_symbol() end, opts)
+                    vim.keymap.set("n", "grn", function()
+                        vim.lsp.buf.rename()
+                    end, opts)
+                    vim.keymap.set("n", "grr", function()
+                        vim.lsp.buf.references()
+                    end, opts)
+                    vim.keymap.set("n", "gvd", function()
+                        vim.diagnostic.open_float()
+                    end, opts)
+                    vim.keymap.set("n", "gws", function()
+                        vim.lsp.buf.workspace_symbol()
+                    end, opts)
 
                     local client = vim.lsp.get_client_by_id(args.data.client_id)
                     if not client then
@@ -106,8 +126,8 @@ return {
                         return
                     end
 
-                    if client.supports_method('textDocument/formatting') then
-                        vim.api.nvim_create_autocmd('BufWritePre', {
+                    if client.supports_method("textDocument/formatting") then
+                        vim.api.nvim_create_autocmd("BufWritePre", {
                             buffer = args.buf,
                             callback = function()
                                 if CONFIG_DISABLE_FORMATTING then
@@ -117,20 +137,15 @@ return {
                             end,
                         })
                     end
-                end
+                end,
             })
-        end
+        end,
     },
     {
-        'https://git.sr.ht/~whynothugo/lsp_lines.nvim',
+        "https://git.sr.ht/~whynothugo/lsp_lines.nvim",
         config = function()
-            require('lsp_lines').setup()
-            vim.keymap.set(
-                '',
-                '<Leader>dl',
-                require('lsp_lines').toggle,
-                { desc = 'Toggle lsp_lines' }
-            )
+            require("lsp_lines").setup()
+            vim.keymap.set("", "<Leader>dl", require("lsp_lines").toggle, { desc = "Toggle lsp_lines" })
         end,
     },
 }
