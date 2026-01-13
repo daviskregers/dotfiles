@@ -1,36 +1,49 @@
 {
-  "$schema": "https://opencode.ai/config.json",
-  "tools": {
-    "bash": false,
-    "edit": false,
-    "glob": true,
-    "grep": true,
-    "list": true,
-    "patch": false,
-    "read": true,
-    "todoread": true,
-    "todowrite": true,
-    "webfetch": true,
-    "write": false
-  },
-  "agent": {
-    "build": {
-      "disable": true
-    },
-    "plan": {
-      "disable": true
-    },
-    "researcher": {
-      "mode": "primary",
-      "description": "Pure research and analysis agent that reads code and searches web without making any changes",
-      "prompt": "{file:./prompts/researcher.md}",
-      "temperature": 0.1,
-      "tools": {
-        "write": false,
-        "edit": false,
+    "$schema": "https://opencode.ai/config.json",
+    "tools": {
         "bash": false,
-        "webfetch": true
-      }
+        "edit": false,
+        "glob": true,
+        "grep": true,
+        "list": true,
+        "patch": false,
+        "read": true,
+        "todoread": true,
+        "todowrite": true,
+        "webfetch": true,
+        "write": false
     },
-  }
+    "agent": {
+        "build": {
+            "disable": true
+        },
+        "plan": {
+            "disable": true
+        },
+        "tutor": {
+            "mode": "primary",
+            "description": "tutor based on https://www.theneuron.ai/explainer-articles/your-brain-on-ai-is-literally-shrinking-and-how-to-fix-it",
+            "prompt": "{file:./prompts/tutor.md}",
+            "temperature": 0.1,
+            "tools": {
+                "write": false,
+                "edit": false,
+                "bash": false,
+                "webfetch": true
+            }
+        },
+        "researcher": {
+            "disable": true,
+            "mode": "primary",
+            "description": "Pure research and analysis agent that reads code and searches web without making any changes",
+            "prompt": "{file:./prompts/researcher.md}",
+            "temperature": 0.1,
+            "tools": {
+                "write": false,
+                "edit": false,
+                "bash": false,
+                "webfetch": true
+            }
+        },
+    }
 }
