@@ -33,6 +33,7 @@ return {
             }
 
             require('telescope').load_extension('fzf')
+            require("telescope").load_extension("rest")
             require('config.telescope.multigrep').setup {}
 
             vim.keymap.set("n", "<C-p>", require('telescope.builtin').find_files, { desc = 'Telescope find files' })
