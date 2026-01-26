@@ -32,6 +32,18 @@
                 "webfetch": true
             }
         },
+        "investigator": {
+            "mode": "primary",
+            "description": "investigator",
+            "prompt": "{file:./prompts/investigator.md}",
+            "temperature": 0.1,
+            "tools": {
+                "write": false,
+                "edit": false,
+                "bash": true,
+                "webfetch": true
+            }
+        },
         "researcher": {
             "disable": true,
             "mode": "primary",
@@ -42,6 +54,32 @@
                 "write": false,
                 "edit": false,
                 "bash": false,
+                "webfetch": true
+            }
+        },
+        "planner": {
+            "disable": false,
+            "mode": "primary",
+            "description": "Planner",
+            "prompt": "{file:./prompts/planner.md}",
+            "temperature": 0.1,
+            "tools": {
+                "write": true,
+                "edit": true,
+                "bash": true,
+                "webfetch": true
+            }
+        },
+        "implementer": {
+            "disable": false,
+            "mode": "primary",
+            "description": "Implementer",
+            "prompt": "{file:./prompts/implementer.md}",
+            "temperature": 0.1,
+            "tools": {
+                "write": true,
+                "edit": true,
+                "bash": true,
                 "webfetch": true
             }
         },
