@@ -9,10 +9,10 @@ return {
                 preset = "modern",
                 delay = 500, -- delay before showing the popup (ms)
                 plugins = {
-                    marks = true,
-                    registers = true,
+                    marks = false,
+                    registers = false,
                     spelling = {
-                        enabled = true,
+                        enabled = false,
                         suggestions = 20,
                     },
                 },
@@ -20,7 +20,10 @@ return {
                     border = "rounded",
                 },
                 -- Disable by default - won't show automatically
-                triggers = {},
+                triggers = {
+                   { "<leader>g" },
+                   { "<leader>9" },
+                },
             })
 
             -- Add group labels for better organization

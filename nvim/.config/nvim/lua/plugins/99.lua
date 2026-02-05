@@ -1,56 +1,55 @@
 return {
-    {
-        "ThePrimeagen/99",
-        config = function()
-            local _99 = require("99")
-
-            -- For logging that is to a file if you wish to trace through requests
-            -- for reporting bugs, i would not rely on this, but instead the provided
-            -- logging mechanisms within 99.  This is for more debugging purposes
-            local cwd = vim.uv.cwd()
-            local basename = vim.fs.basename(cwd)
-            _99.setup({
-                logger = {
-                    level = _99.DEBUG,
-                    path = "/tmp/" .. basename .. ".99.debug",
-                    print_on_error = true,
-                },
+{
+		"99",
+		dir = "~/Projects/productivity/99",
+		config = function()
+			local _99 = require("99")
+			_99.setup({
+				md_files = {
+					"AGENTS.md",
+                    "CLAUDE.md",
+				},
                 model = "github-copilot/claude-sonnet-4.5",
+			})
 
-                --- WARNING: if you change cwd then this is likely broken
-                --- ill likely fix this in a later change
-                ---
-                --- md_files is a list of files to look for and auto add based on the location
-                --- of the originating request.  That means if you are at /foo/bar/baz.lua
-                --- the system will automagically look for:
-                --- /foo/bar/AGENT.md
-                --- /foo/AGENT.md
-                --- assuming that /foo is project root (based on cwd)
-                md_files = {
-                    "AGENT.md",
-                    "CLAUDE.md"
-                },
-            })
+			vim.keymap.set("n", "<leader>[", function()
+				_99.fill_in_function()
+			end, { desc = "99 Fill in function" })
 
-            -- Create your own short cuts for the different types of actions
-            vim.keymap.set("n", "<leader>9f", function()
-                _99.fill_in_function()
-            end)
-            -- take extra note that i have visual selection only in v mode
-            -- technically whatever your last visual selection is, will be used
-            -- so i have this set to visual mode so i dont screw up and use an
-            -- old visual selection
-            --
-            -- likely ill add a mode check and assert on required visual mode
-            -- so just prepare for it now
-            vim.keymap.set("v", "<leader>9v", function()
-                _99.visual()
-            end)
+			vim.keymap.set("v", "<leader>[", function()
+				_99.visual()
+			end, { desc = "99 Visual prompt" })
 
-            --- if you have a request you dont want to make any changes, just cancel it
-            vim.keymap.set("v", "<leader>9s", function()
-                _99.stop_all_requests()
-            end)
-        end,
-    },
+			vim.keymap.set("n", "<leader>]", function()
+				_99.fill_in_function_prompt()
+			end, { desc = "99 Fill in function with prompt" })
+
+			vim.keymap.set("v", "<leader>]", function()
+				_99.visual_prompt()
+			end, { desc = "99 Visual prompt with prompt" })
+
+			-- vim.keymap.set("n", "<leader>9fd", function()
+			-- 	_99.fill_in_function({
+			-- 		additional_rules = {
+			--                      _99:rule_from_path("~/.behaviors/debug.md"),
+			-- 		},
+			-- 	})
+			-- end)
+			vim.keymap.set("n", "<leader>9s", function()
+				_99.stop_all_requests()
+			end, { desc = "99 Stop all requests" })
+			vim.keymap.set("n", "<leader>9i", function()
+				_99.info()
+			end, { desc = "99 Info" })
+			vim.keymap.set("n", "<leader>9l", function()
+				_99.view_logs()
+			end, { desc = "99 View logs" })
+			vim.keymap.set("n", "<leader>9n", function()
+				_99.next_request_logs()
+			end, { desc = "99 Next request logs" })
+			vim.keymap.set("n", "<leader>9p", function()
+				_99.prev_request_logs()
+			end, { desc = "99 Previous request logs" })
+		end,
+	},
 }
