@@ -12,7 +12,17 @@ return {
                 "<leader>gg",
                 function() require("neogit").open() end,
                 desc = "Open NeoGit",
-            }
+            },
+            {
+                "<leader>gc",
+                "<cmd>Neogit branch<CR>",
+                desc = "Git branch",
+            },
+            {
+                "<leader>gd",
+                "<cmd>Neogit diff<CR>",
+                desc = "Git diff",
+            },
         }
     },
     {

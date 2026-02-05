@@ -46,6 +46,7 @@ PATH=~/bin:$PATH
 PATH=/opt/update-reminder:$PATH
 PATH=/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH
 PATH=$(go env GOBIN):$(go env GOPATH)/bin:$PATH
+PATH=$HOME/.local/bin/:$PATH
 
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm

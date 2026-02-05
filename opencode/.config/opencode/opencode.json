@@ -1,19 +1,17 @@
 {
     "$schema": "https://opencode.ai/config.json",
-    "tools": {
-        "bash": false,
-        "edit": false,
-        "glob": true,
-        "grep": true,
-        "list": true,
-        "patch": false,
-        "read": true,
-        "todoread": true,
-        "todowrite": true,
-        "webfetch": true,
-        "write": false
-    },
     "agent": {
+        "agent": {
+            "hidden": true,
+            "disable": false,
+            "mode": "primary",
+            "tools": {
+                "write": true,
+                "edit": true,
+                "bash": true,
+                "webfetch": true
+            }
+        },
         "build": {
             "disable": true
         },
@@ -82,6 +80,6 @@
                 "bash": true,
                 "webfetch": true
             }
-        },
+        }
     }
 }
