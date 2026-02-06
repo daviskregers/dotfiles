@@ -1,85 +1,58 @@
 {
-    "$schema": "https://opencode.ai/config.json",
+  "$schema": "https://opencode.ai/config.json",
+  "model": "github-copilot/claude-sonnet",
+  "agent": {
+    "tutor": {
+      "mode": "primary",
+      "description": "tutor based on https://www.theneuron.ai/explainer-articles/your-brain-on-ai-is-literally-shrinking-and-how-to-fix-it",
+      "prompt": "{file:./prompts/tutor.md}",
+      "temperature": 0.1,
+      "tools": {
+        "write": false,
+        "edit": false,
+        "bash": false,
+        "webfetch": true
+      }
+    },
     "agent": {
-        "agent": {
-            "hidden": true,
-            "disable": false,
-            "mode": "primary",
-            "tools": {
-                "write": true,
-                "edit": true,
-                "bash": true,
-                "webfetch": true
-            }
-        },
-        "build": {
-            "disable": true
-        },
-        "plan": {
-            "disable": true
-        },
-        "tutor": {
-            "mode": "primary",
-            "description": "tutor based on https://www.theneuron.ai/explainer-articles/your-brain-on-ai-is-literally-shrinking-and-how-to-fix-it",
-            "prompt": "{file:./prompts/tutor.md}",
-            "temperature": 0.1,
-            "tools": {
-                "write": false,
-                "edit": false,
-                "bash": false,
-                "webfetch": true
-            }
-        },
-        "investigator": {
-            "mode": "primary",
-            "description": "investigator",
-            "prompt": "{file:./prompts/investigator.md}",
-            "temperature": 0.1,
-            "tools": {
-                "write": false,
-                "edit": false,
-                "bash": true,
-                "webfetch": true
-            }
-        },
-        "researcher": {
-            "disable": true,
-            "mode": "primary",
-            "description": "Pure research and analysis agent that reads code and searches web without making any changes",
-            "prompt": "{file:./prompts/researcher.md}",
-            "temperature": 0.1,
-            "tools": {
-                "write": false,
-                "edit": false,
-                "bash": false,
-                "webfetch": true
-            }
-        },
-        "planner": {
-            "disable": false,
-            "mode": "primary",
-            "description": "Planner",
-            "prompt": "{file:./prompts/planner.md}",
-            "temperature": 0.1,
-            "tools": {
-                "write": true,
-                "edit": true,
-                "bash": true,
-                "webfetch": true
-            }
-        },
-        "implementer": {
-            "disable": false,
-            "mode": "primary",
-            "description": "Implementer",
-            "prompt": "{file:./prompts/implementer.md}",
-            "temperature": 0.1,
-            "tools": {
-                "write": true,
-                "edit": true,
-                "bash": true,
-                "webfetch": true
-            }
-        }
+      "hidden": true,
+      "disable": false,
+      "mode": "primary",
+      "tools": {
+        "write": true,
+        "edit": true,
+        "bash": true,
+        "webfetch": true
+      }
+    },
+    "build": {
+      "disable": false
+    },
+    "plan": {
+      "disable": false
     }
+  },
+  "mcp": {
+    "context7": {
+      "type": "local",
+      "command": [
+        "npx",
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "enabled": true
+    },
+    "btca-local": {
+      "type": "local",
+      "command": [
+        "bunx",
+        "btca",
+        "mcp"
+      ],
+      "enabled": true
+    }
+  },
+  "plugin": [
+    "@plannotator/opencode@latest"
+  ]
 }
