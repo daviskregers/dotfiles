@@ -23,6 +23,7 @@ return {
                 triggers = {
                    { "<leader>g" },
                    { "<leader>9" },
+                   { "<leader>o" },
                 },
             })
 
