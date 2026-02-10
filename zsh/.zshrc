@@ -26,4 +26,7 @@ export PATH=/Users/daviskregers/.opencode/bin:$PATH
 alias tm='task-master'
 alias taskmaster='task-master'
 
-eval "$(direnv hook zsh)"
+# if direnv command exists, set up the hook
+if command -v direnv &> /dev/null; then
+    eval "$(direnv hook zsh)"
+fi
