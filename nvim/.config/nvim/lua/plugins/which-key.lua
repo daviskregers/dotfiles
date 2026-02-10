@@ -24,6 +24,7 @@ return {
                    { "<leader>g" },
                    { "<leader>9" },
                    { "<leader>o" },
+                   { "<leader>d" },
                 },
             })
 
