@@ -34,6 +34,7 @@ export LESS_TERMCAP_so=$(printf '\e[1;44;1m')
 export GTK_PATH=:/usr/lib/gtk-2.0
 export PROJECTS=~/projects
 
+PATH=/opt/homebrew/bin:$PATH
 PATH=$DOTFILES/bin:$PATH
 PATH=~/.local/bin:$PATH
 PATH=/usr/local/sbin:$PATH
