@@ -116,3 +116,6 @@ vmrss() {
 ## Xorg presets
 alias xtv="bash ~/.screenlayout/tv.sh"
 alias xnorm="bash ~/.screenlayout/normal.sh"
+
+## Direnv
+eval "$(direnv hook bash)"
