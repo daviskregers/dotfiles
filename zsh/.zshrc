@@ -30,3 +30,6 @@ alias taskmaster='task-master'
 if command -v direnv &> /dev/null; then
     eval "$(direnv hook zsh)"
 fi
+
+# bun completions
+[ -s "/Users/daviskregers/.bun/_bun" ] && source "/Users/daviskregers/.bun/_bun"
