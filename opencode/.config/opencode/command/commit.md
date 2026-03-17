@@ -73,9 +73,18 @@ must store the returned access and refresh tokens and pass them via
 the Authorization header.
 ```
 
+## If the Commit Fails
+
+If `git commit` fails due to a git hook (commitlint, pre-commit, etc.):
+
+1. Report the hook name and error output to the user.
+2. **Stop immediately.** Do NOT attempt to fix the issue, retry the commit, or modify any files.
+3. Wait for the user's instructions.
+
 ## Important
 
 - Do NOT modify any files.
 - Do NOT stage additional files — only commit what is already staged.
 - Do NOT use `--amend` or any destructive git operations.
 - Do NOT push to remote.
+- Do NOT attempt to fix or retry failed commits — report and wait.
