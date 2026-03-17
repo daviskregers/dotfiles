@@ -78,6 +78,20 @@ return {
                             end
                         end
 
+                        -- Get deleted files
+                        local deleted =
+                            vim.fn.systemlist("git -C " .. vim.fn.shellescape(git_root) .. " diff --name-only --diff-filter=D HEAD")
+                        for _, file in ipairs(deleted) do
+                            if file ~= "" then
+                                table.insert(qf_items, {
+                                    filename = git_root .. "/" .. file,
+                                    lnum = 1,
+                                    col = 1,
+                                    text = "[deleted] " .. file,
+                                })
+                            end
+                        end
+
                         -- Get untracked (new) files
                         local untracked =
                             vim.fn.systemlist("git -C " .. vim.fn.shellescape(git_root) .. " ls-files --others --exclude-standard")
