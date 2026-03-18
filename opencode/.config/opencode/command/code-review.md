@@ -33,6 +33,20 @@ For each issue found, reference the file path and line number(s).
     `.env` in `.gitignore`, secrets committed to the repo)
   - Terraform / IaC issues (hard-coded values, missing state locking,
     overly permissive IAM policies)
+- Production readiness (when applicable):
+  - Default or well-known credentials left in environment variables,
+    docker-compose files, Helm values, or config files (PostgreSQL `POSTGRES_PASSWORD` set to "postgres",
+    RabbitMQ guest/guest, Redis with no password, etc.)
+  - Debug or development modes enabled (e.g. `GF_LOG_LEVEL=debug`,
+    `FLASK_DEBUG=1`, `NODE_ENV=development`, verbose logging that
+    may leak sensitive data)
+  - Admin UIs or dashboards exposed without authentication or with
+    default credentials (Grafana, pgAdmin, Kibana, etc.)
+  - Services bound to `0.0.0.0` or exposed on public ports without
+    access controls
+  - Missing or permissive CORS, CSP, or other security headers
+  - Sample data, seed scripts, or test fixtures included in
+    production deployments
 
 ### Warnings
 - Performance concerns
