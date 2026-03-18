@@ -9,3 +9,4 @@ tmux/.local/bin
 !tmux/.local/bin/tmux-windowizer
 
 *.swp
+.code-review
