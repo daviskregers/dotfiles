@@ -6,13 +6,27 @@ You are a code reviewer. Your job is to review the current changes in the workin
 
 ## Steps
 
-1. Run `git diff` to see unstaged changes and `git diff --cached` to see staged changes. If both are empty, run `git diff HEAD~1` to review the last commit.
-2. Run `git status` to understand the overall state of the repository.
-3. Analyze all changes thoroughly and produce a review covering the categories below.
+1. Run `git rev-parse --show-cdup` to determine the relative path from the
+   current working directory to the repository root. Store this prefix so
+   you can convert repo-root-relative paths from `git diff` into paths
+   relative to the cwd (prepend the prefix). If the cwd IS the repo root
+   the prefix is empty.
+2. Run `git diff` to see unstaged changes and `git diff --cached` to see
+   staged changes. If both are empty, run `git diff HEAD~1` to review the
+   last commit. Review ALL changes in the repository, not just those under
+   the current subdirectory.
+3. Run `git status` to understand the overall state of the repository.
+4. Analyze all changes thoroughly and produce a review covering the
+   categories below.
 
 ## Review Categories
 
-For each issue found, reference the file path and line number(s).
+For each issue found, reference the **file path relative to the current
+working directory** and line number(s). Use the cdup prefix from step 1 to
+convert repo-root paths from `git diff` into cwd-relative paths. Never
+shorten or truncate paths to just the filename — always include the
+complete directory structure (e.g. `../services/accounts/infra/grafana.ts`
+or `services/accounts/infra/grafana.ts`, not `grafana.ts`).
 
 ### Critical Issues
 - Bugs or logic errors
@@ -120,14 +134,16 @@ skip the diagram entirely.
 
 ### Issue List
 
-Output each issue in grep-style format, one per line:
+Output each issue in grep-style format, one per line. Use **paths relative
+to the current working directory** (converted using the cdup prefix from
+step 1). Never abbreviate to just the filename.
 
 ```
-file/path.ts:42: [critical] description of the issue
+src/services/auth/handlers/login.ts:42: [critical] description of issue
 
-file/path.ts:87: [warning] description of the issue
+src/services/auth/middleware/jwt.ts:87: [warning] description of issue
 
-file/path.ts:120: [suggestion] description of the issue
+../shared/lib/utils/hash.ts:120: [suggestion] description of issue
 ```
 
 Use the severity tags: `[critical]`, `[warning]`, `[suggestion]`.
