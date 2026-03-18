@@ -67,6 +67,20 @@ or `services/accounts/infra/grafana.ts`, not `grafana.ts`).
 - Error handling gaps
 - Race conditions or concurrency issues
 - Missing input validation
+- Unnecessary cloud/infrastructure costs (when applicable):
+  - Duplicate or redundant resources that could be consolidated
+    (e.g. multiple Secrets Manager secrets for the same scope,
+    separate S3 buckets that could be merged with prefixes)
+  - Over-provisioned resources (instance sizes, storage, IOPS,
+    throughput far above actual usage)
+  - Resources left running with no consumer (orphaned load
+    balancers, idle NAT gateways, unused Elastic IPs)
+  - Missing lifecycle policies or expiration (S3 objects, log
+    retention, old snapshots accumulating cost)
+  - Paid features enabled unnecessarily (multi-AZ on dev/staging
+    databases, provisioned concurrency on rarely-invoked Lambdas)
+  - Services that have cheaper equivalent alternatives for the
+    use case at hand
 
 ### Suggestions
 - Code style and readability improvements
