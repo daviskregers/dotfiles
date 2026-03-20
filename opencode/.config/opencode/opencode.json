@@ -53,6 +53,7 @@
     }
   },
   "plugin": [
-    "@plannotator/opencode@latest"
+    "@plannotator/opencode@latest",
+    "opencode-anthropic-oauth"
   ]
 }
