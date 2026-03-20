@@ -30,6 +30,31 @@
         "bash": true,
         "webfetch": true
       }
+    },
+    "code-reviewer": {
+      "description": "Read-only code review subagent with restricted tool access",
+      "mode": "subagent",
+      "prompt": "{file:./prompts/code-reviewer.md}",
+      "temperature": 0.1,
+      "tools": {
+        "write": false,
+        "edit": false,
+        "webfetch": false,
+        "context7_*": false,
+        "btca-local_*": false
+      },
+      "permission": {
+        "bash": {
+          "*": "deny",
+          "git diff*": "allow",
+          "git log*": "allow",
+          "git status*": "allow",
+          "git rev-parse*": "allow",
+          "git show*": "allow",
+          "gh pr view*": "allow",
+          "gh pr diff*": "allow"
+        }
+      }
     }
   },
   "mcp": {
