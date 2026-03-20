@@ -1,5 +1,6 @@
 ---
 description: Post a review file as a comment on a GitHub pull request
+agent: code-reviewer
 ---
 
 Use the `submit-pr-comment` tool to post a review file as a comment on a
