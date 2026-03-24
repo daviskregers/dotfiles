@@ -2,6 +2,18 @@
 
 - Before refactoring any code, ensure the existing behavior is fully covered by tests. Never proceed with a refactor until tests are in place that verify the current functionality is preserved.
 - When implementing to make a test pass, write the absolute minimum code necessary — no more than what the test requires.
+- When you look up documentation, conventions, or implementation patterns to decide how something should be done, suggest documenting the finding (e.g. in a skill, AGENTS.md, or project docs) so future sessions can reuse it without repeating the research.
+- When research during planning uncovers project-specific patterns, conventions, or gotchas that are not yet documented in the relevant rules files (CLAUDE.md, AGENTS.md, skills, or context docs), include a step in the plan to document them. The documentation step should target the most specific relevant file (e.g. a service's CLAUDE.md for service-specific patterns, AGENTS.md for cross-cutting workflow rules).
+
+### CRITICAL: Document research findings
+
+After the research phase and BEFORE writing the plan steps, you MUST:
+
+1. **List all patterns discovered** during research that are not already documented in CLAUDE.md, AGENTS.md, skills, or context docs.
+2. **For each finding**, state which file it should be documented in.
+3. **Include a plan step** to add the documentation.
+
+If no undocumented patterns were found, explicitly state "No undocumented patterns discovered" in the plan. Skipping this section is not acceptable.
 
 ## When in plan mode
 
@@ -10,9 +22,36 @@
 - Each step should be small enough that it can be reviewed in isolation without needing full context of the entire plan.
 - Prefer incremental steps that build on each other over large sweeping changes.
 - When a step involves modifying existing code, show both the before and after to make the change clear.
-- When a step involves testable behavior, write the tests first and verify they fail before proceeding to the implementation.
+
+### CRITICAL: Test-first ordering
+
+**NEVER plan implementation before its tests.** Each plan step that introduces testable behaviour must be structured as two adjacent steps:
+
+1. Write the test and verify it fails.
+2. Write the minimum implementation to make it pass.
+
+Never separate test and implementation steps with unrelated work. If the test requires importing a module that does not exist yet, create a minimal stub (e.g. an empty exported function) so the test fails at the assertion level, not the import level.
+
+### CRITICAL: Integration verification
+
+Unit tests alone are not sufficient. Every plan that adds or modifies an endpoint, service, or externally reachable behaviour **must** include a final integration verification step:
+
+- When the project has e2e tests (e.g. SAM-based, Playwright), add e2e test cases for the new behaviour and run them.
+- When e2e infrastructure is not available, include a manual verification step (e.g. CDK synth, curl against a running service, or smoke test) that proves the full wiring works — not just isolated units.
+- This step must come after all unit-level TDD cycles are complete.
+
+### CRITICAL: Plan submission checklist
+
+Before calling `submit_plan`, verify EVERY item below. If any item is not addressed, revise the plan before submitting.
+
+- [ ] Every testable step follows test-first ordering (test → stub → implementation)
+- [ ] Integration/E2E tests are addressed:
+  - If the project already has E2E infrastructure (e.g. `vitest.e2e.config.ts`, `globalSetup.e2e.ts`, Playwright configs, SAM-based test setup), include E2E tests in the plan
+  - If no E2E infrastructure exists, ask the user whether to set it up or skip it
+- [ ] All undocumented patterns discovered during research have a documentation step
+- [ ] No implementation step lacks a corresponding verification step
 
 ## When in build mode
 
 - When implementing to make a test pass, write the absolute minimum code necessary — no more than what the test requires.
-
+- After all unit-level TDD cycles are complete, write and run e2e/integration tests if the project supports them. Never declare a task done based on unit tests alone when integration testing is available.

@@ -55,6 +55,27 @@
           "gh pr diff*": "allow"
         }
       }
+    },
+    "pr-describer": {
+      "description": "Subagent that reads PR changes and writes a title and description",
+      "mode": "subagent",
+      "prompt": "{file:./prompts/pr-describer.md}",
+      "temperature": 0.1,
+      "tools": {
+        "read": false,
+        "write": false,
+        "edit": false,
+        "glob": false,
+        "grep": false,
+        "bash": false,
+        "webfetch": false,
+        "context7_*": false,
+        "btca-local_*": false,
+        "save-code-review": false,
+        "submit-pr-comment": false,
+        "read-pr-info": true,
+        "update-pr-info": true
+      }
     }
   },
   "mcp": {
@@ -79,6 +100,6 @@
   },
   "plugin": [
     "@plannotator/opencode@latest",
-    "opencode-anthropic-oauth"
+    "opencode-claude-bridge"
   ]
 }
