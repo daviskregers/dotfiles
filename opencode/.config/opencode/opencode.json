@@ -56,6 +56,28 @@
         }
       }
     },
+    "explainer": {
+      "description": "Subagent that generates visual HTML explanations with diagrams and quizzes",
+      "mode": "subagent",
+      "prompt": "{file:./prompts/explainer.md}",
+      "temperature": 0.1,
+      "tools": {
+        "read": true,
+        "glob": true,
+        "grep": true,
+        "write": false,
+        "edit": false,
+        "bash": false,
+        "webfetch": false,
+        "context7_*": false,
+        "btca-local_*": false,
+        "save-code-review": false,
+        "submit-pr-comment": false,
+        "read-pr-info": false,
+        "update-pr-info": false,
+        "save-explanation": true
+      }
+    },
     "pr-describer": {
       "description": "Subagent that reads PR changes and writes a title and description",
       "mode": "subagent",

@@ -4,12 +4,12 @@ import fs from "fs"
 
 export default tool({
   description:
-    "Save a code review to the .code-review directory with a timestamped filename",
+    "Save a code review to the .ai-artifacts directory with a timestamped filename",
   args: {
     content: tool.schema.string().describe("The full review content to save"),
   },
   async execute(args, context) {
-    const dir = path.join(context.directory, ".code-review")
+    const dir = path.join(context.directory, ".ai-artifacts")
     await fs.promises.mkdir(dir, { recursive: true })
 
     const now = new Date()
@@ -29,7 +29,7 @@ export default tool({
     ].join("")
     const suffix = Math.random().toString(36).slice(2, 6)
 
-    const filePath = path.join(dir, `${timestamp}_${suffix}.md`)
+    const filePath = path.join(dir, `review_${timestamp}_${suffix}.md`)
     await fs.promises.writeFile(filePath, args.content, "utf-8")
 
     const relativePath = path.relative(context.directory, filePath)
