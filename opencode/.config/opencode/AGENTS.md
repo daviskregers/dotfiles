@@ -4,6 +4,7 @@
 - When implementing to make a test pass, write the absolute minimum code necessary — no more than what the test requires.
 - When you look up documentation, conventions, or implementation patterns to decide how something should be done, suggest documenting the finding (e.g. in a skill, AGENTS.md, or project docs) so future sessions can reuse it without repeating the research.
 - When research during planning uncovers project-specific patterns, conventions, or gotchas that are not yet documented in the relevant rules files (CLAUDE.md, AGENTS.md, skills, or context docs), include a step in the plan to document them. The documentation step should target the most specific relevant file (e.g. a service's CLAUDE.md for service-specific patterns, AGENTS.md for cross-cutting workflow rules).
+- When editing a file, only change what is necessary to accomplish the task. Do not reformat, re-wrap, reorder, or otherwise alter surrounding content that is not related to the change. Unnecessary formatting changes make diffs noisy and large files hard to review.
 
 ### CRITICAL: Document research findings
 
@@ -27,7 +28,7 @@ If no undocumented patterns were found, explicitly state "No undocumented patter
 
 **NEVER plan implementation before its tests.** Each plan step that introduces testable behaviour must be structured as two adjacent steps:
 
-1. Write the test and verify it fails.
+1. Write the test and verify that the specific new test cases fail for the expected reason — not just that "tests fail". Confirm the failure message matches the behaviour you are about to implement.
 2. Write the minimum implementation to make it pass.
 
 Never separate test and implementation steps with unrelated work. If the test requires importing a module that does not exist yet, create a minimal stub (e.g. an empty exported function) so the test fails at the assertion level, not the import level.
@@ -55,3 +56,4 @@ Before calling `submit_plan`, verify EVERY item below. If any item is not addres
 
 - When implementing to make a test pass, write the absolute minimum code necessary — no more than what the test requires.
 - After all unit-level TDD cycles are complete, write and run e2e/integration tests if the project supports them. Never declare a task done based on unit tests alone when integration testing is available.
+- After a code review completes, do NOT automatically fix or address any findings. Present the review to the user and wait for explicit instructions on what to fix.
