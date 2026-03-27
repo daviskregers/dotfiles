@@ -33,9 +33,21 @@ The page MUST include these sections in order:
 
 A clear heading and 2-3 sentence summary of what this explanation covers and why it matters.
 
-### 2. Visual Diagrams
+### 2. Sections (repeat for each logical concept)
 
-Use Mermaid.js diagrams to illustrate the concept. Choose the most appropriate diagram type:
+Break the topic into as many logical sections as the complexity warrants, each self-contained. For each section:
+
+#### 2a. Explanation
+
+Explain the concept for this section. Use:
+- Short paragraphs (2-3 sentences max per point)
+- Code snippets in `<pre><code>` blocks where relevant
+- Bold key terms on first use
+- Callout boxes for important notes or warnings
+
+#### 2b. Visual Diagram (if appropriate)
+
+If a diagram helps illustrate this section, include one immediately after the explanation. Choose the most appropriate diagram type:
 
 - `flowchart TD/LR` — for processes, decision trees, request flows
 - `sequenceDiagram` — for interactions between components/services over time
@@ -43,9 +55,7 @@ Use Mermaid.js diagrams to illustrate the concept. Choose the most appropriate d
 - `classDiagram` — for class/type relationships
 - `erDiagram` — for data models and entity relationships
 
-Include **at least one diagram**, more if the topic warrants it. Each diagram must have a descriptive heading above it.
-
-Use this pattern to embed Mermaid diagrams:
+Each diagram must have a descriptive heading above it. Use this pattern:
 
 ```html
 <pre class="mermaid">
@@ -56,17 +66,13 @@ flowchart TD
 </pre>
 ```
 
-### 3. Step-by-Step Explanation
+Include **at least one diagram** across the page. Not every section needs one.
 
-Break the concept into numbered steps or logical sections. Use:
-- Short paragraphs (2-3 sentences max per point)
-- Code snippets in `<pre><code>` blocks where relevant
-- Bold key terms on first use
-- Callout boxes for important notes or warnings
+#### 2c. Section Quiz
 
-### 4. Knowledge Check Quiz
+After each section's explanation and diagram, include **1-2 quiz questions** that test understanding of that specific section. The quiz acts as a checkpoint — the user should feel confident answering before moving on.
 
-Include **3-5 quiz questions** that test understanding of the key concepts. Mix question types:
+Mix question types:
 
 - **Single-answer** (radio buttons) — for questions with one correct answer
 - **Multiple-answer** (checkboxes) — for "select all that apply" questions
@@ -95,7 +101,7 @@ Use this HTML/JS pattern for quizzes:
 
 For multiple-answer questions, use `data-correct="a,c"` and checkbox inputs.
 
-### 5. Summary
+### 3. Summary
 
 A brief recap of the key takeaways (3-5 bullet points).
 
