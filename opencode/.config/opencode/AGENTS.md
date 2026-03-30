@@ -6,6 +6,31 @@
 - When research during planning uncovers project-specific patterns, conventions, or gotchas that are not yet documented in the relevant rules files (CLAUDE.md, AGENTS.md, skills, or context docs), include a step in the plan to document them. The documentation step should target the most specific relevant file (e.g. a service's CLAUDE.md for service-specific patterns, AGENTS.md for cross-cutting workflow rules).
 - When editing a file, only change what is necessary to accomplish the task. Do not reformat, re-wrap, reorder, or otherwise alter surrounding content that is not related to the change. Unnecessary formatting changes make diffs noisy and large files hard to review.
 
+## Custom commands
+
+Every custom command in `command/` **must** have a dedicated subagent defined in `opencode.json` and referenced via `agent:` in the command's frontmatter. Never let a command run under the default primary agent.
+
+### Adding a new command
+
+1. **Define the subagent** in `opencode.json` under `agent`:
+   - Set `"mode": "subagent"`.
+   - Disable every tool the command does not need (`"write": false`, `"edit": false`, etc.).
+   - Under `permission.bash`, default-deny everything (`"*": "deny"`) and allowlist only the specific command patterns required (e.g. `"git stash*": "allow"`).
+2. **Create the command file** in `command/<name>.md`:
+   - Add `agent: <subagent-name>` in the YAML frontmatter.
+   - Write the instruction prompt for the subagent.
+3. **Verify** that the command cannot perform actions outside its intended scope (e.g. it should not be able to write files, push to remote, or run arbitrary shell commands).
+
+### Existing examples
+
+| Command | Agent | Allowed bash patterns |
+|---------|-------|-----------------------|
+| `commit` | *(needs migration)* | — |
+| `code-review` | `code-reviewer` | `git diff*`, `git log*`, `git status*`, `git rev-parse*`, `git show*`, `gh pr view*`, `gh pr diff*` |
+| `stash` | `git-stasher` | `git stash*`, `git diff*`, `git status*` |
+| `describe-pr` | `pr-describer` | *(bash disabled)* |
+| `explain` | `explainer` | *(bash disabled)* |
+
 ### CRITICAL: Document research findings
 
 After the research phase and BEFORE writing the plan steps, you MUST:
