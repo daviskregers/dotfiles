@@ -28,6 +28,24 @@ return {
         },
     },
     {
+        "sindrets/diffview.nvim",
+        dependencies = {
+            { "nvim-tree/nvim-web-devicons" },
+        },
+        keys = {
+            {
+                "<leader>gr",
+                "<cmd>DiffviewOpen<CR>",
+                desc = "Git diffview open",
+            },
+            {
+                "<leader>gq",
+                "<cmd>DiffviewClose<CR>",
+                desc = "Git diffview close",
+            },
+        },
+    },
+    {
         "lewis6991/gitsigns.nvim",
         config = function()
             require("gitsigns").setup({
@@ -55,8 +73,7 @@ return {
                         local git_root = vim.fn.systemlist("git rev-parse --show-toplevel")[1]
 
                         -- Get hunk locations from git diff (tracked modified files)
-                        local diff_output =
-                            vim.fn.systemlist("git diff --no-color --unified=0 --no-ext-diff HEAD")
+                        local diff_output = vim.fn.systemlist("git diff --no-color --unified=0 --no-ext-diff HEAD")
                         local current_file = nil
                         for _, line in ipairs(diff_output) do
                             -- Match file header: +++ b/path/to/file
@@ -79,8 +96,9 @@ return {
                         end
 
                         -- Get deleted files
-                        local deleted =
-                            vim.fn.systemlist("git -C " .. vim.fn.shellescape(git_root) .. " diff --name-only --diff-filter=D HEAD")
+                        local deleted = vim.fn.systemlist(
+                            "git -C " .. vim.fn.shellescape(git_root) .. " diff --name-only --diff-filter=D HEAD"
+                        )
                         for _, file in ipairs(deleted) do
                             if file ~= "" then
                                 table.insert(qf_items, {
@@ -93,8 +111,9 @@ return {
                         end
 
                         -- Get untracked (new) files
-                        local untracked =
-                            vim.fn.systemlist("git -C " .. vim.fn.shellescape(git_root) .. " ls-files --others --exclude-standard")
+                        local untracked = vim.fn.systemlist(
+                            "git -C " .. vim.fn.shellescape(git_root) .. " ls-files --others --exclude-standard"
+                        )
                         for _, file in ipairs(untracked) do
                             if file ~= "" then
                                 table.insert(qf_items, {
@@ -175,5 +194,30 @@ return {
                 require("blame").setup({})
             end,
         },
+    },
+    {
+        "KEY60228/reviewthem.nvim",
+        dependencies = {
+            "sindrets/diffview.nvim", -- optional (need at least one diff tool)
+            "nvim-telescope/telescope.nvim", -- optional
+        },
+        config = function()
+            require("reviewthem").setup({
+                diff_tool = "diffview", -- "diffview" or "alt-diffview"
+                comment_sign = "💬", -- Sign shown in gutter for comments
+                ui = "builtin", -- "builtin" or "telescope"
+                keymaps = {
+                    start_review = "<leader>rs",
+                    add_comment = "<leader>rc",
+                    submit_review = "<leader>rw",
+                    abort_review = "<leader>rq",
+                    show_comments = "<leader>rl",
+                    toggle_reviewed = "<leader>rt",
+                    show_status = "<leader>rk",
+                    confirm_comment = "<C-s>",
+                    cancel_comment = "<Esc>",
+                },
+            })
+        end,
     },
 }

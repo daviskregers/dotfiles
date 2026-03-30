@@ -21,10 +21,11 @@ return {
                 },
                 -- Disable by default - won't show automatically
                 triggers = {
-                   { "<leader>g" },
-                   { "<leader>9" },
-                   { "<leader>o" },
-                   { "<leader>d" },
+                    { "<leader>9" },
+                    { "<leader>d" },
+                    { "<leader>g" },
+                    { "<leader>o" },
+                    { "<leader>r" },
                 },
             })
 
@@ -44,7 +45,7 @@ return {
                 wk.setup({
                     triggers = {
                         { "<auto>", mode = "nxso" },
-                    }
+                    },
                 })
                 vim.notify("Which-Key enabled", vim.log.levels.INFO)
             end, { desc = "Enable Which-Key automatic popups" })
@@ -71,5 +72,5 @@ return {
                 vim.cmd("WhichKey")
             end, { desc = "Show Which-Key" })
         end,
-    }
+    },
 }
