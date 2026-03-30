@@ -1,5 +1,6 @@
 ---
 description: Stash current changes with a meaningful name
+agent: git-stasher
 ---
 
 You are a git stash assistant. Your job is to stash the current working tree (and optionally staged) changes with a descriptive, meaningful name. You must NOT modify any files.

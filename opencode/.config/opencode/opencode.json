@@ -78,6 +78,34 @@
         "save-explanation": true
       }
     },
+    "git-stasher": {
+      "description": "Subagent that stashes changes with a meaningful name",
+      "mode": "subagent",
+      "temperature": 0.1,
+      "tools": {
+        "read": false,
+        "write": false,
+        "edit": false,
+        "glob": false,
+        "grep": false,
+        "webfetch": false,
+        "context7_*": false,
+        "btca-local_*": false,
+        "save-code-review": false,
+        "submit-pr-comment": false,
+        "save-explanation": false,
+        "read-pr-info": false,
+        "update-pr-info": false
+      },
+      "permission": {
+        "bash": {
+          "*": "deny",
+          "git stash*": "allow",
+          "git diff*": "allow",
+          "git status*": "allow"
+        }
+      }
+    },
     "pr-describer": {
       "description": "Subagent that reads PR changes and writes a title and description",
       "mode": "subagent",
