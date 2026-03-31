@@ -1,0 +1,114 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
+_gw_in_git_repo() {
+    git rev-parse --git-dir &>/dev/null
+}
+
+# The first entry from `git worktree list` is always the main (non-linked) worktree.
+_gw_main_root() {
+    git worktree list --porcelain | awk '/^worktree / { print $2; exit }'
+}
+
+# Resolve the repo's default branch (main > master > current HEAD).
+_gw_default_branch() {
+    local branch
+    branch=$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's|.*/||')
+    if [[ -n "$branch" ]]; then
+        printf "%s" "$branch"
+        return
+    fi
+    if git show-ref --verify --quiet refs/heads/main; then
+        printf "main"
+    elif git show-ref --verify --quiet refs/heads/master; then
+        printf "master"
+    else
+        git rev-parse --abbrev-ref HEAD
+    fi
+}
+
+cmd="${1:-}"
+
+case "$cmd" in
+    add)
+        name="${2:-}"
+        if [[ -z "$name" ]]; then
+            printf "Usage: gw add <name>\n" >&2
+            exit 1
+        fi
+
+        if ! _gw_in_git_repo; then
+            printf "${RED}error: not in a git repository${NC}\n" >&2
+            exit 1
+        fi
+
+        MAIN_ROOT=$(_gw_main_root)
+        BASENAME=$(basename "$MAIN_ROOT")
+        PARENT=$(dirname "$MAIN_ROOT")
+        WORKTREE_PATH="${PARENT}/${BASENAME}-${name}"
+
+        DEFAULT_BRANCH=$(_gw_default_branch)
+        git worktree add -b "$name" "$WORKTREE_PATH" "$DEFAULT_BRANCH"
+        printf "%s\n" "$WORKTREE_PATH"
+        ;;
+
+    rm)
+        force=0
+        if [[ "${2:-}" == "-f" || "${2:-}" == "--force" ]]; then
+            force=1
+        fi
+
+        if ! _gw_in_git_repo; then
+            printf "${RED}error: not in a git repository${NC}\n" >&2
+            exit 1
+        fi
+
+        CWD=$(pwd)
+
+        if [[ "$force" -eq 0 ]]; then
+            # Uncommitted changes (working tree or index)
+            if ! git diff --quiet || ! git diff --cached --quiet; then
+                printf "${RED}error: uncommitted changes in the current worktree${NC}\n" >&2
+                exit 1
+            fi
+
+            # Unpushed commits
+            BRANCH=$(git rev-parse --abbrev-ref HEAD)
+            if [[ "$BRANCH" == "HEAD" ]]; then
+                # Detached HEAD – no upstream concept, treat as safe
+                :
+            elif git rev-parse --verify "@{u}" &>/dev/null; then
+                UNPUSHED=$(git rev-list "@{u}..HEAD" --count)
+                if [[ "$UNPUSHED" -gt 0 ]]; then
+                    printf "${RED}error: %s unpushed commit(s) on branch '%s'${NC}\n" "$UNPUSHED" "$BRANCH" >&2
+                    exit 1
+                fi
+            else
+                printf "${RED}error: branch '%s' has no upstream — cannot confirm commits are pushed${NC}\n" "$BRANCH" >&2
+                exit 1
+            fi
+
+            # Confirm
+            printf "Remove worktree at '%s'? [y/N] " "$CWD"
+            read -r confirm
+            if [[ "$confirm" != "y" && "$confirm" != "Y" ]]; then
+                printf "Aborted.\n" >&2
+                exit 0
+            fi
+        fi
+
+        git worktree remove "$CWD"
+        ;;
+
+    *)
+        printf "Usage: gw <add|rm> [args]\n" >&2
+        printf "  gw add <name>   add a new worktree at ../<repo>-<name>\n" >&2
+        printf "  gw rm [-f]      remove the current worktree (skip checks with -f)\n" >&2
+        exit 1
+        ;;
+esac
