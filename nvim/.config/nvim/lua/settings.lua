@@ -84,3 +84,22 @@ vim.api.nvim_create_autocmd("TermOpen", {
     end,
 })
 
+vim.opt.autoread = true
+
+local function refresh_log_files()
+    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_loaded(buf) then
+            local name = vim.api.nvim_buf_get_name(buf)
+            if name:match("%.log$") then
+                local ok, _ = pcall(vim.cmd, "checktime " .. buf)
+                if not ok then
+                    vim.cmd("edit!")
+                end
+            end
+        end
+    end
+end
+
+vim.timer = vim.loop.new_timer()
+vim.timer:start(0, 2000, vim.schedule_wrap(refresh_log_files))
+
