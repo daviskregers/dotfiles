@@ -82,6 +82,7 @@ alias tksv='tmux kill-server'
 alias tl='tmux list-sessions'
 # alias ts='tmux new-session -s'
 alias ts='~/.local/bin/tmux-sessionizer'
+alias np='~/.local/bin/tmux-new-project'
 
 alias wezcfg='nvim ~/.config/wezterm/wezterm.lua'
 
