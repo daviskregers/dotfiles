@@ -1,0 +1,110 @@
+#!/usr/bin/env bash
+# tmux-new-project: Create a new project directory and open it in tmux
+
+# Read patterns from .tsp file
+tsp_file="$HOME/.tsp"
+patterns=()
+
+if [[ -f "$tsp_file" ]]; then
+    while IFS= read -r line; do
+        # Skip comments and empty lines
+        [[ "$line" =~ ^#.*$ ]] && continue
+        [[ -z "$line" ]] && continue
+        patterns+=("$line")
+    done < "$tsp_file"
+fi
+
+# Fallback to default patterns
+if [[ ${#patterns[@]} -eq 0 ]]; then
+    patterns=("$HOME/projects/*" "$HOME/.dotfiles")
+fi
+
+# Step 1: Choose pattern from .tsp
+echo "Select a location pattern:"
+selected_pattern=$(printf '%s\n' "${patterns[@]}" | fzf)
+
+if [[ -z "$selected_pattern" ]]; then
+    echo "No pattern selected. Aborting."
+    exit 1
+fi
+
+# Expand ~ to $HOME
+expanded_pattern="${selected_pattern/#\~/$HOME}"
+
+# Step 2: Choose category if pattern ends with /*
+final_location=""
+
+if [[ "$expanded_pattern" == */\* ]]; then
+    # Pattern ends with /*, we need to choose a category
+    base_dir="${expanded_pattern%/*}"
+    base_dir="${base_dir%/}"
+    
+    if [[ ! -d "$base_dir" ]]; then
+        echo "Base directory does not exist: $base_dir"
+        exit 1
+    fi
+    
+    # Build list of existing categories (subdirectories)
+    declare -a categories=()
+    while IFS= read -r subdir; do
+        if [[ -n "$subdir" ]]; then
+            categories+=("$subdir")
+        fi
+    done < <(find -L "$base_dir" -maxdepth 1 -mindepth 1 -type d 2>/dev/null | sort)
+    
+    # Add option to create new category
+    categories+=("[Create new category]")
+    
+    echo "Select a category:"
+    selected_category=$(printf '%s\n' "${categories[@]}" | fzf)
+    
+    if [[ -z "$selected_category" ]]; then
+        echo "No category selected. Aborting."
+        exit 1
+    fi
+    
+    # Handle "Create new category"
+    if [[ "$selected_category" == "[Create new category]" ]]; then
+        echo -n "Enter new category name: "
+        read -r new_category
+        
+        if [[ -z "$new_category" ]]; then
+            echo "No category name provided. Aborting."
+            exit 1
+        fi
+        
+        selected_category="$base_dir/$new_category"
+        mkdir -p "$selected_category"
+        echo "Created new category: $selected_category"
+    fi
+    
+    final_location="$selected_category"
+else
+    # Pattern doesn't end with /*, use it directly
+    if [[ ! -d "$expanded_pattern" ]]; then
+        echo "Directory does not exist: $expanded_pattern"
+        exit 1
+    fi
+    final_location="$expanded_pattern"
+fi
+
+# Step 3: Get project name
+echo -n "Enter project name: "
+read -r project_name
+
+if [[ -z "$project_name" ]]; then
+    echo "No project name provided. Aborting."
+    exit 1
+fi
+
+# Create project directory
+project_path="$final_location/$project_name"
+if [[ -d "$project_path" ]]; then
+    echo "Project already exists at $project_path"
+else
+    mkdir -p "$project_path"
+    echo "Created project at $project_path"
+fi
+
+# Launch tmux-sessionizer with the new project
+exec ~/.local/bin/tmux-sessionizer "$project_path"
