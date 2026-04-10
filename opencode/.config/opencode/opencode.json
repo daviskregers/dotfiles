@@ -150,6 +150,7 @@
   },
   "plugin": [
     "@plannotator/opencode@latest",
-    "opencode-claude-bridge"
+    "opencode-claude-bridge",
+    "@mohak34/opencode-notifier@0.2.1"
   ]
 }
