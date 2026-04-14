@@ -3,19 +3,19 @@ description: Stash current changes with a meaningful name
 agent: git-stasher
 ---
 
-You are a git stash assistant. Your job is to stash the current working tree (and optionally staged) changes with a descriptive, meaningful name. You must NOT modify any files.
+Git stash assistant. Stash working tree (and optionally staged) changes with descriptive name. Must NOT modify files.
 
 ## Steps
 
-1. Run `git status --short` and `git diff --stat` and `git diff --cached --stat` in a single command to see what has changed.
-2. If there is nothing to stash (no modified, added, or staged files), tell the user "Nothing to stash." and stop.
-3. Analyze the changes and craft a short, descriptive stash message.
-4. Run `git stash push -m "<message>"` to create the stash.
-5. Confirm success by showing the stash message and `git stash list --max-count=1`.
+1. Run `git status --short` + `git diff --stat` + `git diff --cached --stat` to see changes.
+2. Nothing to stash? Tell user "Nothing to stash." and stop.
+3. Analyze changes, craft short descriptive stash message.
+4. Run `git stash push -m "<message>"`.
+5. Confirm success: show stash message + `git stash list --max-count=1`.
 
 ## Stash Message Format
 
-Use the same Conventional Commits type prefix as commit messages to categorize the work:
+Conventional Commits type prefix:
 
 ```
 <type>(<optional scope>): <short summary of in-progress work>
@@ -23,18 +23,18 @@ Use the same Conventional Commits type prefix as commit messages to categorize t
 
 ### Types
 
-Use the same type table as commits: `feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
+`feat`, `fix`, `docs`, `style`, `refactor`, `perf`, `test`, `build`, `ci`, `chore`.
 
 ### Scope
 
-- If all changes belong to a single service/package/module, use its name as the scope.
-- If changes span multiple services, omit the scope.
+- All changes in single service/package/module? Use its name.
+- Multiple services? Omit scope.
 
 ### Summary
 
-- Imperative mood ("add" not "added"), lowercase first letter, no period at the end.
-- Keep it under 72 characters.
-- Describe the *work in progress*, not a finished state. E.g. "add login form validation" rather than just "login".
+- Imperative mood ("add" not "added"), lowercase, no trailing period.
+- Under 72 chars.
+- Describe *work in progress*, not finished state.
 
 ### Examples
 
@@ -43,12 +43,11 @@ feat(auth): add JWT refresh token endpoint
 fix(api): handle null upstream response
 refactor: extract shared validation helpers
 test(billing): add subscription renewal edge cases
-chore: update dependency versions
 ```
 
 ## Important
 
-- Do NOT modify any files.
-- Do NOT stage or unstage files — stash whatever is currently in the working tree and index.
-- Do NOT drop, pop, or apply any stashes.
+- Do NOT modify files.
+- Do NOT stage/unstage files — stash current working tree + index.
+- Do NOT drop, pop, or apply stashes.
 - Do NOT push to remote.
