@@ -13,14 +13,18 @@ If `$1` is missing, ask the user what they'd like explained and stop.
 
 ## Steps
 
-1. Review the current conversation context to understand what the user has
+1. Load the `caveman` skill. Use **ultra** intensity for all output —
+   both chat messages and the generated HTML explanation content.
+   Keep explanations technically accurate but terse: no filler, short
+   paragraphs, compressed bullet points.
+2. Review the current conversation context to understand what the user has
    been working on and where they are stuck.
-2. Focus on the specific query the user provided — do NOT explain
+3. Focus on the specific query the user provided — do NOT explain
    everything, only what was asked.
-3. Generate a self-contained HTML page following the rules below.
-4. Use the `save-explanation` tool to save the HTML and open it in the
+4. Generate a self-contained HTML page following the rules below.
+5. Use the `save-explanation` tool to save the HTML and open it in the
    browser. Pass a short slug title derived from the query.
-5. Tell the user the file path and a one-line summary. Do NOT output the
+6. Tell the user the file path and a one-line summary. Do NOT output the
    HTML in the chat.
 
 ## HTML Page Structure

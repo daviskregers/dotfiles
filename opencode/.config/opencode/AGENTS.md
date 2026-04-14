@@ -25,7 +25,7 @@ Every custom command in `command/` **must** have a dedicated subagent defined in
 
 | Command | Agent | Allowed bash patterns |
 |---------|-------|-----------------------|
-| `commit` | *(needs migration)* | — |
+| `commit` | `git-committer` | `git diff*`, `git commit*`, `git status*` |
 | `code-review` | `code-reviewer` | `git diff*`, `git log*`, `git status*`, `git rev-parse*`, `git show*`, `gh pr view*`, `gh pr diff*` |
 | `stash` | `git-stasher` | `git stash*`, `git diff*`, `git status*` |
 | `describe-pr` | `pr-describer` | *(bash disabled)* |

@@ -144,6 +144,35 @@
         "read-pr-info": true,
         "update-pr-info": true
       }
+    },
+    "git-committer": {
+      "description": "Subagent that commits staged changes with a conventional commit message",
+      "mode": "subagent",
+      "prompt": "{file:./prompts/git-committer.md}",
+      "temperature": 0.1,
+      "tools": {
+        "read": false,
+        "write": false,
+        "edit": false,
+        "glob": false,
+        "grep": false,
+        "webfetch": false,
+        "context7_*": false,
+        "btca-local_*": false,
+        "save-code-review": false,
+        "submit-pr-comment": false,
+        "save-explanation": false,
+        "read-pr-info": false,
+        "update-pr-info": false
+      },
+      "permission": {
+        "bash": {
+          "*": "deny",
+          "git diff*": "allow",
+          "git commit*": "allow",
+          "git status*": "allow"
+        }
+      }
     }
   },
   "mcp": {
@@ -168,7 +197,7 @@
   },
   "plugin": [
     "@plannotator/opencode@latest",
-    "opencode-claude-bridge",
+    "opencode-claude-bridge@latest",
     "@mohak34/opencode-notifier@0.2.1"
   ]
 }
