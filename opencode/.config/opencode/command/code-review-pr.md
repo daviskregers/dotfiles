@@ -11,8 +11,11 @@ The GitHub PR URL is: $1
 
 ## Steps
 
-1. Load the `code-review-rules` skill. It contains all the review
-   categories, output format rules, and save instructions you must follow.
+1. Load the `code-review-rules` skill and the `caveman-review` skill.
+   The code-review-rules skill contains review categories, output format,
+   and save instructions. The caveman-review skill controls your writing
+   style — use **ultra** intensity for all output: the saved review file
+   content, issue descriptions, positive observations, and chat messages.
 2. Run `gh pr view $1 --json title,body,baseRefName,headRefName,files,additions,deletions`
    to understand the PR metadata and scope.
 3. Run `gh pr diff $1` to get the full diff of the PR.
