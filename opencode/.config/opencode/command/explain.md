@@ -3,63 +3,47 @@ description: Generate a visual HTML explanation with diagrams and quizzes for a 
 agent: explainer
 ---
 
-You are about to generate a visual explanation. Your job is to create a self-contained HTML page that helps the user understand a concept they are struggling with. You must NEVER modify any source code files.
+Generate visual explanation. Create self-contained HTML page helping user understand concept. NEVER modify source code files.
 
 ## Input
 
 - **Query**: $1
 
-If `$1` is missing, ask the user what they'd like explained and stop.
+`$1` missing? Ask user what to explain and stop.
 
 ## Steps
 
-1. Load the `caveman` skill. Use **ultra** intensity for all output —
-   both chat messages and the generated HTML explanation content.
-   Keep explanations technically accurate but terse: no filler, short
-   paragraphs, compressed bullet points.
-2. Review the current conversation context to understand what the user has
-   been working on and where they are stuck.
-3. Focus on the specific query the user provided — do NOT explain
-   everything, only what was asked.
-4. Generate a self-contained HTML page following the rules below.
-5. Use the `save-explanation` tool to save the HTML and open it in the
-   browser. Pass a short slug title derived from the query.
-6. Tell the user the file path and a one-line summary. Do NOT output the
-   HTML in the chat.
+1. Load `caveman` skill. Use **ultra** intensity for all output. Technically accurate but terse.
+2. Review conversation context — understand what user working on, where stuck.
+3. Focus on specific query — do NOT explain everything.
+4. Generate self-contained HTML page per rules below.
+5. Use `save-explanation` tool to save HTML. Pass short slug title from query.
+6. Tell user file path + one-line summary. Do NOT output HTML in chat.
 
 ## HTML Page Structure
 
-Generate a **single, self-contained HTML file** with all CSS and JS inline. The only external resource allowed is the Mermaid.js CDN for diagrams.
+Single self-contained HTML file, all CSS/JS inline. Only external resource: Mermaid.js CDN.
 
-The page MUST include these sections in order:
+Must include these sections in order:
 
 ### 1. Title & Overview
 
-A clear heading and 2-3 sentence summary of what this explanation covers and why it matters.
+Clear heading + 2-3 sentence summary of what/why.
 
-### 2. Sections (repeat for each logical concept)
+### 2. Sections (repeat per logical concept)
 
-Break the topic into as many logical sections as the complexity warrants, each self-contained. For each section:
+Break topic into logical sections, each self-contained:
 
 #### 2a. Explanation
 
-Explain the concept for this section. Use:
-- Short paragraphs (2-3 sentences max per point)
-- Code snippets in `<pre><code>` blocks where relevant
+- Short paragraphs (2-3 sentences max)
+- Code snippets in `<pre><code>` blocks
 - Bold key terms on first use
-- Callout boxes for important notes or warnings
+- Callout boxes for important notes/warnings
 
 #### 2b. Visual Diagram (if appropriate)
 
-If a diagram helps illustrate this section, include one immediately after the explanation. Choose the most appropriate diagram type:
-
-- `flowchart TD/LR` — for processes, decision trees, request flows
-- `sequenceDiagram` — for interactions between components/services over time
-- `stateDiagram-v2` — for state machines and lifecycle
-- `classDiagram` — for class/type relationships
-- `erDiagram` — for data models and entity relationships
-
-Each diagram must have a descriptive heading above it. Use this pattern:
+Choose best type: `flowchart TD/LR`, `sequenceDiagram`, `stateDiagram-v2`, `classDiagram`, `erDiagram`.
 
 ```html
 <pre class="mermaid">
@@ -70,26 +54,15 @@ flowchart TD
 </pre>
 ```
 
-Include **at least one diagram** across the page. Not every section needs one.
+At least one diagram across page. Not every section needs one.
 
 #### 2c. Section Quiz
 
-After each section's explanation and diagram, include **1-2 quiz questions** that test understanding of that specific section. The quiz acts as a checkpoint — the user should feel confident answering before moving on.
+After each section: 1-2 quiz questions testing that section's understanding.
 
-Mix question types:
+Mix types: single-answer (radio), multiple-answer (checkboxes).
 
-- **Single-answer** (radio buttons) — for questions with one correct answer
-- **Multiple-answer** (checkboxes) — for "select all that apply" questions
-
-Each question MUST:
-- Have a clear question text
-- Have 3-4 answer options
-- Show feedback when the user clicks "Check Answer":
-  - Correct answers turn green with a brief explanation of WHY it's correct
-  - Wrong answers turn red with an explanation of WHY it's wrong and what the correct answer is
-- Work entirely client-side with no external dependencies
-
-Use this HTML/JS pattern for quizzes:
+Each question MUST: have clear text, 3-4 options, show feedback on "Check Answer" (green=correct with why, red=wrong with why + correct answer). Client-side only.
 
 ```html
 <div class="quiz-question" data-correct="b">
@@ -103,33 +76,26 @@ Use this HTML/JS pattern for quizzes:
 </div>
 ```
 
-For multiple-answer questions, use `data-correct="a,c"` and checkbox inputs.
+Multiple-answer: `data-correct="a,c"` + checkbox inputs.
 
 ### 3. Summary
 
-A brief recap of the key takeaways (3-5 bullet points).
+3-5 bullet point recap of key takeaways.
 
-## Styling Requirements
+## Styling
 
-Use a dark theme design:
-
+Dark theme:
 - System font stack: `-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif`
-- Max content width: `800px`, centered
-- Dark background (`#1a1a2e` or similar), light text (`#e0e0e0`)
-- Generous whitespace and line-height (1.6+)
-- Code blocks with a slightly lighter dark background (`#16213e`)
-- Mermaid diagrams centered with a dark-compatible background
-- Links in a visible accent color (e.g. `#64b5f6`)
-- Quiz styling:
-  - Questions in bordered cards with subtle dark borders
-  - Feedback hidden by default, shown on check
-  - Green (`#4caf50`) for correct, red (`#ef5350`) for wrong
-  - Smooth reveal animation
-- Responsive — readable on mobile
+- Max width `800px`, centered
+- Dark bg (`#1a1a2e`), light text (`#e0e0e0`)
+- Generous whitespace, line-height 1.6+
+- Code blocks: slightly lighter dark bg (`#16213e`)
+- Mermaid diagrams centered, dark-compatible
+- Links: accent color (`#64b5f6`)
+- Quiz: bordered cards, hidden feedback shown on check, green (`#4caf50`) correct, red (`#ef5350`) wrong, smooth reveal
+- Responsive
 
-## Mermaid.js Integration
-
-Include this in the `<head>`:
+## Mermaid.js
 
 ```html
 <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
