@@ -1,0 +1,17 @@
+{
+  "extraKnownMarketplaces": {
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
+      }
+    }
+  },
+  "enabledPlugins": {
+    "caveman@caveman": true
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"/Users/daviskregers/.claude/plugins/marketplaces/caveman/hooks/caveman-statusline.sh\""
+  }
+}

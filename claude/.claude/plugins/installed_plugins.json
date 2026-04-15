@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "plugins": {
+    "caveman@caveman": [
+      {
+        "scope": "user",
+        "installPath": "/Users/daviskregers/.claude/plugins/cache/caveman/caveman/63e797cd753b",
+        "version": "63e797cd753b",
+        "installedAt": "2026-04-13T14:02:32.037Z",
+        "lastUpdated": "2026-04-13T14:02:32.037Z",
+        "gitCommitSha": "63e797cd753b301374947a5ed975c21775d962b9"
+      }
+    ]
+  }
+}
