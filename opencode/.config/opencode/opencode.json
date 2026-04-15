@@ -20,11 +20,23 @@
     }
   },
   "agent": {
-    "build": {
-      "disable": false
-    },
     "plan": {
       "disable": false
+    },
+    "build": {
+      "disable": false,
+      "permission": {
+        "edit": "ask",
+        "bash": "ask"
+      }
+    },
+    "yolo": {
+      "description": "Agent that auto-accepts all edits and bash",
+      "mode": "primary",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
     },
     "tutor": {
       "mode": "primary",
@@ -35,17 +47,6 @@
         "write": false,
         "edit": false,
         "bash": false,
-        "webfetch": true
-      }
-    },
-    "investigator": {
-      "mode": "primary",
-      "prompt": "{file:./prompts/investigator.md}",
-      "temperature": 0.1,
-      "tools": {
-        "write": false,
-        "edit": false,
-        "bash": true,
         "webfetch": true
       }
     },
@@ -173,8 +174,7 @@
           "git status*": "allow"
         }
       }
-    }
-  },
+    }  },
   "mcp": {
     "context7": {
       "type": "local",
