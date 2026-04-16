@@ -5,6 +5,7 @@
 - When looking up docs/conventions/patterns, suggest documenting finding (skill, AGENTS.md, project docs) so future sessions reuse without re-research.
 - When research uncovers undocumented patterns/conventions/gotchas, include plan step to document them. Target most specific file (service CLAUDE.md for service-specific, AGENTS.md for cross-cutting).
 - When editing file, only change what necessary. No reformatting/reordering/re-wrapping unrelated content. Unnecessary changes = noisy diffs.
+- Avoid repeated magic values. When the same logical value appears in multiple places, extract a named constant or derive it from one source unless there is a clear reason not to.
 
 ## Custom commands
 
