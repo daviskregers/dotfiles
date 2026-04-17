@@ -3,3 +3,5 @@ cache/
 plugins/marketplaces/
 sessions/
 projects/
+history.jsonl
+tasks/
