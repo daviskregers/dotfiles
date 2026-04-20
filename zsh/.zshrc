@@ -2,6 +2,8 @@
 
 if [[ -d "/usr/share/oh-my-zsh" ]]; then
     export ZSH="/usr/share/oh-my-zsh"
+elif [[ -d "$HOME/.nix-profile/share/oh-my-zsh" ]]; then
+    export ZSH="$HOME/.nix-profile/share/oh-my-zsh"
 else
     export ZSH="$HOME/.oh-my-zsh"
 fi
