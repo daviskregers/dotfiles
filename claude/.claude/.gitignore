@@ -1,7 +1,13 @@
 backups/
 cache/
 plugins/marketplaces/
+plugins/installed_plugins.json
+plugins/known_marketplaces.json
 sessions/
 projects/
 history.jsonl
 tasks/
+file-history/
+image-cache/
+paste-cache/
+mcp-needs-auth-cache.json
