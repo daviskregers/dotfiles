@@ -195,29 +195,4 @@ return {
             end,
         },
     },
-    {
-        "KEY60228/reviewthem.nvim",
-        dependencies = {
-            "sindrets/diffview.nvim", -- optional (need at least one diff tool)
-            "nvim-telescope/telescope.nvim", -- optional
-        },
-        config = function()
-            require("reviewthem").setup({
-                diff_tool = "diffview", -- "diffview" or "alt-diffview"
-                comment_sign = "💬", -- Sign shown in gutter for comments
-                ui = "builtin", -- "builtin" or "telescope"
-                keymaps = {
-                    start_review = "<leader>rs",
-                    add_comment = "<leader>rc",
-                    submit_review = "<leader>rw",
-                    abort_review = "<leader>rq",
-                    show_comments = "<leader>rl",
-                    toggle_reviewed = "<leader>rt",
-                    show_status = "<leader>rk",
-                    confirm_comment = "<C-s>",
-                    cancel_comment = "<Esc>",
-                },
-            })
-        end,
-    },
 }
