@@ -55,6 +55,8 @@ LIMITS=""
 FIVE_H=$(echo "$INPUT" | jq -r '.rate_limits.five_hour.used_percentage // empty' 2>/dev/null)
 SEVEN_D=$(echo "$INPUT" | jq -r '.rate_limits.seven_day.used_percentage // empty' 2>/dev/null)
 
+FIVE_RESET=$(echo "$INPUT" | jq -r '.rate_limits.five_hour.resets_at // empty' 2>/dev/null)
+
 if [ -n "$FIVE_H" ]; then
   FIVE_H_INT=$(printf '%.0f' "$FIVE_H")
   if [ "$FIVE_H_INT" -gt 80 ] 2>/dev/null; then
@@ -64,8 +66,24 @@ if [ -n "$FIVE_H" ]; then
   else
     FIVE_COLOR='\033[32m'
   fi
-  LIMITS=" | ${FIVE_COLOR}5h:${FIVE_H_INT}%\033[0m"
+  FIVE_RESET_STR=""
+  if [ -n "$FIVE_RESET" ]; then
+    NOW=$(date +%s)
+    SECS_LEFT=$((FIVE_RESET - NOW))
+    if [ "$SECS_LEFT" -gt 0 ] 2>/dev/null; then
+      HOURS=$((SECS_LEFT / 3600))
+      MINS=$(((SECS_LEFT % 3600) / 60))
+      if [ "$HOURS" -gt 0 ]; then
+        FIVE_RESET_STR="(${HOURS}h${MINS}m)"
+      else
+        FIVE_RESET_STR="(${MINS}m)"
+      fi
+    fi
+  fi
+  LIMITS=" | ${FIVE_COLOR}5h:${FIVE_H_INT}%${FIVE_RESET_STR}\033[0m"
 fi
+
+SEVEN_RESET=$(echo "$INPUT" | jq -r '.rate_limits.seven_day.resets_at // empty' 2>/dev/null)
 
 if [ -n "$SEVEN_D" ]; then
   SEVEN_D_INT=$(printf '%.0f' "$SEVEN_D")
@@ -76,7 +94,26 @@ if [ -n "$SEVEN_D" ]; then
   else
     SEVEN_COLOR='\033[32m'
   fi
-  LIMITS="${LIMITS} | ${SEVEN_COLOR}7d:${SEVEN_D_INT}%\033[0m"
+  SEVEN_RESET_STR=""
+  if [ -n "$SEVEN_RESET" ]; then
+    NOW=$(date +%s)
+    SECS_LEFT=$((SEVEN_RESET - NOW))
+    if [ "$SECS_LEFT" -gt 0 ] 2>/dev/null; then
+      DAYS=$((SECS_LEFT / 86400))
+      HOURS=$(((SECS_LEFT % 86400) / 3600))
+      if [ "$DAYS" -gt 0 ]; then
+        SEVEN_RESET_STR="(${DAYS}d${HOURS}h)"
+      else
+        MINS=$(((SECS_LEFT % 3600) / 60))
+        if [ "$HOURS" -gt 0 ]; then
+          SEVEN_RESET_STR="(${HOURS}h${MINS}m)"
+        else
+          SEVEN_RESET_STR="(${MINS}m)"
+        fi
+      fi
+    fi
+  fi
+  LIMITS="${LIMITS} | ${SEVEN_COLOR}7d:${SEVEN_D_INT}%${SEVEN_RESET_STR}\033[0m"
 fi
 
 # --- Cost ---

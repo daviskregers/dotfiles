@@ -1,19 +1,4 @@
 {
-  "extraKnownMarketplaces": {
-    "caveman": {
-      "source": {
-        "source": "github",
-        "repo": "JuliusBrussee/caveman"
-      }
-    }
-  },
-  "enabledPlugins": {
-    "caveman@caveman": true
-  },
-  "statusLine": {
-    "type": "command",
-    "command": "bash \"/Users/daviskregers/.claude/statusline.sh\""
-  },
   "hooks": {
     "Notification": [
       {
@@ -26,5 +11,20 @@
         ]
       }
     ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"/Users/daviskregers/.claude/statusline.sh\""
+  },
+  "enabledPlugins": {
+    "caveman@caveman": true
+  },
+  "extraKnownMarketplaces": {
+    "caveman": {
+      "source": {
+        "source": "github",
+        "repo": "JuliusBrussee/caveman"
+      }
+    }
   }
 }
