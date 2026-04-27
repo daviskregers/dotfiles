@@ -32,6 +32,7 @@ return {
         dependencies = {
             { "nvim-tree/nvim-web-devicons" },
         },
+        cmd = { "DiffviewOpen", "DiffviewClose" },
         keys = {
             {
                 "<leader>gr",
