@@ -1,9 +1,9 @@
 ---
-description: Generate a visual HTML explanation with diagrams and quizzes
+description: Generate visual HTML explanation with diagrams and quizzes
 ---
 
-Use the explainer agent to generate a visual HTML explanation page for the topic below.
+Use explainer agent. Generate visual HTML explanation.
 
 Topic: $ARGUMENTS
 
-If no topic provided, ask user what to explain.
+No topic? Ask user what to explain.

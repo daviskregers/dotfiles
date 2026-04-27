@@ -1,9 +1,9 @@
 ---
-description: Review a GitHub pull request (read-only, saves to .ai-artifacts/)
+description: Review GitHub PR (read-only, saves to .ai-artifacts/)
 ---
 
-Use the code-reviewer agent to review a GitHub PR.
+Use code-reviewer agent to review GitHub PR.
 
-PR URL and optional context: $ARGUMENTS
+PR URL + optional context: $ARGUMENTS
 
-If no PR URL provided, tell user: `/code-review-pr <pr-url> [additional context]`
+Missing URL? Tell user: `/code-review-pr <pr-url> [context]`

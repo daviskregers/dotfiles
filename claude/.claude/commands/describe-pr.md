@@ -1,9 +1,9 @@
 ---
-description: Set a GitHub PR's title and description based on its contents
+description: Set GitHub PR title and description from contents
 ---
 
-Use the pr-describer agent to read PR changes and write title + description.
+Use pr-describer agent. Read PR changes, write title + description.
 
-PR URL and optional context: $ARGUMENTS
+PR URL + optional context: $ARGUMENTS
 
-If no PR URL provided, tell user: `/describe-pr <pr-url> [additional context]`
+Missing URL? Tell user: `/describe-pr <pr-url> [context]`
