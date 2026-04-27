@@ -3,6 +3,7 @@ description: Investigate a code review comment — verify issue, explain, then T
 ---
 
 Investigate a code review finding. Do NOT assume it's valid — verify first, then fix only if user confirms.
+Load `tdd` skill — follow its red-green cycle and rollback protocol for Phases 2-3.
 
 ## Input
 
@@ -23,10 +24,8 @@ No input? Ask user to paste the review comment and stop.
 
 ## Phase 2: Test (after user confirms)
 
-4. Write a failing test that demonstrates the issue. The test should:
-   - Pass BEFORE the fix if the comment is about missing behavior (test the gap)
-   - FAIL before the fix if the comment is about wrong behavior (test the bug)
-5. Run the test. Confirm it behaves as expected (fails for bugs, documents gap for missing behavior).
+4. Write a failing test that demonstrates the issue.
+5. Run the test. Confirm it fails (for bugs) or documents the gap (for missing behavior).
 
 ## Phase 3: Fix
 
@@ -34,6 +33,8 @@ No input? Ask user to paste the review comment and stop.
 7. Run the test — must pass now.
 8. Run the full test suite — no regressions.
 9. Report: what changed, why, test results.
+
+If test needs to change during implementation, follow the TDD rollback protocol from the `tdd` skill.
 
 ## Rules
 

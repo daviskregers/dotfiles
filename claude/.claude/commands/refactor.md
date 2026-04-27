@@ -3,6 +3,7 @@ description: Refactor code safely — validate test coverage first, refactor, ve
 ---
 
 Refactor the specified scope. Tests are the safety net — verify they exist and pass BEFORE touching source.
+Load `tdd` skill — tests are the contract, follow its regression check rules.
 
 ## Input
 
@@ -16,10 +17,10 @@ No scope provided? Ask user what to refactor and stop.
 
 1. Read the source code in scope. Understand current behavior.
 2. Find existing tests covering this code. Run them — they MUST pass.
-3. Assess coverage: are the critical paths tested? If coverage is insufficient to safely refactor:
+3. Assess coverage: are the critical paths tested? If coverage is insufficient:
    - **STOP.** Report what's missing.
    - Tell user to run `/test-cover <scope>` first.
-   - Do NOT proceed with refactor until user confirms coverage is acceptable.
+   - Do NOT proceed until user confirms coverage is acceptable.
 
 ### Phase 2: Refactor
 
