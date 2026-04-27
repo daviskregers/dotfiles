@@ -14,3 +14,4 @@ shell-snapshots/
 tasks/
 plans/
 .caveman-active
+telemetry/
