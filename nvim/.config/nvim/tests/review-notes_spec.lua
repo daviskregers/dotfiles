@@ -474,6 +474,18 @@ describe("review-notes", function()
       assert.equals(1, #rn.get_notes())
       vim.api.nvim_buf_delete(buf, { force = true })
     end)
+
+    it("copies export path to clipboard", function()
+      local buf = vim.api.nvim_create_buf(true, true)
+      vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "a" })
+
+      rn.add_note({ bufnr = buf, file = "a.lua", side = "file", start_line = 1, end_line = 1, text = "x" })
+      local path = rn.export({ keep = true })
+
+      local clipboard = vim.fn.getreg("+")
+      assert.equals(path, clipboard)
+      vim.api.nvim_buf_delete(buf, { force = true })
+    end)
   end)
 
   describe("persistence", function()

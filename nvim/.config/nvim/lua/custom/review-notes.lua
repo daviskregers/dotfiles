@@ -290,7 +290,8 @@ function M.export(opts)
   f:write(md)
   f:close()
 
-  vim.notify(string.format("Exported %d notes to %s", #state.notes, path), vim.log.levels.INFO)
+  vim.fn.setreg("+", path)
+  vim.notify(string.format("Exported %d notes to %s (copied to clipboard)", #state.notes, path), vim.log.levels.INFO)
 
   if not opts.keep then
     state.notes = {}
