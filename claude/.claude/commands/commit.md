@@ -1,7 +1,7 @@
 ---
-description: Commit staged changes with a conventional commit message
+description: Commit staged changes with conventional commit message
 ---
 
-Use the git-committer agent to commit staged changes. Pass no additional instructions unless the user provided arguments.
+Use git-committer agent to commit staged changes.
 
 $ARGUMENTS

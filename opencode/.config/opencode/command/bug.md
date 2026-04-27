@@ -6,7 +6,7 @@ TDD bug fix. Load `tdd` skill — red-green cycle + rollback protocol.
 
 ## Input
 
-Bug: $ARGUMENTS — none? Ask user.
+Bug: $1 — none? Ask user.
 
 ## Steps
 

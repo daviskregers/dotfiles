@@ -7,7 +7,7 @@ Load `tdd` skill — tests are contract.
 
 ## Input
 
-Scope: $ARGUMENTS — none? Ask user.
+Scope: $1 — none? Ask user.
 
 ### Phase 1: Validate coverage
 

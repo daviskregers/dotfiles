@@ -7,7 +7,7 @@ Load `tdd` skill for Phases 2-3.
 
 ## Input
 
-Comment: $ARGUMENTS — none? Ask user to paste.
+Comment: $1 — none? Ask user to paste.
 
 ## Phase 1: Investigate (always)
 

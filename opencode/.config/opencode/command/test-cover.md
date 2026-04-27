@@ -7,7 +7,7 @@ Load `tdd` skill — follow test quality rules.
 
 ## Input
 
-Scope: $ARGUMENTS — none? Ask user.
+Scope: $1 — none? Ask user.
 
 ## Steps
 

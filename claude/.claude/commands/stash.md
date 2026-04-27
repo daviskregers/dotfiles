@@ -1,7 +1,7 @@
 ---
-description: Stash current changes with a meaningful conventional-commit-style name
+description: Stash changes with conventional-commit-style name
 ---
 
-Use the git-stasher agent to stash current working tree changes with a descriptive name.
+Use git-stasher agent. Stash working tree changes with descriptive name.
 
 $ARGUMENTS
