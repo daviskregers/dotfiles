@@ -16,3 +16,4 @@ plans/
 .caveman-active
 telemetry/
 mcp-tools/node_modules/
+session-env/

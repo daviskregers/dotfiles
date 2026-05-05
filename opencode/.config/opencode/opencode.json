@@ -27,7 +27,12 @@
       "disable": false,
       "permission": {
         "edit": "ask",
-        "bash": "ask"
+        "bash": {
+          "*": "ask",
+          "git status*": "allow",
+          "git log*": "allow",
+          "git diff*": "allow"
+        }
       }
     },
     "yolo": {
