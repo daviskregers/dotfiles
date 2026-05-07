@@ -33,5 +33,6 @@ Test change during impl → follow `tdd` rollback protocol.
 
 - Phase 1 mandatory. Never skip.
 - Never fix without user confirmation.
+- All changes use TDD — failing test first, then minimal fix. No exceptions.
 - False positive → say so, stop.
 - Trivial fix → say so, user might fix manually.
