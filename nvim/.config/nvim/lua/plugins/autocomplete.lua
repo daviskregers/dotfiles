@@ -23,12 +23,19 @@ return {
                     sql = { 'dadbod', 'buffer' },
                     mysql = { 'dadbod', 'buffer' },
                     plsql = { 'dadbod', 'buffer' },
+                    codecompanion = { 'codecompanion' },
+                    codecompanion_input = { 'codecompanion' },
                 },
                 providers = {
                     dadbod = {
                         name = 'Dadbod',
                         module = 'vim_dadbod_completion.blink',
                         score_offset = 85,
+                    },
+                    codecompanion = {
+                        name = 'CodeCompanion',
+                        module = 'codecompanion.providers.completion.blink',
+                        score_offset = 100,
                     },
                 },
             },
