@@ -6,7 +6,7 @@ Changes to commands, skills, or agent prompts must be synced between Claude Code
 
 ## Brevity
 
-Be brief.
+Be brief. This applies to ALL output — responses, configs, subagent findings. Compress before presenting; never relay subagent walls-of-text verbatim.
 
 All rules, skills, prompts, commands, and agent definitions MUST be written compressed — drop articles/filler/hedging, use fragments, abbreviate. Technical substance, code blocks, and structure preserved — only fluff removed.
 
