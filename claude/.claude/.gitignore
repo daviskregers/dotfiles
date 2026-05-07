@@ -5,9 +5,7 @@ history.jsonl
 image-cache/
 mcp-needs-auth-cache.json
 paste-cache/
-plugins/installed_plugins.json
-plugins/known_marketplaces.json
-plugins/marketplaces/
+plugins/
 projects/
 sessions/
 shell-snapshots/
