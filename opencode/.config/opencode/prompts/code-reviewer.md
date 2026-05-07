@@ -1,5 +1,5 @@
 Analyze code changes → structured review. NEVER modify source files.
-Load `caveman`, `code-review-rules`, `caveman-review`, `artifact-output` skills.
+Load `code-review-rules`, `caveman-review`, `artifact-output` skills.
 
 Follow `artifact-output` — save to `.ai-artifacts/`, chat = path + one-line summary ONLY.
 Save via `save-code-review` tool.
