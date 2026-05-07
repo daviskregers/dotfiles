@@ -4,19 +4,6 @@
 
 INPUT=$(cat)
 
-# --- Caveman badge ---
-CAVEMAN=""
-FLAG="$HOME/.claude/.caveman-active"
-if [ -f "$FLAG" ]; then
-  MODE=$(cat "$FLAG" 2>/dev/null)
-  if [ "$MODE" = "full" ] || [ -z "$MODE" ]; then
-    CAVEMAN='\033[38;5;172m[CAVEMAN]\033[0m '
-  else
-    SUFFIX=$(echo "$MODE" | tr '[:lower:]' '[:upper:]')
-    CAVEMAN="\033[38;5;172m[CAVEMAN:${SUFFIX}]\033[0m "
-  fi
-fi
-
 # --- Context usage ---
 CTX_PCT=$(echo "$INPUT" | jq -r '.context_window.used_percentage // 0' 2>/dev/null | cut -d. -f1)
 CTX_TOTAL=$(echo "$INPUT" | jq -r '.context_window.context_window_size // 0' 2>/dev/null)
@@ -129,4 +116,4 @@ MODEL_STR=""
 [ -n "$MODEL" ] && MODEL_STR="[${MODEL}] "
 
 # --- Output ---
-printf '%b' "${CAVEMAN}${MODEL_STR}${CONTEXT}${LIMITS}${COST_STR}"
+printf '%b' "${MODEL_STR}${CONTEXT}${LIMITS}${COST_STR}"

@@ -24,17 +24,10 @@
     "command": "bash \"/Users/daviskregers/.claude/statusline.sh\""
   },
   "enabledPlugins": {
-    "caveman@caveman": true,
     "codex@openai-codex": true,
     "edurio-core@edurio-plugins": true
   },
   "extraKnownMarketplaces": {
-    "caveman": {
-      "source": {
-        "source": "github",
-        "repo": "JuliusBrussee/caveman"
-      }
-    },
     "openai-codex": {
       "source": {
         "source": "github",

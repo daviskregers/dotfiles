@@ -13,7 +13,6 @@ sessions/
 shell-snapshots/
 tasks/
 plans/
-.caveman-active
 telemetry/
 mcp-tools/node_modules/
 session-env/

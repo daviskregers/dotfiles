@@ -4,9 +4,11 @@
 
 Changes to commands, skills, or agent prompts must be synced between Claude Code (`~/.dotfiles/claude/.claude/`) and opencode (`~/.dotfiles/opencode/.config/opencode/`). Skills = shared submodule — commit once, bump both. Commands/prompts: replicate manually. After any change, check both sides before reporting done.
 
-## Caveman compression
+## Brevity
 
-All rules, skills, prompts, commands, and agent definitions MUST be caveman compressed. Drop articles/filler/hedging, use fragments, abbreviate. Technical substance, code blocks, and structure preserved — only fluff removed. Apply when creating or editing any config file.
+Be brief.
+
+All rules, skills, prompts, commands, and agent definitions MUST be written compressed — drop articles/filler/hedging, use fragments, abbreviate. Technical substance, code blocks, and structure preserved — only fluff removed.
 
 - Before refactoring, ensure existing behavior covered by tests. Never refactor without tests proving current functionality preserved.
 - When implementing for test, write absolute minimum code — no more than test requires.

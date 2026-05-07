@@ -7,7 +7,6 @@ maxTurns: 20
 mcpServers:
   - custom-tools
 skills:
-  - caveman
   - code-review-rules
   - caveman-review
   - artifact-output
