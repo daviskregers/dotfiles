@@ -32,12 +32,19 @@ return {
         dependencies = {
             { "nvim-tree/nvim-web-devicons" },
         },
-        cmd = { "DiffviewOpen", "DiffviewClose" },
+        cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewRefresh" },
         keys = {
             {
                 "<leader>gr",
-                "<cmd>DiffviewOpen<CR>",
-                desc = "Git diffview open",
+                function()
+                    local view = require("diffview.lib").get_current_view()
+                    if view then
+                        vim.cmd("DiffviewRefresh")
+                    else
+                        vim.cmd("DiffviewOpen")
+                    end
+                end,
+                desc = "Git diffview open/refresh",
             },
             {
                 "<leader>gq",
