@@ -7,7 +7,7 @@ return {
 
             wk.setup({
                 preset = "modern",
-                delay = 500, -- delay before showing the popup (ms)
+                delay = 200, -- delay before showing the popup (ms)
                 plugins = {
                     marks = false,
                     registers = false,
@@ -19,23 +19,16 @@ return {
                 win = {
                     border = "rounded",
                 },
-                -- Disable by default - won't show automatically
                 triggers = {
-                    { "<leader>9" },
-                    { "<leader>d" },
-                    { "<leader>g" },
-                    { "<leader>o" },
-                    { "<leader>r" },
-                    { "<leader>c" },
-                    { "<leader>n" },
+                    { "<auto>", mode = "nxso" },
                 },
             })
 
             -- Add group labels for better organization
             wk.add({
+                { "<leader>a", group = "Agent" },
                 { "<leader>p", group = "Project/Telescope" },
                 { "<leader>t", group = "Terminal/Test" },
-                { "<leader>z", group = "AI" },
                 { "<leader>d", group = "Diagnostics" },
                 { "g", group = "Go to" },
                 { "]", group = "Next" },
