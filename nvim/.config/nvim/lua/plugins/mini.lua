@@ -5,6 +5,8 @@ return {
             local statusline = require 'mini.statusline'
             local agent_status = require 'custom.agent_statusline'
             agent_status.setup()
+            local review_status = require 'custom.review_statusline'
+            review_status.setup()
 
             statusline.setup {
                 use_icons = true,
@@ -20,6 +22,7 @@ return {
                         local location      = statusline.section_location({ trunc_width = 75 })
                         local search        = statusline.section_searchcount({ trunc_width = 75 })
                         local cc            = agent_status.get()
+                        local rev           = review_status.get()
 
                         return statusline.combine_groups({
                             { hl = mode_hl,                  strings = { mode } },
@@ -27,7 +30,7 @@ return {
                             '%<',
                             { hl = 'MiniStatuslineFilename', strings = { filename } },
                             '%=',
-                            { hl = 'MiniStatuslineDevinfo',  strings = { cc } },
+                            { hl = 'MiniStatuslineDevinfo',  strings = { rev, cc } },
                             { hl = 'MiniStatuslineFileinfo', strings = { fileinfo } },
                             { hl = mode_hl,                  strings = { search, location } },
                         })

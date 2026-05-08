@@ -35,7 +35,7 @@ return {
         cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewRefresh" },
         keys = {
             {
-                "<leader>gr",
+                "<leader>gv",
                 function()
                     local view = require("diffview.lib").get_current_view()
                     if view then
