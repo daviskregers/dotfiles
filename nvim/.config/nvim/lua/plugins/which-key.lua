@@ -27,7 +27,10 @@ return {
             -- Add group labels for better organization
             wk.add({
                 { "<leader>a", group = "Agent" },
+                { "<leader>g", group = "Git" },
+                { "<leader>h", group = "HTTP" },
                 { "<leader>p", group = "Project/Telescope" },
+                { "<leader>r", group = "Review" },
                 { "<leader>t", group = "Terminal/Test" },
                 { "<leader>d", group = "Diagnostics" },
                 { "g", group = "Go to" },

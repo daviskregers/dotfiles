@@ -8,6 +8,12 @@ local A = require("custom.agents")
 vim.keymap.set("n", "<C-\\>", function() A.toggle() end, { desc = "Agent: toggle active" })
 vim.keymap.set("t", "<C-\\>", function() A.toggle() end, { desc = "Agent: toggle active" })
 
+-- `<C-\><C-n>` (nvim's default terminal-escape) is shadowed by the agent
+-- toggle. Provide `<Esc><Esc>` as an alternative so the user can leave
+-- terminal-mode and switch windows without sending input to the agent.
+-- Single `<Esc>` still passes through (Claude's TUI uses it).
+vim.keymap.set("t", "<Esc><Esc>", [[<C-\><C-n>]], { desc = "Exit terminal mode" })
+
 vim.keymap.set("n", "<leader>aA", function() A.toggle(nil, "float") end, { desc = "Agent: toggle (float)" })
 
 vim.keymap.set("n", "<leader>an", function()

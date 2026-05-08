@@ -163,6 +163,158 @@ return {
         end)
       end, { desc = "Review: clear all" })
 
+      -- ── P4 provider keymaps: load / push / fix-via-agent ─────────────
+
+      local function load_markdown_path(path)
+        if not path or path == "" then return end
+        path = vim.fn.expand(path)
+        local n = rn.load("markdown", path)
+        vim.notify(string.format("Loaded %d note(s) from %s", n, path), vim.log.levels.INFO)
+      end
+
+      local function prompt_custom_path()
+        vim.ui.input({ prompt = "Markdown path: ", default = "~/", completion = "file" }, load_markdown_path)
+      end
+
+      local function prompt_pr_ref()
+        vim.ui.input({ prompt = "PR URL or #N: " }, function(ref)
+          if not ref or ref == "" then return end
+          local n = rn.load("pr", ref)
+          vim.notify(string.format("Loaded %d comment(s) from %s", n, ref), vim.log.levels.INFO)
+        end)
+      end
+
+      vim.keymap.set("n", "<leader>rl", function()
+        local dir = rn.get_export_dir() or ".dk-notes/reviews"
+        if vim.fn.isdirectory(dir) ~= 1 then
+          vim.notify(dir .. " not found — choose another source", vim.log.levels.INFO)
+          return vim.ui.select(
+            { "Custom markdown path", "PR URL or #N" },
+            { prompt = "Load notes from:" },
+            function(c)
+              if c == "Custom markdown path" then prompt_custom_path()
+              elseif c == "PR URL or #N" then prompt_pr_ref() end
+            end
+          )
+        end
+
+        local entries = {}
+        for name, type in vim.fs.dir(dir, { depth = 10 }) do
+          if type == "file" and name:match("%.md$") then
+            local path = dir .. "/" .. name
+            local stat = vim.uv.fs_stat(path)
+            if stat then table.insert(entries, { path = path, name = name, mtime = stat.mtime.sec }) end
+          end
+        end
+        table.sort(entries, function(a, b) return a.mtime > b.mtime end)
+
+        local pickers = require("telescope.pickers")
+        local finders = require("telescope.finders")
+        local conf = require("telescope.config").values
+        local actions = require("telescope.actions")
+        local action_state = require("telescope.actions.state")
+        local previewers = require("telescope.previewers")
+
+        pickers.new({}, {
+          prompt_title = "Review markdown — <CR> load · <C-o> custom path · <C-p> PR",
+          finder = finders.new_table({
+            results = entries,
+            entry_maker = function(e)
+              return {
+                value = e, display = e.name, ordinal = e.name, filename = e.path, path = e.path,
+              }
+            end,
+          }),
+          sorter = conf.generic_sorter({}),
+          previewer = previewers.vim_buffer_cat.new({}),
+          attach_mappings = function(prompt_bufnr, map)
+            actions.select_default:replace(function()
+              local sel = action_state.get_selected_entry()
+              actions.close(prompt_bufnr)
+              if sel then load_markdown_path(sel.value.path) end
+            end)
+            map({ "i", "n" }, "<C-o>", function()
+              actions.close(prompt_bufnr); prompt_custom_path()
+            end)
+            map({ "i", "n" }, "<C-p>", function()
+              actions.close(prompt_bufnr); prompt_pr_ref()
+            end)
+            return true
+          end,
+        }):find()
+      end, { desc = "Review: load notes (Telescope; <C-o> custom path, <C-p> PR)" })
+
+      vim.keymap.set("n", "<leader>rL", prompt_pr_ref, { desc = "Review: load PR comments" })
+
+      vim.keymap.set("n", "<leader>rp", function()
+        local sinks = { "markdown (file)", "pr (PR URL)", "quickfix", "agent (active slot)" }
+        vim.ui.select(sinks, { prompt = "Push notes to:" }, function(choice)
+          if not choice then return end
+          if choice:match("^markdown") then
+            local res = rn.push("markdown")
+            if res.ok and res.path then vim.notify("Wrote " .. res.path, vim.log.levels.INFO)
+            elseif not res.ok then vim.notify("Markdown export failed: " .. (res.err or ""), vim.log.levels.ERROR) end
+          elseif choice:match("^pr") then
+            vim.ui.input({ prompt = "PR URL: ", default = rn.get_source_pr() or "" }, function(pr)
+              if not pr or pr == "" then return end
+              local res = rn.push("pr", { pr = pr })
+              if res.ok then
+                vim.notify(string.format("Pushed %d note(s) to %s", res.count, pr), vim.log.levels.INFO)
+              else
+                vim.notify("PR push failed: " .. (res.err or "unknown"), vim.log.levels.ERROR)
+              end
+            end)
+          elseif choice:match("^quickfix") then
+            local res = rn.push("quickfix", { open = true })
+            if res.count == 0 then vim.notify("No notes to send to quickfix", vim.log.levels.INFO) end
+          elseif choice:match("^agent") then
+            local res = rn.push("agent")
+            if res.ok and res.count > 0 then vim.notify(string.format("Sent %d note(s) to active agent", res.count), vim.log.levels.INFO) end
+          end
+        end)
+      end, { desc = "Review: push notes (output picker)" })
+
+      vim.keymap.set("n", "<leader>rk", function() rn.peek_note_at_cursor() end,
+        { desc = "Review: peek full note at cursor" })
+
+      vim.keymap.set("n", "<leader>rc", function()
+        local ctx = rn.resolve_buffer_context(0)
+        if not ctx then return vim.notify("Not a reviewable buffer", vim.log.levels.WARN) end
+        local line = vim.api.nvim_win_get_cursor(0)[1]
+        local notes = rn.get_notes_at_line(ctx.file, line, ctx.side)
+        if #notes == 0 then return vim.notify("No note at cursor", vim.log.levels.INFO) end
+
+        local function choose_action(note)
+          local names = vim.tbl_keys(rn.actions)
+          table.sort(names)
+          vim.ui.select(names, { prompt = "Action for note:" }, function(choice)
+            if choice and rn.actions[choice] then rn.actions[choice](note) end
+          end)
+        end
+
+        if #notes == 1 then
+          choose_action(notes[1])
+        else
+          vim.ui.select(notes, {
+            prompt = "Pick note:",
+            format_item = function(n)
+              local first_line = (n.text or ""):match("^[^\n]*") or ""
+              return string.format("[%s] %s", n.kind or "note", first_line:sub(1, 70))
+            end,
+          }, function(picked) if picked then choose_action(picked) end end)
+        end
+      end, { desc = "Review: code actions for note at cursor" })
+
+      vim.keymap.set("n", "<leader>rf", function()
+        local ctx = rn.resolve_buffer_context(0)
+        if not ctx then return vim.notify("Not a reviewable buffer", vim.log.levels.WARN) end
+        local line = vim.api.nvim_win_get_cursor(0)[1]
+        local note = rn.get_note_at_line(ctx.file, line, ctx.side)
+        if not note then return vim.notify("No note at cursor", vim.log.levels.INFO) end
+        require("custom.review.outputs.agent").push({ note })
+        vim.notify("Sent note to active agent", vim.log.levels.INFO)
+      end, { desc = "Review: send note-at-cursor to agent" })
+
 
       vim.api.nvim_create_autocmd("BufEnter", {
         callback = function(ev)

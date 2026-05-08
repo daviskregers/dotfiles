@@ -1,5 +1,88 @@
 local rn = require("custom.review-notes")
 
+describe("format_markdown resolved ordering", function()
+  before_each(function() rn.setup({ context_radius = 0, export_dir = vim.fn.tempname() }) end)
+  after_each(function() rn.clear_all() end)
+
+  local empty = function(n) n.context_before = {}; n.context_line = {}; n.context_after = {}; return n end
+
+  it("groups unresolved before resolved with section headings", function()
+    local notes = {
+      empty({ id = "r1", file = "a.lua", side = "file", start_line = 1, end_line = 1, text = "done", resolved = true,  created_at = 1 }),
+      empty({ id = "u1", file = "a.lua", side = "file", start_line = 2, end_line = 2, text = "todo", resolved = false, created_at = 2 }),
+    }
+    local md = rn.format_markdown(notes, {})
+    local u_pos = md:find("todo", 1, true)
+    local r_pos = md:find("done", 1, true)
+    assert.is_true(u_pos < r_pos)
+    assert.is_truthy(md:lower():find("unresolved"))
+    assert.is_truthy(md:lower():find("resolved"))
+  end)
+
+  it("does not show resolved section if all notes are unresolved", function()
+    local notes = {
+      empty({ id = "u1", file = "a.lua", side = "file", start_line = 1, end_line = 1, text = "todo" }),
+    }
+    local md = rn.format_markdown(notes, {})
+    -- resolved section heading should not appear
+    assert.is_falsy(md:lower():find("## resolved"))
+  end)
+end)
+
+describe("format_markdown sorting + robustness", function()
+  before_each(function() rn.setup({ context_radius = 0, export_dir = vim.fn.tempname() }) end)
+  after_each(function() rn.clear_all() end)
+
+  local empty = function(n) n.context_before = {}; n.context_line = {}; n.context_after = {}; return n end
+
+  it("sorts same-line notes by created_at ascending (oldest first)", function()
+    local notes = {
+      empty({ id = "n1", file = "a.lua", side = "file", start_line = 5, end_line = 5,
+              text = "newer", created_at = 200 }),
+      empty({ id = "n2", file = "a.lua", side = "file", start_line = 5, end_line = 5,
+              text = "older", created_at = 100 }),
+    }
+    local md = rn.format_markdown(notes, {})
+    assert.is_true(md:find("older", 1, true) < md:find("newer", 1, true))
+  end)
+
+  it("does not crash when a note has nil start_line", function()
+    local notes = {
+      empty({ id = "n1", file = "a.lua", side = "file", start_line = nil, end_line = nil,
+              text = "broken", created_at = 100 }),
+      empty({ id = "n2", file = "a.lua", side = "file", start_line = 3, end_line = 3,
+              text = "ok", created_at = 200 }),
+    }
+    local ok = pcall(rn.format_markdown, notes, {})
+    assert.is_true(ok)
+  end)
+end)
+
+describe("load_from_disk filters corrupted notes", function()
+  it("skips notes with non-numeric start_line", function()
+    local dir = vim.fn.tempname()
+    vim.fn.mkdir(dir, "p")
+    local f = io.open(dir .. "/.session.json", "w")
+    f:write(vim.json.encode({
+      notes = {
+        { id = "ok",     file = "a.lua", side = "file", start_line = 1,       end_line = 1,       text = "good" },
+        { id = "broken", file = "a.lua", side = "file", start_line = vim.NIL, end_line = vim.NIL, text = "bad" },
+      },
+      counter = 2,
+    }))
+    f:close()
+
+    rn.setup({ context_radius = 0, export_dir = dir })
+    rn.load_from_disk()
+    local notes = rn.get_notes()
+    assert.equals(1, #notes)
+    assert.equals("ok", notes[1].id)
+
+    rn.clear_all()
+    vim.fn.delete(dir, "rf")
+  end)
+end)
+
 describe("review-notes", function()
   before_each(function()
     rn.setup({ context_radius = 3, export_dir = vim.fn.tempname() })
