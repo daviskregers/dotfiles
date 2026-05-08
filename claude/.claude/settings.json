@@ -25,13 +25,20 @@
   },
   "enabledPlugins": {
     "codex@openai-codex": true,
-    "edurio-core@edurio-plugins": true
+    "edurio-core@edurio-plugins": true,
+    "plannotator@plannotator": true
   },
   "extraKnownMarketplaces": {
     "openai-codex": {
       "source": {
         "source": "github",
         "repo": "openai/codex-plugin-cc"
+      }
+    },
+    "plannotator": {
+      "source": {
+        "source": "github",
+        "repo": "backnotprop/plannotator"
       }
     }
   }
