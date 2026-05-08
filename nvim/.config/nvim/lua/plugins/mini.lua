@@ -3,8 +3,8 @@ return {
         'echasnovski/mini.nvim',
         config = function()
             local statusline = require 'mini.statusline'
-            local cc_status = require 'custom.codecompanion_statusline'
-            cc_status.setup()
+            local agent_status = require 'custom.agent_statusline'
+            agent_status.setup()
 
             statusline.setup {
                 use_icons = true,
@@ -19,7 +19,7 @@ return {
                         local fileinfo      = statusline.section_fileinfo({ trunc_width = 120 })
                         local location      = statusline.section_location({ trunc_width = 75 })
                         local search        = statusline.section_searchcount({ trunc_width = 75 })
-                        local cc            = cc_status.get()
+                        local cc            = agent_status.get()
 
                         return statusline.combine_groups({
                             { hl = mode_hl,                  strings = { mode } },
