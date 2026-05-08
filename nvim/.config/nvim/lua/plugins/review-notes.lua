@@ -6,7 +6,7 @@ return {
       local rn = require("custom.review-notes")
       rn.setup({
         context_radius = 3,
-        export_dir = ".reviews",
+        export_dir = ".dk-notes/reviews",
         sign_text = "RN",
       })
 

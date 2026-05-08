@@ -11,7 +11,7 @@ local state = {
 function M.setup(opts)
   state.opts = vim.tbl_deep_extend("force", {
     context_radius = 3,
-    export_dir = ".reviews",
+    export_dir = ".dk-notes/reviews",
     sign_text = "RN",
   }, opts or {})
   state.notes = {}

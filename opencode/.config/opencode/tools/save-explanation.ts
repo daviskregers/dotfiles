@@ -9,7 +9,7 @@ const execAsync = promisify(exec)
 
 export default tool({
     description:
-        "Save an HTML explanation page to the .ai-artifacts directory with a timestamped filename and open it in the default browser.",
+        "Save an HTML explanation page to the .dk-notes/explanations directory with a timestamped filename and open it in the default browser.",
     args: {
         content: tool.schema.string().describe("The full HTML content to save"),
         title: tool.schema
@@ -18,7 +18,7 @@ export default tool({
             .describe("Short title for the filename slug (e.g. 'jwt-auth-flow'). Defaults to 'explanation'."),
     },
     async execute(args, context) {
-        const dir = path.join(context.directory, ".ai-artifacts")
+        const dir = path.join(context.directory, ".dk-notes/explanations")
         await fs.promises.mkdir(dir, { recursive: true })
 
         const now = new Date()

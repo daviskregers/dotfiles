@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__custom-tools__save_code_review",
+      "mcp__custom-tools__read_pr_info"
+    ]
+  }
+}

@@ -4,12 +4,12 @@ import fs from "fs"
 
 export default tool({
   description:
-    "Save a code review to the .ai-artifacts directory with a timestamped filename",
+    "Save a code review to the .dk-notes/reviews directory with a timestamped filename",
   args: {
     content: tool.schema.string().describe("The full review content to save"),
   },
   async execute(args, context) {
-    const dir = path.join(context.directory, ".ai-artifacts")
+    const dir = path.join(context.directory, ".dk-notes/reviews")
     await fs.promises.mkdir(dir, { recursive: true })
 
     const now = new Date()

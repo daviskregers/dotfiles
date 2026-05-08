@@ -36,8 +36,8 @@ function text(msg: string) {
   return { content: [{ type: "text" as const, text: msg }] };
 }
 
-async function ensureArtifactsDir(): Promise<string> {
-  const dir = path.join(PROJECT_DIR, ".ai-artifacts");
+async function ensureNotesDir(kind: string): Promise<string> {
+  const dir = path.join(PROJECT_DIR, ".dk-notes", kind);
   await fs.promises.mkdir(dir, { recursive: true });
   return dir;
 }
@@ -50,10 +50,10 @@ const server = new McpServer({
 // ── save_code_review ────────────────────────────────────────────────
 server.tool(
   "save_code_review",
-  "Save a code review to .ai-artifacts/ with timestamped filename",
+  "Save a code review to .dk-notes/reviews/ with timestamped filename",
   { content: z.string().describe("Full review markdown content") },
   async ({ content }) => {
-    const dir = await ensureArtifactsDir();
+    const dir = await ensureNotesDir("reviews");
     const suffix = Math.random().toString(36).slice(2, 6);
     const filePath = path.join(dir, `review_${timestamp()}_${suffix}.md`);
     await fs.promises.writeFile(filePath, content, "utf-8");
@@ -64,13 +64,13 @@ server.tool(
 // ── save_explanation ────────────────────────────────────────────────
 server.tool(
   "save_explanation",
-  "Save an HTML explanation to .ai-artifacts/ and open in default browser",
+  "Save an HTML explanation to .dk-notes/explanations/ and open in default browser",
   {
     content: z.string().describe("Full HTML content"),
     title: z.string().optional().describe("Short slug for filename (e.g. 'jwt-auth-flow')"),
   },
   async ({ content, title }) => {
-    const dir = await ensureArtifactsDir();
+    const dir = await ensureNotesDir("explanations");
     const slug =
       (title ?? "explanation")
         .toLowerCase()

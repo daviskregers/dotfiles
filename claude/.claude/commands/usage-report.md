@@ -12,7 +12,7 @@ $ARGUMENTS = optional number of days (e.g. `7`, `30`). Empty = all history.
 
 ## Step 2: Check previous reports
 
-Check `.ai-artifacts/usage-report-*.html` for prior reports. If found, read most recent — extract trends_data for comparison in Step 3.
+Check `.dk-notes/ai/usage-report-*.html` for prior reports. If found, read most recent — extract trends_data for comparison in Step 3.
 
 ## Step 3: Generate HTML report
 
@@ -112,5 +112,5 @@ Dark theme: bg `#0f0f23`, cards `#1a1a2e`, text `#e0e0e0`, accents `#64b5f6` / `
 
 ## Step 4: Save report
 
-Write HTML to `.ai-artifacts/usage-report-{YYYY-MM-DD}.html`.
+Write HTML to `.dk-notes/ai/usage-report-{YYYY-MM-DD}.html`.
 Chat output: file path + one-line summary only. No HTML in chat.

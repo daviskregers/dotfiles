@@ -51,21 +51,19 @@ return {
             end)
             vim.keymap.set("n", "<leader>pa", function()
                 local files = {}
-                for _, dir in ipairs({ ".ai-artifacts", ".reviews" }) do
-                    if vim.fn.isdirectory(dir) == 1 then
-                        for name, type in vim.fs.dir(dir, { depth = 10 }) do
-                            if type == "file" then
-                                local path = dir .. "/" .. name
-                                local stat = vim.uv.fs_stat(path)
-                                if stat then
-                                    table.insert(files, { path = path, mtime = stat.mtime.sec })
-                                end
+                if vim.fn.isdirectory(".dk-notes") == 1 then
+                    for name, type in vim.fs.dir(".dk-notes", { depth = 10 }) do
+                        if type == "file" then
+                            local path = ".dk-notes/" .. name
+                            local stat = vim.uv.fs_stat(path)
+                            if stat then
+                                table.insert(files, { path = path, mtime = stat.mtime.sec })
                             end
                         end
                     end
                 end
                 if #files == 0 then
-                    vim.notify("No .ai-artifacts or .reviews files found", vim.log.levels.INFO)
+                    vim.notify("No .dk-notes files found", vim.log.levels.INFO)
                     return
                 end
                 table.sort(files, function(a, b) return a.mtime > b.mtime end)
