@@ -7,30 +7,39 @@ else
     # Read patterns from .tsp file, ignoring comments and empty lines
     tsp_file="$HOME/.tsp"
     default_directories=""
-    
+    extra_paths=""
+
     if [[ -f "$tsp_file" ]]; then
         while IFS= read -r line; do
             # Skip comments and empty lines
             [[ "$line" =~ ^#.*$ ]] && continue
             [[ -z "$line" ]] && continue
-            
+
             # Expand ~ to $HOME
             line="${line/#\~/$HOME}"
-            
+
+            # Bare paths (no glob chars) are also offered as themselves
+            if [[ "$line" != *[*?\[]* ]]; then
+                extra_paths="${extra_paths}${line}"$'\n'
+            fi
+
             if [[ -n "$default_directories" ]]; then
                 default_directories="$default_directories "
             fi
             default_directories="$default_directories$line"
         done < "$tsp_file"
     fi
-    
+
     # Fallback to hardcoded defaults if .tsp doesn't exist or is empty
     if [[ -z "$default_directories" ]]; then
         default_directories="$HOME/projects/* $HOME/.dotfiles"
+        extra_paths="$HOME/.dotfiles"$'\n'
     fi
-    
-    find_args="-mindepth 1 -maxdepth 1 -type d | fzf"
-    selected=$(eval "find $default_directories $find_args")
+
+    selected=$({
+        [[ -n "$extra_paths" ]] && printf '%s' "$extra_paths"
+        eval "find $default_directories -mindepth 1 -maxdepth 1 -type d"
+    } | fzf)
 fi
 
 if [[ -z $selected ]]; then
