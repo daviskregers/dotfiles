@@ -3,3 +3,9 @@
 [user]
 	email = daviskregers@protonmail.com
 	name = Dāvis Krēgers
+[core]
+	excludesFile = ~/.gitignore_global
+[include]
+	path = ~/.gitconfig.local
+[alias]
+	cc = "!f() { clanker \"$@\" /commit; }; f"

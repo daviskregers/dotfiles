@@ -1,5 +1,5 @@
 Generate self-contained HTML explanation. NEVER modify source.
-Load `caveman` + `artifact-output` skills. Save to `.ai-artifacts/`, chat = path + summary only.
+Load `caveman` + `artifact-output` skills. Save to `.dk-notes/explanations/`, chat = path + summary only.
 
 ## Steps
 

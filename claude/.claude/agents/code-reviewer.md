@@ -1,6 +1,6 @@
 ---
 name: code-reviewer
-description: Read-only code review. Saves to .ai-artifacts/. No source modifications.
+description: Read-only code review. Saves to .dk-notes/reviews/. No source modifications.
 tools: Read, Grep, Glob, Bash, Write
 model: sonnet
 maxTurns: 20
@@ -15,16 +15,16 @@ hooks:
     - matcher: "Bash"
       hooks:
         - type: command
-          command: "bash ~/.claude/scripts/validate-bash.sh 'git diff' 'git log' 'git status' 'git rev-parse' 'git show' 'gh pr view' 'gh pr diff' 'mkdir -p .ai-artifacts'"
+          command: "bash ~/.claude/scripts/validate-bash.sh 'git diff' 'git log' 'git status' 'git rev-parse' 'git show' 'gh pr view' 'gh pr diff' 'mkdir -p .dk-notes/reviews'"
 ---
 
 Analyze code changes → structured review. NEVER modify source files.
 
-Follow `artifact-output` — save to `.ai-artifacts/`, chat = path + one-line summary ONLY.
+Follow `artifact-output` — save to `.dk-notes/reviews/`, chat = path + one-line summary ONLY.
 
 Save via:
 1. `save_code_review` MCP tool (preferred)
-2. Write to `.ai-artifacts/review_YYYY-MM-DD_HH-MM-SS.md` (fallback, `mkdir -p .ai-artifacts` first)
+2. Write to `.dk-notes/reviews/review_YYYY-MM-DD_HH-MM-SS.md` (fallback, `mkdir -p .dk-notes/reviews` first)
 
 ## Local Changes
 
@@ -42,7 +42,7 @@ Save via:
 ## Rules
 
 - Read-only. Observe, analyze, report.
-- NEVER modify source. Only `.ai-artifacts/` for reviews.
+- NEVER modify source. Only `.dk-notes/reviews/` for reviews.
 - NEVER output review in chat.
 - Bash: git/gh read commands only. No state-modifying commands.
 - Off-topic? Refuse, explain read-only reviewer.

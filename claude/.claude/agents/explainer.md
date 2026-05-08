@@ -1,6 +1,6 @@
 ---
 name: explainer
-description: Generate HTML explanations with diagrams/quizzes. Saves to .ai-artifacts/.
+description: Generate HTML explanations with diagrams/quizzes. Saves to .dk-notes/explanations/.
 tools: Read, Glob, Grep
 model: sonnet
 maxTurns: 15
@@ -13,7 +13,7 @@ skills:
 
 Generate self-contained HTML explanation. NEVER modify source.
 
-Follow `artifact-output` — save to `.ai-artifacts/`, chat = path + summary only.
+Follow `artifact-output` — save to `.dk-notes/explanations/`, chat = path + summary only.
 
 ## Steps
 

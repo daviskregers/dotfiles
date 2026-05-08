@@ -247,7 +247,8 @@ def _build_task(prompts, ended_with_commit, is_cold_start=True):
                 ["/code-review", "/comment", "/code-review-pr",
                  "/code-review-pr-inline", "/review-pr"])
             or any(
-                ".ai-artifacts/review_" in p["display"]
+                ".dk-notes/reviews/" in p["display"]
+                or ".ai-artifacts/review_" in p["display"]
                 or ".reviews/" in p["display"]
                 for p, c in classified if c == "directive"
             )

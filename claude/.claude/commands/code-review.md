@@ -1,5 +1,5 @@
 ---
-description: Review current code changes (read-only, saves to .ai-artifacts/)
+description: Review current code changes (read-only, saves to .dk-notes/reviews/)
 ---
 
 Review ALL local changes (staged + unstaged). Both empty → review last commit.
@@ -24,6 +24,6 @@ Review ALL local changes (staged + unstaged). Both empty → review last commit.
    <analysis agent output>
    ```
 
-3. Save combined review via `save_code_review` MCP tool, or write to `.ai-artifacts/review_YYYY-MM-DD_HH-MM-SS.md`.
+3. Save combined review via `save_code_review` MCP tool, or write to `.dk-notes/reviews/review_YYYY-MM-DD_HH-MM-SS.md`.
 
 4. Chat output: file path + one-line summary ONLY. Never dump review in chat.

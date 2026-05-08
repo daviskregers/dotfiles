@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(plannotator-annotate)"
+    ],
+    "additionalDirectories": [
+      "/Users/daviskregers/.local/share/nvim/lazy/codecompanion.nvim"
+    ]
+  }
+}
