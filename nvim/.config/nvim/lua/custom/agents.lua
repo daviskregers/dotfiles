@@ -16,7 +16,74 @@ M.types = {
   haiku    = { cmd = "claude --model haiku" },
   opencode = { cmd = "opencode" },
   codex    = { cmd = "codex" },
+  pi       = { cmd = "pi" },
 }
+
+-- ── project-local default agent ────────────────────────────────────────
+
+local function project_agent_file()
+  return vim.fs.find(".dk-notes", { upward = true, type = "directory" })[1]
+    and vim.fs.find(".dk-notes", { upward = true, type = "directory" })[1] .. "/.agent"
+end
+
+local function read_default_agent()
+  local f = project_agent_file()
+  if not f then return nil end
+  local ok, content = pcall(vim.fn.readfile, f)
+  if ok and content[1] then return vim.trim(content[1]) end
+  return nil
+end
+
+local function write_default_agent(agent_type)
+  local f = project_agent_file()
+  if not f then
+    return vim.notify("No .dk-notes/ directory found", vim.log.levels.WARN)
+  end
+  local ok = pcall(vim.fn.writefile, { agent_type }, f)
+  if ok then
+    vim.notify("Default agent set to: " .. agent_type, vim.log.levels.INFO)
+  else
+    vim.notify("Failed to write " .. f, vim.log.levels.ERROR)
+  end
+end
+
+local function global_agent_file()
+  return vim.fn.stdpath("config") .. "/.agent"
+end
+
+local function read_global_agent()
+  local f = global_agent_file()
+  local ok, content = pcall(vim.fn.readfile, f)
+  if ok and content[1] then return vim.trim(content[1]) end
+  return nil
+end
+
+-- Exposed for testing - returns project default → global default → nil
+function M.get_default_agent()
+  local project = read_default_agent()
+  if project then return project end
+  return read_global_agent()
+end
+
+-- Pick and set project default agent via UI
+function M.set_default_agent()
+  local f = project_agent_file()
+  if not f then
+    return vim.notify("No .dk-notes/ directory found", vim.log.levels.WARN)
+  end
+  local types = vim.tbl_keys(M.types)
+  table.sort(types)
+  vim.ui.select(types, {
+    prompt = "Default agent: ",
+    format_item = function(t)
+      local current = read_default_agent() or read_global_agent()
+      if t == current then return t .. " *" end
+      return t
+    end,
+  }, function(choice)
+    if choice then write_default_agent(choice) end
+  end)
+end
 
 M.verbs = {
   explain = {
@@ -135,7 +202,8 @@ function M.toggle(id, mode)
   id = id or state.active
   local a = id and get(id)
   if not alive(a) then
-    return M.spawn("claude", "claude", { mode = mode or "split" })
+    local default = M.get_default_agent() or "opencode"
+    return M.spawn(default, default, { mode = mode or "split" })
   end
   if visible(a) then
     hide_window(a)
