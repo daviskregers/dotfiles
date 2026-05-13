@@ -23,4 +23,5 @@ Task: $ARGUMENTS — none? Ask user.
 - Minimal impl only — no more than test requires.
 - One behavior per red-green cycle. Small steps.
 - Test change during impl → follow `tdd` rollback protocol.
+- Changing existing contract with tests → follow `tdd` contract migration protocol.
 - No scope creep. Implement what asked, nothing extra.
