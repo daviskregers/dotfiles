@@ -5,8 +5,8 @@ local A = require("custom.agents")
 
 -- ── core: toggle / spawn / pick / rename / kill ──────────────────────────
 
-vim.keymap.set("n", "<C-\\>", function() A.toggle() end, { desc = "Agent: toggle active" })
-vim.keymap.set("t", "<C-\\>", function() A.toggle() end, { desc = "Agent: toggle active" })
+vim.keymap.set("n", "<C-_>", function() A.toggle() end, { desc = "Agent: toggle active" })
+vim.keymap.set("t", "<C-_>", function() A.toggle() end, { desc = "Agent: toggle active" })
 
 -- `<C-\><C-n>` (nvim's default terminal-escape) is shadowed by the agent
 -- toggle. Provide `<Esc><Esc>` as an alternative so the user can leave
@@ -76,3 +76,8 @@ for _, verb in pairs(A.verbs) do
     end, { desc = "Agent verb: " .. cap .. " (with description)" })
   end
 end
+
+-- ── commands ─────────────────────────────────────────────────────────────
+
+vim.api.nvim_create_user_command("DefaultAgent", function() A.set_default_agent() end,
+  { desc = "Pick project default agent" })
