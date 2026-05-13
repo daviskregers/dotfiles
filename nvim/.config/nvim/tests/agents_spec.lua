@@ -289,6 +289,44 @@ describe("agents", function()
     end)
   end)
 
+  describe("get_default_agent", function()
+    it("is exposed as a function", function()
+      assert.is_function(A.get_default_agent)
+    end)
+
+    it("returns nil when no config exists", function()
+      -- In test environment, no .dk-notes/ and no global config expected
+      local result = A.get_default_agent()
+      assert.is_nil(result)
+    end)
+  end)
+
+  describe("set_default_agent", function()
+    it("is exposed as a function", function()
+      assert.is_function(A.set_default_agent)
+    end)
+
+    it("warns when no .dk-notes directory exists", function()
+      local notified = false
+      local notify_msg = nil
+      local orig = vim.notify
+      vim.notify = function(msg, level)
+        notified = true
+        notify_msg = msg
+      end
+
+      -- Ensure we're in a location without .dk-notes
+      local orig_dir = vim.fn.getcwd()
+      vim.cmd("cd /tmp")
+      A.set_default_agent()
+      vim.cmd("cd " .. orig_dir)
+
+      vim.notify = orig
+      assert.is_true(notified)
+      assert.matches("No .dk%-notes/ directory found", notify_msg)
+    end)
+  end)
+
   describe("statusline", function()
     it("returns empty when no agent", function()
       assert.equals("", A.statusline())
