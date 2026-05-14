@@ -20,8 +20,12 @@ Then two phases in order:
 - `## Change Flow` — unified flow diagram with change markers + legend
 - `## How It Works` — step-by-step walkthrough with `### Step N:` subheadings
 
-**Phase 2 — Analysis** (per `code-review-rules` skill):
-- `## Findings` — grouped by concern (`###`), individual findings (`####`)
+**Phase 2 — Analysis** (per `code-review-rules` skill format exactly):
+- `## Findings` — severity-first: `### Critical` → `### Warnings` → `### Suggestions` → `### Optimizations`
+- Each finding: `#### <emoji> \`<file>:<line>\` — <one-line>`, code snippet, brief explanation
+- Emojis: 🔴 Critical, 🟡 Warning, 🔵 Suggestion, ⚡ Optimization
+- Optimizations include `> **Under the hood:**` blockquote explaining internals
+- Empty section? Omit. No issues? "No issues found."
 - `## Positive Observations`
 - `## Assessment`
 

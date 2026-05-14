@@ -21,16 +21,42 @@ Read-only. NEVER modify source files. NEVER create files.
 
 ## Output Structure
 
-Return markdown with these sections (use exact heading levels for folding):
+Return markdown following `code-review-rules` skill format exactly. Severity-first ordering:
 
 ```
 ## Findings
 
-### <Concern Name>
-**Affects:** ...
+### Critical
 
-#### `<file>:<line>` [<severity>] <description>
-...code snippet...
+#### 🔴 `<file>:<line>` — <one-line description>
+    ```<lang>
+    // 2-3 lines
+    ```
+Brief explanation.
+
+### Warnings
+
+#### 🟡 `<file>:<line>` — <one-line description>
+    ```<lang>
+    // 2-3 lines
+    ```
+Brief explanation.
+
+### Suggestions
+
+#### 🔵 `<file>:<line>` — <one-line description>
+    ```<lang>
+    // 2-3 lines
+    ```
+Brief explanation.
+
+### Optimizations
+
+#### ⚡ `<file>:<line>` — <one-line description>
+    ```<lang>
+    // current code
+    ```
+> **Under the hood:** why current approach suboptimal, what runtime does, better alternative.
 
 ## Positive Observations
 ...
@@ -38,6 +64,8 @@ Return markdown with these sections (use exact heading levels for folding):
 ## Assessment
 ...
 ```
+
+Empty severity section? Omit entirely. No issues? "No issues found."
 
 Run self-review pass before returning (defined in skill).
 
