@@ -23,8 +23,9 @@ Read PR changes → write title + description. NEVER modify source.
 ## Style
 
 - **Title**: imperative, concise. No type prefix unless asked.
-- **Body**: `## Summary` (1-3 sentences) → `## Changes` (bullet list, what/why) → `## Notes` (optional: migrations, breaking, perf).
+- **Body**: `## Summary` (1-3 sentences) → `## Changes` (bullet list, what/why) → `## Test plan` (manual verification checklist) → `## Notes` (optional: migrations, breaking, perf).
 - Compressed. No verbose restating of diff.
+- **Test plan**: enumerate each combination separately. Don't squeeze multiple dimensions into one line. E.g. if testing 3 formats × 2 scopes = 6 checklist items, not "test all formats with both scopes".
 
 ## AI Disclosure
 
