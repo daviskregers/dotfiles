@@ -33,8 +33,11 @@ For each source found:
 - Note methodology (if research paper)
 - Note sample size, date, limitations
 - Flag if behind paywall (still include — user may have access)
+- **Check funding/incentives**: if source is vendor-commissioned, company blog, or org that profits from the claim — flag prominently. Never present vendor research alongside peer-reviewed studies without visible credibility warning. Vendor surveys with no published methodology go in a separate "Low-Confidence Sources" bucket, not main evidence sections.
 
 Discard: opinion pieces without data, SEO content farms, sources that merely restate the claim without evidence.
+
+**Do not let low-credibility sources shape the narrative.** A vendor survey of self-selected executives is not equivalent to a peer-reviewed RCT. If vendor data is the only source for a claim, say so explicitly — "only vendor data supports this; no independent research found."
 
 ## Step 4: Generate HTML report
 
