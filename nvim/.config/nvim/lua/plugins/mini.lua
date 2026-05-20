@@ -51,7 +51,34 @@ return {
 
             vim.keymap.set('n', '<leader>gv', function()
                 vim.g.review_mode = true
-                require('gitsigns').setqflist('all', { open = true })
+                require('gitsigns').setqflist('all', { open = false })
+
+                vim.defer_fn(function()
+                    if not vim.g.review_mode then return end
+                    local untracked = vim.fn.systemlist({ 'git', 'ls-files', '--others', '--exclude-standard' })
+                    local root = vim.fn.systemlist({ 'git', 'rev-parse', '--show-toplevel' })[1]
+
+                    if vim.v.shell_error == 0 and root and root ~= '' and #untracked > 0 then
+                        local items = {}
+                        for _, rel in ipairs(untracked) do
+                            table.insert(items, {
+                                filename = root .. '/' .. rel,
+                                lnum = 1,
+                                col = 1,
+                                text = '[untracked]',
+                            })
+                        end
+                        vim.fn.setqflist({}, 'a', { items = items })
+                    end
+
+                    local has_trouble = pcall(require, 'trouble')
+                    if has_trouble then
+                        pcall(vim.cmd, 'Trouble qflist open')
+                    else
+                        pcall(vim.cmd, 'copen')
+                    end
+                end, 200)
+
                 for _, buf in ipairs(vim.api.nvim_list_bufs()) do
                     if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == '' then
                         pcall(require('mini.diff').enable, buf)
