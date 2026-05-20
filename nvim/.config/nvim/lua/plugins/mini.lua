@@ -2,6 +2,113 @@ return {
     {
         'echasnovski/mini.nvim',
         config = function()
+            require('mini.diff').setup({
+                view = { style = 'number' },
+            })
+
+            local function maybe_enable_overlay(buf)
+                if not vim.g.review_mode then return end
+                if not buf or not vim.api.nvim_buf_is_valid(buf) then return end
+                if vim.bo[buf].buftype ~= '' then return end
+                local ok, md = pcall(require, 'mini.diff')
+                if not ok then return end
+                local data = md.get_buf_data(buf)
+                if data and not data.overlay then
+                    pcall(md.toggle_overlay, buf)
+                end
+            end
+
+            local function clear_overlay(buf)
+                local ok, md = pcall(require, 'mini.diff')
+                if not ok then return end
+                local data = md.get_buf_data(buf)
+                if data and data.overlay then
+                    pcall(md.toggle_overlay, buf)
+                end
+            end
+
+            -- Attach mini.diff when entering a buffer in review mode
+            vim.api.nvim_create_autocmd('BufWinEnter', {
+                callback = function(args)
+                    if not vim.g.review_mode then return end
+                    if vim.bo[args.buf].buftype ~= '' then return end
+                    pcall(require('mini.diff').enable, args.buf)
+                end,
+            })
+
+            -- Enforce overlay state once mini.diff has computed hunks (also fires on :w)
+            vim.api.nvim_create_autocmd('User', {
+                pattern = 'MiniDiffUpdated',
+                callback = function(args)
+                    local buf = (args.data and args.data.buf_id) or vim.api.nvim_get_current_buf()
+                    if vim.g.review_mode then
+                        maybe_enable_overlay(buf)
+                    else
+                        clear_overlay(buf)
+                    end
+                end,
+            })
+
+            vim.keymap.set('n', '<leader>gv', function()
+                vim.g.review_mode = true
+                require('gitsigns').setqflist('all', { open = true })
+                for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+                    if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == '' then
+                        pcall(require('mini.diff').enable, buf)
+                        maybe_enable_overlay(buf)
+                    end
+                end
+            end, { desc = 'Review mode: on (qflist + mini.diff overlay)' })
+
+            vim.keymap.set('n', '<leader>gw', function()
+                local md = require('mini.diff')
+                md.config.options = md.config.options or {}
+                local new_state = not md.config.options.ignore_whitespace
+                md.config.options.ignore_whitespace = new_state
+
+                local ok_gs_cfg, gs_cfg = pcall(require, 'gitsigns.config')
+                if ok_gs_cfg then
+                    gs_cfg.config.diff_opts = gs_cfg.config.diff_opts or {}
+                    gs_cfg.config.diff_opts.ignore_whitespace = new_state
+                end
+
+                for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+                    if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].buftype == '' then
+                        pcall(md.refresh, buf)
+                    end
+                end
+                pcall(function() require('gitsigns').refresh() end)
+
+                if vim.g.review_mode then
+                    vim.defer_fn(function()
+                        if not vim.g.review_mode then return end
+                        pcall(function()
+                            require('gitsigns').setqflist('all', { open = true })
+                        end)
+                    end, 200)
+                end
+
+                vim.notify('Ignore whitespace: ' .. tostring(new_state))
+            end, { desc = 'Toggle whitespace-ignore in diff' })
+
+            vim.keymap.set('n', '<leader>gq', function()
+                vim.g.review_mode = false
+                for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+                    if vim.api.nvim_buf_is_loaded(buf) then
+                        clear_overlay(buf)
+                    end
+                end
+                pcall(vim.cmd, 'Trouble close')
+                for _, win in ipairs(vim.api.nvim_list_wins()) do
+                    local buf = vim.api.nvim_win_get_buf(win)
+                    local bt = vim.bo[buf].buftype
+                    local ft = vim.bo[buf].filetype
+                    if bt == 'quickfix' or ft == 'trouble' then
+                        pcall(vim.api.nvim_win_close, win, true)
+                    end
+                end
+            end, { desc = 'Review mode: off' })
+
             local statusline = require 'mini.statusline'
             local agent_status = require 'custom.agent_statusline'
             agent_status.setup()
