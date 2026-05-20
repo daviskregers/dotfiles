@@ -37,8 +37,9 @@ cmd="${1:-}"
 case "$cmd" in
     add)
         name="${2:-}"
+        base="${3:-}"
         if [[ -z "$name" ]]; then
-            printf "Usage: gw add <name>\n" >&2
+            printf "Usage: gw add <name> [base-branch]\n" >&2
             exit 1
         fi
 
@@ -50,10 +51,11 @@ case "$cmd" in
         MAIN_ROOT=$(_gw_main_root)
         BASENAME=$(basename "$MAIN_ROOT")
         PARENT=$(dirname "$MAIN_ROOT")
-        WORKTREE_PATH="${PARENT}/${BASENAME}-${name}"
+        SLUG=$(printf "%s" "$name" | tr '/' '-')
+        WORKTREE_PATH="${PARENT}/${BASENAME}-${SLUG}"
 
-        DEFAULT_BRANCH=$(_gw_default_branch)
-        git worktree add -b "$name" "$WORKTREE_PATH" "$DEFAULT_BRANCH"
+        BASE_BRANCH="${base:-$(_gw_default_branch)}"
+        git worktree add -b "$name" "$WORKTREE_PATH" "$BASE_BRANCH"
         printf "%s\n" "$WORKTREE_PATH"
         ;;
 
@@ -107,8 +109,8 @@ case "$cmd" in
 
     *)
         printf "Usage: gw <add|rm> [args]\n" >&2
-        printf "  gw add <name>   add a new worktree at ../<repo>-<name>\n" >&2
-        printf "  gw rm [-f]      remove the current worktree (skip checks with -f)\n" >&2
+        printf "  gw add <name> [base]   add worktree at ../<repo>-<slug>, branched from <base> (default: repo default)\n" >&2
+        printf "  gw rm [-f]             remove the current worktree (skip checks with -f)\n" >&2
         exit 1
         ;;
 esac
