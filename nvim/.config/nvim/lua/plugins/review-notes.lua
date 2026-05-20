@@ -10,8 +10,6 @@ return {
         sign_text = "RN",
       })
 
-      rn.load_from_disk()
-
       local function with_context(fn)
         return function()
           local ctx = rn.resolve_buffer_context(0)

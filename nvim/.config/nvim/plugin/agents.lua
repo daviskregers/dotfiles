@@ -77,6 +77,19 @@ for _, verb in pairs(A.verbs) do
   end
 end
 
+-- ── git: AI commit ───────────────────────────────────────────────────────
+
+vim.keymap.set("n", "<leader>gC", function()
+  if A.active() then
+    A.focus()
+    A.send("/commit\n")
+  else
+    local default = A.get_default_agent() or "opencode"
+    A.spawn(default, default, { mode = "split" })
+    vim.defer_fn(function() A.send("/commit\n") end, 1500)
+  end
+end, { desc = "AI commit (/commit)" })
+
 -- ── commands ─────────────────────────────────────────────────────────────
 
 vim.api.nvim_create_user_command("DefaultAgent", function() A.set_default_agent() end,

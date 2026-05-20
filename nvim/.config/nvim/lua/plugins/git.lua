@@ -33,38 +33,27 @@ return {
             { "nvim-tree/nvim-web-devicons" },
         },
         cmd = { "DiffviewOpen", "DiffviewClose", "DiffviewRefresh" },
-        keys = {
-            {
-                "<leader>gv",
-                function()
-                    local view = require("diffview.lib").get_current_view()
-                    if view then
-                        vim.cmd("DiffviewRefresh")
-                    else
-                        vim.cmd("DiffviewOpen")
-                    end
-                end,
-                desc = "Git diffview open/refresh",
-            },
-            {
-                "<leader>gq",
-                "<cmd>DiffviewClose<CR>",
-                desc = "Git diffview close",
-            },
-        },
     },
     {
         "lewis6991/gitsigns.nvim",
         config = function()
             require("gitsigns").setup({
                 signs = {
-                    add = { text = "│" },
-                    change = { text = "│" },
-                    delete = { text = "_" },
-                    topdelete = { text = "‾" },
-                    changedelete = { text = "~" },
-                    untracked = { text = "┆" },
+                    add          = { text = "A" },
+                    change       = { text = "M" },
+                    delete       = { text = "D" },
+                    topdelete    = { text = "D" },
+                    changedelete = { text = "C" },
+                    untracked    = { text = "?" },
                 },
+                signs_staged = {
+                    add          = { text = "a" },
+                    change       = { text = "m" },
+                    delete       = { text = "d" },
+                    topdelete    = { text = "d" },
+                    changedelete = { text = "c" },
+                },
+                signs_staged_enable = true,
                 current_line_blame = true,
                 attach_to_untracked = true,
                 on_attach = function(bufnr)
@@ -166,17 +155,36 @@ return {
                         return "<Ignore>"
                     end, { expr = true, desc = "prev hunk" })
 
-                    map("n", "<leader>gs", gs.stage_hunk, { desc = "git - stage hunk" })
-                    map("n", "<leader>ghr", gs.reset_hunk, { desc = "git - reset hunk" })
-                    map("v", "<leader>gs", function()
+                    local function refresh_minidiff()
+                        local ok, md = pcall(require, "mini.diff")
+                        if not ok then return end
+                        local buf = vim.api.nvim_get_current_buf()
+                        local data = md.get_buf_data(buf)
+                        local was_on = data and data.overlay
+                        if was_on then pcall(md.toggle_overlay, buf) end
+                        pcall(md.refresh, buf)
+                        if was_on then
+                            vim.defer_fn(function() pcall(md.toggle_overlay, buf) end, 50)
+                        end
+                    end
+                    local function after(fn)
+                        return function(...)
+                            fn(...)
+                            vim.defer_fn(refresh_minidiff, 150)
+                        end
+                    end
+
+                    map("n", "<leader>gs", after(gs.stage_hunk), { desc = "git - stage hunk" })
+                    map("n", "<leader>ghr", after(gs.reset_hunk), { desc = "git - reset hunk" })
+                    map("v", "<leader>gs", after(function()
                         gs.stage_hunk({ vim.fn.line("."), vim.fn.line("v") })
-                    end, { desc = "git - stage hunk" })
-                    map("v", "<leader>ghr", function()
+                    end), { desc = "git - stage hunk" })
+                    map("v", "<leader>ghr", after(function()
                         gs.reset_hunk({ vim.fn.line("."), vim.fn.line("v") })
-                    end, { desc = "git - reset hunk" })
-                    map("n", "<leader>gS", gs.stage_buffer, { desc = "git - stage buffer" })
-                    map("n", "<leader>gu", gs.undo_stage_hunk, { desc = "git - undo stage hunk" })
-                    map("n", "<leader>ghR", gs.reset_buffer, { desc = "git - reset buffer" })
+                    end), { desc = "git - reset hunk" })
+                    map("n", "<leader>gS", after(gs.stage_buffer), { desc = "git - stage buffer" })
+                    map("n", "<leader>gu", after(gs.undo_stage_hunk), { desc = "git - undo stage hunk" })
+                    map("n", "<leader>ghR", after(gs.reset_buffer), { desc = "git - reset buffer" })
                     map("n", "<leader>gp", gs.preview_hunk, { desc = "git - preview hunk" })
                     map("n", "<leader>gb", function()
                         gs.blame_line({ full = true })
