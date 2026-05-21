@@ -1,0 +1,193 @@
+#!/usr/bin/env bash
+# tmux-session-picker — fzf session switcher annotated with LLM TUI state.
+# Replaces the tmux-session-wizard 'e' binding. Detects claude + opencode running
+# anywhere in a pane's process tree (including nested under nvim terminals) and
+# tags each session with one of: busy / wait / idle.
+
+set -u
+
+current="$(tmux display-message -p '#S' 2>/dev/null || true)"
+
+# --- Process inventory ----------------------------------------------------
+#   LLM_DESCS — every PID in claude/opencode's subtree (claude itself + every
+#               child it spawned, e.g. bash → npm → node when running a tool).
+#               Used as the CPU-sampling set: when claude runs a Bash tool, it
+#               sleeps while the subprocess burns CPU, so we must watch the
+#               whole subtree, not just claude's own PID.
+#   LLM_PIDS  — claude PIDs and all their ancestors (= "pane has LLM in tree").
+PS_DATA="$(ps -A -o pid=,ppid=,comm= 2>/dev/null)"
+_pass1="$(printf '%s\n' "$PS_DATA" | awk '
+{
+  pid=$1; ppid=$2; comm=$3
+  sub(/.*\//, "", comm)
+  parent[pid]=ppid
+  name[pid]=comm
+  children[ppid] = (ppid in children ? children[ppid] " " : "") pid
+}
+END {
+  for (pid in name) {
+    if (name[pid] == "claude" || name[pid] == "opencode") {
+      # Walk up: every ancestor is a pane that "has" this LLM.
+      p=pid
+      while (p in parent && p != "0" && p != "1") { anc[p]=1; p=parent[p] }
+      # Walk down: collect claude + every descendant for CPU sampling.
+      queue=pid
+      while (queue != "") {
+        i = index(queue, " ")
+        if (i > 0) { cur = substr(queue, 1, i-1); queue = substr(queue, i+1) }
+        else       { cur = queue; queue = "" }
+        if (cur == "") continue
+        desc[cur]=1
+        if (cur in children) queue = queue " " children[cur]
+      }
+    }
+  }
+  for (p in anc)  print "A " p
+  for (p in desc) print "D " p
+}')"
+LLM_DESCS="$(printf '%s\n' "$_pass1" | awk '$1=="D"{print $2}')"
+LLM_PIDS="$(printf '%s\n' "$_pass1" | awk '$1=="A"{print $2}')"
+
+# --- One tmux call for all pane metadata ----------------------------------
+ALL_PANES="$(tmux list-panes -a -F '#{session_name}	#{pane_id}	#{pane_pid}	#{pane_current_command}' 2>/dev/null)"
+
+# --- Detect "nested" LLM: claude in tree but foreground isn't claude/opencode.
+# Buffer-text detection works for direct-foreground claude (capture-pane sees
+# its TUI); for nested cases the pane shows nvim's UI, so we need a CPU-activity
+# probe. Skip the probe entirely when no nested LLM exists.
+_NESTED=0
+_OLD_IFS="$IFS"
+IFS=$'\n'
+for _line in $ALL_PANES; do
+  IFS=$'\t' read -r _ _pid _ppid _cmd <<<"$_line"
+  [ -z "$_ppid" ] && continue
+  case "$_cmd" in claude|opencode) continue ;; esac
+  case $'\n'"$LLM_PIDS"$'\n' in
+    *$'\n'"$_ppid"$'\n'*) _NESTED=1; break ;;
+  esac
+done
+IFS="$_OLD_IFS"
+
+# --- CPU sample (only when nested LLM exists) -----------------------------
+# Sample cputime for every claude/opencode PID twice with a small gap; meaningful
+# delta (>2 cs over 100ms ≈ 20% CPU) means active work. Small deltas (~1 cs/sec)
+# are claude's background heartbeat — keep classified as idle.
+BUSY_PIDS=""
+if [ "$_NESTED" = 1 ] && [ -n "$LLM_DESCS" ]; then
+  # NOTE: `ps -p <csv>` is shockingly slow on macOS (~700ms for 5 PIDs vs ~30ms
+  # for `ps -A`). Always use `ps -A` and filter PIDs in awk.
+  _csv="$(printf '%s' "$LLM_DESCS" | tr '\n' ',' | sed 's/,$//')"
+  _t1="$(ps -A -o pid=,time= 2>/dev/null)"
+  sleep 0.1
+  _t2="$(ps -A -o pid=,time= 2>/dev/null)"
+  _busy_leaves="$(printf 'A\n%s\nB\n%s\n' "$_t1" "$_t2" | awk -v want="$_csv" '
+    BEGIN { n=split(want, a, ","); for (i=1;i<=n;i++) if (a[i]) keep[a[i]]=1 }
+    function to_cs(t,    p, n) {
+      n = split(t, p, /[:.]/)
+      if (n==2) return p[1]*100 + p[2]
+      if (n==3) return p[1]*6000 + p[2]*100 + p[3]
+      if (n==4) return p[1]*360000 + p[2]*6000 + p[3]*100 + p[4]
+      return 0
+    }
+    /^A$/ { m="A"; next }
+    /^B$/ { m="B"; next }
+    m=="A" && ($1 in keep) { ta[$1]=to_cs($2); next }
+    m=="B" && ($1 in keep) { if (to_cs($2) - ta[$1] > 2) print $1 }
+  ')"
+  if [ -n "$_busy_leaves" ]; then
+    _bcsv="$(printf '%s' "$_busy_leaves" | tr '\n' ',' | sed 's/,$//')"
+    BUSY_PIDS="$(printf '%s\n' "$PS_DATA" | awk -v busy="$_bcsv" '
+      BEGIN { n=split(busy, a, ","); for (i=1;i<=n;i++) if (a[i]) bp[a[i]]=1 }
+      { parent[$1]=$2 }
+      END {
+        for (p in bp) {
+          cur=p
+          while (cur in parent && cur != "0" && cur != "1") { out[cur]=1; cur=parent[cur] }
+        }
+        for (p in out) print p
+      }')"
+  fi
+fi
+
+# --- Per-pane classification ----------------------------------------------
+# Buffer detection runs for every LLM-bearing pane. When claude is nested in
+# nvim and the terminal split is visible, capture-pane sees claude's TUI and
+# patterns match exactly like for a direct-foreground pane.
+#
+# Wait state requires BOTH "Do you want" AND a numbered/y-N marker. Either
+# alone false-positives on rendered code (e.g. nvim showing a diff line like
+# "❯ 1. Revert teacher" — that has the marker but no "Do you want" nearby).
+#
+# When the buffer reveals nothing (e.g. user is looking at code in nvim, not
+# the terminal split), fall back to the upfront CPU-activity sample.
+classify_pane() {
+  STATE=""
+  local pane="$1" pane_pid="$2" _cmd="$3" content
+  case $'\n'"$LLM_PIDS"$'\n' in
+    *$'\n'"$pane_pid"$'\n'*) ;;
+    *) return ;;
+  esac
+  content="$(tmux capture-pane -p -t "$pane" -S -40 2>/dev/null || true)"
+  case "$content" in
+    *"esc to interrupt"*|*⠋*|*⠙*|*⠹*|*⠸*|*⠼*|*⠴*|*⠦*|*⠧*|*⠇*|*⠏*)
+      STATE=busy; return ;;
+  esac
+  case "$content" in
+    *"Do you want"*)
+      case "$content" in
+        *"❯ 1."*|*"[y/N]"*|*"(y/n)"*) STATE=wait; return ;;
+      esac ;;
+  esac
+  if [ -n "$BUSY_PIDS" ]; then
+    case $'\n'"$BUSY_PIDS"$'\n' in
+      *$'\n'"$pane_pid"$'\n'*) STATE=busy; return ;;
+    esac
+  fi
+  STATE=idle
+}
+
+# --- Main loop ------------------------------------------------------------
+SESSIONS_DATA="$(tmux list-sessions -F '#{session_last_attached}	#{session_name}	#{session_windows}' 2>/dev/null | sort -rn)"
+
+rows=""
+IFS=$'\n'
+for line in $SESSIONS_DATA; do
+  IFS=$'\t' read -r _ts sess windows <<<"$line"
+  [ "$sess" = "$current" ] && continue
+  state=""
+  for pane_line in $ALL_PANES; do
+    IFS=$'\t' read -r s_name pane pane_pid cmd <<<"$pane_line"
+    [ "$s_name" = "$sess" ] || continue
+    [ -z "$pane" ] && continue
+    classify_pane "$pane" "$pane_pid" "$cmd"
+    [ -z "$STATE" ] && continue
+    # Priority merge: wait > busy > idle.
+    case "$state:$STATE" in
+      wait:*)        ;;
+      *:wait)        state=wait ;;
+      busy:idle|busy:) ;;
+      *:busy)        state=busy ;;
+      *)             state="$STATE" ;;
+    esac
+  done
+  rows="${rows}${sess}	${windows}	${state}
+"
+done
+IFS="$_OLD_IFS"
+
+# --- Render + fzf ---------------------------------------------------------
+fmt_rows=$(printf '%s' "$rows" | awk -F'\t' '
+  NF<2 { next }
+  {
+    badge=""
+    if ($3=="busy")      badge="\033[33m⚙ busy\033[0m"
+    else if ($3=="wait") badge="\033[31m⚠ wait\033[0m"
+    else if ($3=="idle") badge="\033[32m● idle\033[0m"
+    printf "%-50s  %2s win  %s\n", $1, $2, badge
+  }')
+
+choice=$(printf '%s' "$fmt_rows" | fzf --ansi --reverse --no-multi \
+  --header='switch tmux session  (claude/opencode state shown)') || exit 0
+
+sess=$(printf '%s' "$choice" | awk '{print $1}')
+[ -n "$sess" ] && tmux switch-client -t "$sess"
