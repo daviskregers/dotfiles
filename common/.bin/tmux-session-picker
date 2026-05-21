@@ -133,18 +133,20 @@ classify_pane() {
   # "esc to interrupt" or spinner glyphs (e.g. when explaining this script),
   # so a whole-buffer scan false-positives.
   # The indicator format claude currently uses is:
-  #   ✶ <verb>… (<elapsed> · ↓ <tokens> tokens)
-  # plus older variants with Braille spinners and "esc to interrupt".
-  # We trim trailing blank rows first (the TUI often leaves padding below)
-  # and then take the last ~12 non-blank lines.
+  #   <spinner> <Gerund>… (<elapsed> · ↓ <tokens> tokens)
+  # plus an older "esc to interrupt" variant and Braille spinners.
+  # We must distinguish the ACTIVE indicator from completion markers like
+  # "✻ Cooked for 5m 12s ..." that linger in the scrollback (especially after
+  # `claude --resume`). The gerund "ing…" suffix is what's unique to the
+  # live indicator — past-tense "Cooked"/"Worked" markers don't have it.
+  # Trim trailing blank rows (the TUI often pads below) then take last ~12.
   last="$(printf '%s' "$content" | awk '
     { line[++n] = $0; if (NF > 0) last = n }
     END { s = last - 11; if (s < 1) s = 1; for (i = s; i <= last; i++) print line[i] }
   ')"
   case "$last" in
-    *"esc to interrupt"*) STATE=busy; return ;;
-    *"… ("[0-9]*)        STATE=busy; return ;;
-    *✶*|*✷*|*✸*|*✹*|*✦*|*✻*) STATE=busy; return ;;
+    *"esc to interrupt"*)   STATE=busy; return ;;
+    *"ing… ("[0-9]*)        STATE=busy; return ;;
     *⠋*|*⠙*|*⠹*|*⠸*|*⠼*|*⠴*|*⠦*|*⠧*|*⠇*|*⠏*) STATE=busy; return ;;
   esac
   # Wait detection — anchor phrases ("Do you want", "↑/↓ to navigate",
