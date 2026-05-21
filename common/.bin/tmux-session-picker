@@ -127,15 +127,36 @@ classify_pane() {
     *$'\n'"$pane_pid"$'\n'*) ;;
     *) return ;;
   esac
-  content="$(tmux capture-pane -p -t "$pane" -S -40 2>/dev/null || true)"
-  case "$content" in
-    *"esc to interrupt"*|*⠋*|*⠙*|*⠹*|*⠸*|*⠼*|*⠴*|*⠦*|*⠧*|*⠇*|*⠏*)
-      STATE=busy; return ;;
+  content="$(tmux capture-pane -p -t "$pane" 2>/dev/null || true)"
+  # Busy detection — scope to claude's status-indicator area, which lives just
+  # below the conversation. claude's response text can literally contain
+  # "esc to interrupt" or spinner glyphs (e.g. when explaining this script),
+  # so a whole-buffer scan false-positives.
+  # The indicator format claude currently uses is:
+  #   ✶ <verb>… (<elapsed> · ↓ <tokens> tokens)
+  # plus older variants with Braille spinners and "esc to interrupt".
+  # We trim trailing blank rows first (the TUI often leaves padding below)
+  # and then take the last ~12 non-blank lines.
+  last="$(printf '%s' "$content" | awk '
+    { line[++n] = $0; if (NF > 0) last = n }
+    END { s = last - 11; if (s < 1) s = 1; for (i = s; i <= last; i++) print line[i] }
+  ')"
+  case "$last" in
+    *"esc to interrupt"*) STATE=busy; return ;;
+    *"… ("[0-9]*)        STATE=busy; return ;;
+    *✶*|*✷*|*✸*|*✹*|*✦*|*✻*) STATE=busy; return ;;
+    *⠋*|*⠙*|*⠹*|*⠸*|*⠼*|*⠴*|*⠦*|*⠧*|*⠇*|*⠏*) STATE=busy; return ;;
   esac
+  # Wait detection — anchor phrases ("Do you want", "↑/↓ to navigate",
+  # "Enter to select") are claude-UI-specific and unlikely to appear in
+  # conversation text, so we can scan the whole buffer. Anchors cover both
+  # prompt styles:
+  #   permission: "Do you want to proceed?" + footer "Esc to cancel · Tab to amend"
+  #   selector:   "How should we …?"        + footer "↑/↓ to navigate · Enter to select"
   case "$content" in
-    *"Do you want"*)
+    *"Do you want"*|*"↑/↓ to navigate"*|*"Enter to select"*)
       case "$content" in
-        *"❯ 1."*|*"[y/N]"*|*"(y/n)"*) STATE=wait; return ;;
+        *"❯ "[0-9]"."*|*"[y/N]"*|*"(y/n)"*) STATE=wait; return ;;
       esac ;;
   esac
   if [ -n "$BUSY_PIDS" ]; then
