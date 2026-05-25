@@ -1,9 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(grep -E \"\\\\.lua$\")",
-      "Skill(plannotator-annotate)",
-      "Bash(plannotator annotate *)"
-    ]
-  }
-}
