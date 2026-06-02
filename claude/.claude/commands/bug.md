@@ -16,3 +16,9 @@ Bug: $ARGUMENTS — none? Ask user.
 4. **Regressions** — full suite for affected area.
 
 Test change during impl → follow `tdd` rollback protocol.
+
+## Output
+
+- Root cause: ≤2 lines, with `path:line`.
+- Test/fix/regressions: 1 line each.
+- No diff or test body restatement in chat.
