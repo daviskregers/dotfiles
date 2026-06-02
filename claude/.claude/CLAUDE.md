@@ -6,7 +6,16 @@ Changes to commands, skills, or agent prompts must be synced between Claude Code
 
 ## Brevity
 
-Be brief. This applies to ALL output — responses, configs, subagent findings. Compress before presenting; never relay subagent walls-of-text verbatim.
+Default to terse. Applies to ALL output — responses, configs, subagent findings. Compress before presenting; never relay subagent walls-of-text verbatim.
+
+Output caps:
+- Status/confirmation: ≤3 sentences.
+- Analysis/verdict: ≤6 lines or ≤5 bullets per dimension. Going longer needs justification.
+- Code references: `path:line` form, not paragraph descriptions of code.
+- No restatement of input (comment, prompt, ticket, diff).
+- No trailing "what I did" summary — the diff/artifact shows it.
+- Headers/sections only when ≥3 items warrant them.
+- Final turn message: 1-2 sentences.
 
 All rules, skills, prompts, commands, and agent definitions MUST be written compressed — drop articles/filler/hedging, use fragments, abbreviate. Technical substance, code blocks, and structure preserved — only fluff removed.
 

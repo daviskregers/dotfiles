@@ -25,6 +25,12 @@ Scope: $1 — none? Ask user.
 6. FULL suite (not just scoped). No regressions.
 7. Report: what changed, why, results.
 
+## Output
+
+- Plan (step 4): ≤5 bullets, what + why per bullet.
+- Final report (step 7): ≤3 lines. No source restatement.
+- Per-step status: 1 line each (pass/fail + which test).
+
 ## Rules
 
 - Never refactor without passing tests.

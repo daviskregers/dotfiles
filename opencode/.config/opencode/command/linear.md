@@ -17,6 +17,12 @@ Issue: $1 — none? Ask user for identifier (e.g. EDU-4103).
 3. **Present context** — summarize issue: scope, requirements, blocking/blocked-by relations. Ask user to confirm understanding before coding.
 4. **Implement via TDD** — follow `tdd` command workflow: red-green-refactor for each behavior in scope.
 
+## Output
+
+- Context summary (step 3): scope 1 line + ≤3 requirement bullets + blockers if any.
+- No description restatement.
+- Branch mismatch: 1 line (expected vs current).
+
 ## Rules
 
 - All implementation uses TDD — no exceptions.

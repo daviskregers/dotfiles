@@ -29,6 +29,15 @@ Comment: $ARGUMENTS — none? Ask user to paste.
 
 Test change during impl → follow `tdd` rollback protocol.
 
+## Output
+
+- Verdict block: ≤6 lines total.
+- Real bug → label + trigger + impact, each ≤1 line. Code as `path:line`.
+- False positive → 1 line why.
+- Debatable → ≤2 lines each side.
+- No restatement of the comment.
+- No code dumps — reference `path:line`.
+
 ## Rules
 
 - Phase 1 mandatory. Never skip.
