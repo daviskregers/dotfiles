@@ -4,3 +4,4 @@
 
 ~/projects/*
 ~/.dotfiles
+~/Documents/Clank

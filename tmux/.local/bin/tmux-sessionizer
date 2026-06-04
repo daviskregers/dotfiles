@@ -18,8 +18,10 @@ else
             # Expand ~ to $HOME
             line="${line/#\~/$HOME}"
 
-            # Bare paths (no glob chars) are also offered as themselves
+            # Bare paths (no glob chars) are also offered as themselves.
+            # Skip machine-specific bare paths absent on this host (.tsp is synced cross-machine).
             if [[ "$line" != *[*?\[]* ]]; then
+                [[ -d "$line" ]] || continue
                 extra_paths="${extra_paths}${line}"$'\n'
             fi
 
