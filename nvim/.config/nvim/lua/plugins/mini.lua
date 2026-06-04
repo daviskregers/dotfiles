@@ -96,12 +96,7 @@ return {
                         vim.fn.setqflist({}, 'a', { items = items })
                     end
 
-                    local has_trouble = pcall(require, 'trouble')
-                    if has_trouble then
-                        pcall(vim.cmd, 'Trouble qflist open')
-                    else
-                        pcall(vim.cmd, 'copen')
-                    end
+                    pcall(vim.cmd, 'copen')
                 end, 200)
 
                 for _, buf in ipairs(vim.api.nvim_list_bufs()) do
@@ -150,15 +145,7 @@ return {
                         clear_overlay(buf)
                     end
                 end
-                pcall(vim.cmd, 'Trouble close')
-                for _, win in ipairs(vim.api.nvim_list_wins()) do
-                    local buf = vim.api.nvim_win_get_buf(win)
-                    local bt = vim.bo[buf].buftype
-                    local ft = vim.bo[buf].filetype
-                    if bt == 'quickfix' or ft == 'trouble' then
-                        pcall(vim.api.nvim_win_close, win, true)
-                    end
-                end
+                pcall(vim.cmd, 'cclose')
             end, { desc = 'Review mode: off' })
 
             local statusline = require 'mini.statusline'
