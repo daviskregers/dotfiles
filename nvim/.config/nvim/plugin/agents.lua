@@ -5,8 +5,10 @@ local A = require("custom.agents")
 
 -- ── core: toggle / spawn / pick / rename / kill ──────────────────────────
 
-vim.keymap.set("n", "<C-_>", function() A.toggle() end, { desc = "Agent: toggle active" })
-vim.keymap.set("t", "<C-_>", function() A.toggle() end, { desc = "Agent: toggle active" })
+-- Ctrl-/ arrives as <C-_> in legacy terminals and as <C-/> with extended-keys
+-- (CSI-u) enabled, so bind both.
+vim.keymap.set({ "n", "t" }, "<C-_>", function() A.toggle() end, { desc = "Agent: toggle active" })
+vim.keymap.set({ "n", "t" }, "<C-/>", function() A.toggle() end, { desc = "Agent: toggle active" })
 
 -- `<C-\><C-n>` (nvim's default terminal-escape) is shadowed by the agent
 -- toggle. Provide `<Esc><Esc>` as an alternative so the user can leave
