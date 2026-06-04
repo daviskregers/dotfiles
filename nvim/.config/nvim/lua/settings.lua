@@ -45,27 +45,17 @@ vim.opt.mouse          = ""
 vim.opt.fileencoding   = "utf-8"
 
 -- folding
+-- treesitter-based folding; all folds open on open (foldlevelstart=99)
 vim.opt.foldcolumn     = "1"
-vim.opt.foldlevel      = 20
-vim.opt.foldlevelstart = -1
+vim.opt.foldlevel      = 99
+vim.opt.foldlevelstart = 99
 vim.opt.foldenable     = true
-
-vim.cmd([[
-    set foldmethod=expr
-    set foldexpr=nvim_treesitter#foldexpr()
-    set nofoldenable
-]])
+vim.opt.foldmethod     = "expr"
+vim.opt.foldexpr       = "v:lua.vim.treesitter.foldexpr()"
 
 local colorcolumn   = require('custom.colorcolumn')
 vim.opt.colorcolumn = colorcolumn.colorcolumn
 -- vim.opt.textwidth   = colorcolumn.textwidth
-
-vim.api.nvim_create_augroup("Tiltfile", { clear = true })
-vim.api.nvim_create_autocmd({ "BufNewFile", "BufRead" }, {
-    group = "Tiltfile",
-    pattern = { "Tiltfile" },
-    command = 'silent! set syntax=starlark}',
-})
 
 vim.api.nvim_create_autocmd("TextYankPost", {
     desc = "Highlight when yanking text",
@@ -85,21 +75,4 @@ vim.api.nvim_create_autocmd("TermOpen", {
 })
 
 vim.opt.autoread = true
-
-local function refresh_log_files()
-    for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-        if vim.api.nvim_buf_is_loaded(buf) then
-            local name = vim.api.nvim_buf_get_name(buf)
-            if name:match("%.log$") then
-                local ok, _ = pcall(vim.cmd, "checktime " .. buf)
-                if not ok then
-                    vim.cmd("edit!")
-                end
-            end
-        end
-    end
-end
-
-vim.timer = vim.loop.new_timer()
-vim.timer:start(0, 2000, vim.schedule_wrap(refresh_log_files))
 
