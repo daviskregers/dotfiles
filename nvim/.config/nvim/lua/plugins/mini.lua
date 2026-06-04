@@ -21,8 +21,11 @@ return {
                     del_bg = blend(red, base, 0.18)
                 end
                 local hi = function(name, opts) vim.api.nvim_set_hl(0, name, opts) end
-                hi('MiniDiffOverAdd',        { bg = add_bg, fg = green })
-                hi('MiniDiffOverChangeBuf',  { bg = add_bg, fg = green, bold = true })
+                -- Buffer side (current/new text): bg only, so treesitter/syntax colors
+                -- show through (overlay priority 199 > treesitter 100, so fg would flatten them).
+                hi('MiniDiffOverAdd',        { bg = add_bg })
+                hi('MiniDiffOverChangeBuf',  { bg = add_bg, bold = true })
+                -- Reference side (old text, drawn as virtual lines): red, no syntax to preserve.
                 hi('MiniDiffOverChange',     { bg = del_bg, fg = red, bold = true })
                 hi('MiniDiffOverDelete',     { bg = del_bg, fg = red })
                 hi('MiniDiffOverContext',    { fg = dim })
