@@ -15,11 +15,11 @@ vim.keymap.set("v", "J", ":m '>+1<CR>gv=gv", { desc = "Move line down" })
 vim.keymap.set("v", "K", ":m '<-2<CR>gv=gv", { desc = "Move line up" })
 
 -- jumps
--- NB: <C-[> is byte-identical to <Esc> in the terminal, so it can't be mapped
--- without also firing on Esc. Use [q/]q for quickfix nav; <C-]> has no conflict.
+-- Quickfix nav via [q/]q. Deliberately NOT <C-[>/<C-]>: <C-[> is byte-identical
+-- to <Esc> in the terminal, and <C-]> is dropped to retrain the muscle memory
+-- (it also restores the built-in tag jump).
 vim.keymap.set("n", "[q", "<cmd>cprev<CR>zz", { desc = "Jump to prev item in quickfix list & recenter" })
 vim.keymap.set("n", "]q", "<cmd>cnext<CR>zz", { desc = "Jump to next item in quickfix list & recenter" })
-vim.keymap.set("n", "<C-]>", "<cmd>cnext<CR>zz", { desc = "Jump to next item in quickfix list & recenter" })
 vim.keymap.set("n", "<C-d>", "<C-d>zz", { desc = "Jump half page down & recenter" })
 vim.keymap.set("n", "<C-u>", "<C-u>zz", { desc = "Jump half page up & recenter" })
 vim.keymap.set("n", "<leader>j", "<cmd>lprev<CR>zz", { desc = "Jump to prev item in location list" })
