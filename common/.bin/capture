@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# capture — append a quick note to a per-kind log (deterministic, no LLM here).
+# Usage: capture <kind> [-t "title"] <body...>
+#   <kind>       friction | idea — each goes to "<Kind> Log.md" in the capture dir, tagged #<kind>.
+#   -t/--title   explicit title (else first 6 words of body). Used by the /friction and /idea commands.
+# Capture dir is read from ~/.config/capture-dir (an absolute dir path, required).
+# Errors out if that pointer is missing/empty — set it once per machine. No fallback.
+
+set -euo pipefail
+
+[[ $# -ge 1 ]] || { echo "usage: capture <friction|idea> [-t title] <body>" >&2; exit 2; }
+kind="$1"; shift
+case "$kind" in
+  friction|idea) ;;
+  -h|--help) sed -n '2,/^$/p' "$0" | sed 's/^# \?//'; exit 0 ;;
+  *) echo "capture: unknown kind '$kind' (valid: friction, idea)" >&2; exit 2 ;;
+esac
+
+title=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -t|--title) title="${2:-}"; shift 2 ;;
+    -h|--help)  sed -n '2,/^$/p' "$0" | sed 's/^# \?//'; exit 0 ;;
+    --) shift; break ;;
+    -*) echo "capture: unknown flag: $1" >&2; exit 2 ;;
+    *) break ;;
+  esac
+done
+
+[[ $# -ge 1 ]] || { echo "usage: capture $kind [-t title] <body>" >&2; exit 2; }
+text="$*"
+[[ -n "$title" ]] || title="$(printf '%s' "$text" | awk '{for(i=1;i<=6 && i<=NF;i++) printf (i>1?" ":"") $i; print ""}')"
+
+pointer="$HOME/.config/capture-dir"
+[[ -s "$pointer" ]] || { echo "capture: dir not set — write an absolute dir path to $pointer" >&2; exit 1; }
+dir="$(head -n1 "$pointer")"
+[[ -d "$dir" ]] || { echo "capture: directory does not exist: $dir" >&2; exit 1; }
+
+label="$(tr '[:lower:]' '[:upper:]' <<<"${kind:0:1}")${kind:1}"   # friction -> Friction
+log="$dir/$label Log.md"
+
+marker='<!-- capture: new entries inserted below this line -->'
+[[ -f "$log" ]] || printf '# %s Log\n\n%s\n' "$label" "$marker" > "$log"
+grep -qF "$marker" "$log" || { echo "capture: marker not found in $log" >&2; exit 1; }
+
+date="$(date +%F)"
+if top="$(git -C "$PWD" rev-parse --show-toplevel 2>/dev/null)"; then
+  project="$(basename "$top")"
+else
+  project="$(basename "$PWD")"
+fi
+
+entry="$(printf '## %s — %s\n**project:** %s · **status:** open · #%s\n\n%s\n\n---' "$date" "$title" "$project" "$kind" "$text")"
+
+n="$(grep -nF "$marker" "$log" | head -n1 | cut -d: -f1)"
+tmp="$(mktemp "$dir/.capture.XXXXXX")"
+{ head -n "$n" "$log"; printf '\n%s\n' "$entry"; tail -n +"$((n + 1))" "$log"; } > "$tmp"
+mv "$tmp" "$log"
+
+echo "logged [$kind]: $title"
