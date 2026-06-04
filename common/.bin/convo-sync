@@ -1,0 +1,246 @@
+#!/usr/bin/env python3
+# convo-sync — copy raw agent conversations into the vault, grouped by project.
+# Renders each session transcript to readable markdown (verbatim turns, no distillation).
+# Usage: convo-sync [--full] [--tool T] [--project NAME] [--since DAYS] [--subagents] [-n|--dry-run]
+#   --full        also include assistant thinking/reasoning + full tool-result bodies (default: omit)
+#   --tool T      claude | opencode | all   (default: all)
+#   --project N   only sessions whose project (cwd basename) matches N
+#   --since D      only sessions modified in the last D days
+#   --subagents   include opencode subagent sessions (those with a parentID; skipped by default)
+#   -n/--dry-run  list what would be written, write nothing
+# Vault root: ~/.config/capture-dir  →  <root>/Conversations/<project>/<date> <title> (<id>).md
+# Sources: Claude Code (~/.claude/projects/*/*.jsonl) and opencode (~/.local/share/opencode/storage).
+
+import argparse, json, os, re, sys, time
+from pathlib import Path
+
+CLAUDE_PROJECTS = Path.home() / ".claude" / "projects"
+OPENCODE_STORAGE = Path.home() / ".local" / "share" / "opencode" / "storage"
+POINTER = Path.home() / ".config" / "capture-dir"
+
+
+def die(msg):
+    print(f"convo-sync: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+def vault_root():
+    if not POINTER.is_file() or not POINTER.read_text().strip():
+        die(f"capture dir not set — write an absolute dir path to {POINTER}")
+    root = Path(POINTER.read_text().splitlines()[0].strip())
+    if not root.is_dir():
+        die(f"directory does not exist: {root}")
+    return root
+
+
+def safe(s, n=60):
+    s = re.sub(r"[\\/:*?\"<>|]", "-", s).strip().strip(".")
+    return (s[:n].rstrip() or "untitled")
+
+
+def entry_date(ts):
+    if isinstance(ts, (int, float)):
+        return time.strftime("%Y-%m-%d", time.localtime(ts / 1000 if ts > 1e11 else ts))
+    if isinstance(ts, str):
+        return ts[:10]
+    return "0000-00-00"
+
+
+def load(jsonl):
+    for line in jsonl.read_text(errors="replace").splitlines():
+        line = line.strip()
+        if line:
+            try:
+                yield json.loads(line)
+            except Exception:
+                continue
+
+
+def doc(project, date, title, sid, uniq, tool, out):
+    if not out:
+        return None
+    title = title or first_words(out)
+    header = (f"# {title}\n\n"
+              f"_project: {project} · date: {date} · session: {sid} · tool: {tool}_\n\n---\n")
+    return {"project": project, "date": date, "title": title, "uniq": uniq,
+            "md": header + "\n".join(out)}
+
+
+def render_claude(jsonl, full):
+    project = date = title = None
+    out = []
+    for d in load(jsonl):
+        if project is None and d.get("cwd"):
+            project = os.path.basename(d["cwd"]).lstrip(".") or "root"
+        if date is None and d.get("timestamp"):
+            date = entry_date(d["timestamp"])
+        if d.get("type") == "ai-title":
+            title = d.get("aiTitle") or title
+
+        t = d.get("type")
+        if t not in ("user", "assistant"):
+            continue
+        content = d.get("message", {}).get("content")
+        head = "## 👤 User" if t == "user" else "## 🤖 Assistant"
+        parts = []
+        if isinstance(content, str):
+            parts.append(content)
+        elif isinstance(content, list):
+            for b in content:
+                if not isinstance(b, dict):
+                    continue
+                bt = b.get("type")
+                if bt == "text":
+                    parts.append(b.get("text", ""))
+                elif bt == "thinking":
+                    if full:
+                        parts.append("> 💭 _thinking_\n" + blockquote(b.get("thinking", "")))
+                elif bt == "tool_use":
+                    inp = json.dumps(b.get("input", {}), ensure_ascii=False)
+                    parts.append(f"> 🔧 `{b.get('name','?')}` {trunc(inp, 200)}")
+                elif bt == "tool_result":
+                    body = b.get("content", "")
+                    if isinstance(body, list):
+                        body = " ".join(x.get("text", "") for x in body if isinstance(x, dict))
+                    parts.append("> ↳ _result_\n" + blockquote(body if full else trunc(str(body), 200)))
+        text = "\n\n".join(p for p in parts if p and p.strip())
+        if text.strip():
+            out.append(f"{head}\n\n{text}\n")
+
+    return doc(project or "unknown", date or "0000-00-00", title,
+               jsonl.stem, jsonl.stem[:8], "claude", out)
+
+
+def render_oc(sfile, full, subagents):
+    try:
+        s = json.loads(sfile.read_text())
+    except Exception:
+        return None
+    if s.get("parentID") and not subagents:
+        return None
+    sid = s.get("id", sfile.stem)
+    project = os.path.basename(s.get("directory", "")).lstrip(".") or "unknown"
+    date = entry_date(s.get("time", {}).get("created"))
+    msgdir = OPENCODE_STORAGE / "message" / sid
+    if not msgdir.is_dir():
+        return None
+    msgs = []
+    for mf in msgdir.glob("*.json"):
+        try:
+            msgs.append(json.loads(mf.read_text()))
+        except Exception:
+            continue
+    msgs.sort(key=lambda m: (m.get("time", {}).get("created", 0), m.get("id", "")))
+
+    out = []
+    for m in msgs:
+        head = "## 👤 User" if m.get("role") == "user" else "## 🤖 Assistant"
+        pdir = OPENCODE_STORAGE / "part" / m.get("id", "")
+        parts = []
+        if pdir.is_dir():
+            for pf in sorted(pdir.glob("*.json")):  # part ids are time-sortable
+                try:
+                    p = json.loads(pf.read_text())
+                except Exception:
+                    continue
+                pt = p.get("type")
+                if pt == "text":
+                    parts.append(p.get("text", ""))
+                elif pt == "reasoning":
+                    if full:
+                        parts.append("> 💭 _thinking_\n" + blockquote(p.get("text", "")))
+                elif pt == "tool":
+                    st = p.get("state", {}) or {}
+                    inp = st.get("input", {})
+                    inp = json.dumps(inp, ensure_ascii=False) if isinstance(inp, (dict, list)) else str(inp)
+                    parts.append(f"> 🔧 `{p.get('tool', '?')}` {trunc(inp, 200)}")
+                    if st.get("output"):
+                        parts.append("> ↳ _result_\n" + blockquote(
+                            st["output"] if full else trunc(str(st["output"]), 200)))
+        text = "\n\n".join(x for x in parts if x and x.strip())
+        if text.strip():
+            out.append(f"{head}\n\n{text}\n")
+
+    return doc(project, date, s.get("title"), sid, sid.replace("ses_", "")[:8], "opencode", out)
+
+
+def blockquote(s):
+    return "\n".join("> " + l for l in str(s).splitlines()) or "> "
+
+
+def trunc(s, n):
+    s = " ".join(str(s).split())
+    return s if len(s) <= n else s[:n] + " …"
+
+
+def first_words(out, n=6):
+    for chunk in out:
+        clean = re.sub(r"<[^>]+>", " ", chunk)          # drop <command-*> wrappers
+        words = re.sub(r"[#>`*_]", "", clean).split()[2:]  # skip "👤 User"
+        if words:
+            return " ".join(words[:n])
+    return "untitled"
+
+
+def sources(tool, full, subagents, cutoff):
+    """Yield (record, src_mtime) pairs for the selected tool(s)."""
+    if tool in ("claude", "all"):
+        for jsonl in sorted(CLAUDE_PROJECTS.glob("*/*.jsonl")):
+            mtime = jsonl.stat().st_mtime
+            if cutoff and mtime < cutoff:
+                continue
+            r = render_claude(jsonl, full)
+            if r:
+                yield r, mtime
+    if tool in ("opencode", "all"):
+        for sfile in sorted(OPENCODE_STORAGE.glob("session/*/*.json")):
+            mtime = sfile.stat().st_mtime
+            if cutoff and mtime < cutoff:
+                continue
+            r = render_oc(sfile, full, subagents)
+            if r:
+                yield r, mtime
+
+
+def main():
+    ap = argparse.ArgumentParser(add_help=False)
+    ap.add_argument("--full", action="store_true")
+    ap.add_argument("--tool", choices=["claude", "opencode", "all"], default="all")
+    ap.add_argument("--project")
+    ap.add_argument("--since", type=float)
+    ap.add_argument("--subagents", action="store_true")
+    ap.add_argument("-n", "--dry-run", action="store_true")
+    ap.add_argument("-h", "--help", action="store_true")
+    a = ap.parse_args()
+    if a.help:
+        for line in Path(__file__).read_text().splitlines()[1:]:
+            if not line.startswith("#"):
+                break
+            print(line[2:])
+        return
+
+    base = vault_root() / "Conversations"
+    cutoff = time.time() - a.since * 86400 if a.since else None
+    written = skipped = 0
+
+    for r, mtime in sources(a.tool, a.full, a.subagents, cutoff):
+        if a.project and a.project.lower() not in r["project"].lower():
+            continue
+        dest = base / r["project"] / f"{r['date']} {safe(r['title'])} ({r['uniq']}).md"
+        if dest.exists() and dest.stat().st_mtime >= mtime:
+            skipped += 1
+            continue
+        if a.dry_run:
+            print(f"would write: {dest}")
+            written += 1
+            continue
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(r["md"])
+        print(f"wrote: {dest}")
+        written += 1
+
+    print(f"\n{written} written, {skipped} up-to-date")
+
+
+if __name__ == "__main__":
+    main()
