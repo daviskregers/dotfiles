@@ -6,6 +6,31 @@ return {
                 view = { style = 'number' },
             })
 
+            -- Clearer overlay colors: green = current buffer (added/new), red = reference (old/deleted).
+            -- mini.diff re-links these to muted Diff* groups on every ColorScheme, so re-apply after it.
+            local function set_diff_overlay_hl()
+                local green, red, dim, base = '#a6e3a1', '#f38ba8', '#9399b2', '#1e1e2e'
+                local add_bg, del_bg = '#2a3b30', '#3d2730'
+                local ok, cp = pcall(function()
+                    return require('catppuccin.palettes').get_palette('mocha')
+                end)
+                if ok and cp then
+                    local blend = require('catppuccin.utils.colors').blend
+                    green, red, dim, base = cp.green, cp.red, cp.overlay1, cp.base
+                    add_bg = blend(green, base, 0.18)
+                    del_bg = blend(red, base, 0.18)
+                end
+                local hi = function(name, opts) vim.api.nvim_set_hl(0, name, opts) end
+                hi('MiniDiffOverAdd',        { bg = add_bg, fg = green })
+                hi('MiniDiffOverChangeBuf',  { bg = add_bg, fg = green, bold = true })
+                hi('MiniDiffOverChange',     { bg = del_bg, fg = red, bold = true })
+                hi('MiniDiffOverDelete',     { bg = del_bg, fg = red })
+                hi('MiniDiffOverContext',    { fg = dim })
+                hi('MiniDiffOverContextBuf', {})
+            end
+            vim.api.nvim_create_autocmd('ColorScheme', { callback = set_diff_overlay_hl })
+            set_diff_overlay_hl()
+
             local function maybe_enable_overlay(buf)
                 if not vim.g.review_mode then return end
                 if not buf or not vim.api.nvim_buf_is_valid(buf) then return end
