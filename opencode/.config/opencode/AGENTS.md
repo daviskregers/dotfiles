@@ -21,6 +21,7 @@ All rules, skills, prompts, commands, and agent definitions MUST be written comp
 
 - Before refactoring, ensure existing behavior covered by tests. Never refactor without tests proving current functionality preserved.
 - When implementing for test, write absolute minimum code — no more than test requires.
+- Error/validation response tests assert both the HTTP status code AND the validation message/field (e.g. `assertStatus(422)` + the `errors.<field>` message), so wording/contract regressions are caught.
 - When looking up docs/conventions/patterns, suggest documenting finding (skill, AGENTS.md, project docs) so future sessions reuse without re-research.
 - When research uncovers undocumented patterns/conventions/gotchas, include plan step to document them. Target most specific file (service CLAUDE.md for service-specific, AGENTS.md for cross-cutting).
 - When editing file, only change what necessary. No reformatting/reordering/re-wrapping unrelated content. Unnecessary changes = noisy diffs.
