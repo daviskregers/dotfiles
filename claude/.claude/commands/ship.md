@@ -31,9 +31,8 @@ Load `git-commit` skill for the commit message.
 ## Phase D — PR-comment triage (skip if `--no-review`)
 
 7. `wait_for_copilot_review` (PR URL), then `list_pr_comments` → queue of Copilot + human/existing comments.
-8. **Triage** per `/comments` Phase 2 — one-at-a-time, show the comment first, close per its rules (inline → reply + `resolve_pr_thread`; review/conversation → reply, nothing to resolve).
-9. **Push fixes**: triage fix commits → commit (staged-only) + `git push`. **Leave PR draft** (never auto-ready).
-10. **Report**: findings/comments handled, fixed/skipped, PR URL, still-draft. 1–2 lines.
+8. **Triage + close** per `/comments` Phases 2–4: one-at-a-time fix with a per-fix user-reviewed commit → single `git push` → reply + resolve each thread. **Leave PR draft** (never auto-ready).
+9. **Report**: findings/comments handled, fixed/skipped, PR URL, still-draft. 1–2 lines.
 
 ## Rules
 
