@@ -45,5 +45,6 @@
         "repo": "backnotprop/plannotator"
       }
     }
-  }
+  },
+  "model": "fable"
 }
