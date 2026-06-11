@@ -15,7 +15,7 @@ general {
 # order += "wireless _first_"
 order += "ethernet enp6s0"
 order += "ethernet enp5s0"
-# order += "battery all"
+order += "battery all"
 order += "disk /"
 order += "load"
 order += "memory"

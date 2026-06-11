@@ -36,7 +36,7 @@ exec --no-startup-id nm-applet
 
 exec --no-startup-id setxkbmap lv -variant apostrophe
 
-set $i3status_command notify-send starting i3status && i3status -c ~/.config/i3status/config
+set $i3status_command notify-send starting i3status && ~/.config/i3status/run.sh
 set $refresh_i3status killall -SIGUSR1 $i3status_command
 
 # Use pactl to adjust volume in PulseAudio.
