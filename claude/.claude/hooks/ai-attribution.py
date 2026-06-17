@@ -16,6 +16,9 @@ import re
 
 NOTICE = "🤖 Generated with AI"
 
+# A notice line already present, in either the bare or "(model)" form.
+NOTICE_PRESENT = re.compile(r'(?im)^[ \t>]*' + re.escape(NOTICE) + r'\b')
+
 # Lines that are tool-branded attribution — stripped from bodies, denied in commands.
 BRANDED = re.compile(
     r'(?im)^[ \t>]*(?:co-authored-by:.*|.*generated with (?:claude code|opencode).*)\s*$'
@@ -43,8 +46,8 @@ def strip_branded(text):
 
 def ensure_notice(text):
     t = strip_branded(text or "")
-    if t.endswith(NOTICE):
-        return t
+    if NOTICE_PRESENT.search(t):
+        return t  # already attributed (bare or with model name) — don't double
     return (t + "\n\n" + NOTICE) if t else NOTICE
 
 
