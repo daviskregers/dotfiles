@@ -1,8 +1,10 @@
 import { tool } from "@opencode-ai/plugin"
 import path from "path"
+import os from "os"
 import fs from "fs"
 import { execFile } from "child_process"
 import { promisify } from "util"
+import { withAttribution } from "./pr-utils"
 
 const execFileAsync = promisify(execFile)
 
@@ -45,15 +47,26 @@ export default tool({
             return `Error: File is too large (${stat.size} bytes). GitHub comments are limited to ${MAX_COMMENT_BYTES} bytes.`
         }
 
+        let body: string
         try {
+            body = withAttribution(await fs.promises.readFile(resolved, "utf-8"))
+        } catch (err: any) {
+            return `Error reading file: ${err.message}`
+        }
+
+        const tmp = path.join(os.tmpdir(), `pr-comment-${Date.now()}.md`)
+        try {
+            await fs.promises.writeFile(tmp, body, "utf-8")
             const { stdout } = await execFileAsync(
                 "gh",
-                ["pr", "comment", args.prUrl, "--body-file", resolved],
+                ["pr", "comment", args.prUrl, "--body-file", tmp],
                 { encoding: "utf8" },
             )
             return `Comment posted to ${args.prUrl}\n${stdout}`.trim()
         } catch (err: any) {
             return `Error posting comment: ${err.message}`
+        } finally {
+            fs.promises.unlink(tmp).catch(() => {})
         }
     },
 })
