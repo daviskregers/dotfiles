@@ -4,6 +4,14 @@
 
 Changes to commands, skills, or agent prompts must be synced between Claude Code (`~/.dotfiles/claude/.claude/`) and opencode (`~/.dotfiles/opencode/.config/opencode/`). Skills = shared submodule but **separate clones** — commit in one, fetch into other (`git fetch <path> main`), checkout same commit, bump both pointers in parent. Commands/prompts: replicate manually. After any change, verify both submodule pointers match before committing parent.
 
+## AI attribution
+
+All AI-generated content posted to external systems ends with a final notice line: `🤖 Generated with AI`. Optionally append the model in parens, e.g. `🤖 Generated with AI (Claude Opus 4.8)`.
+
+Applies to: PR descriptions, PR comments, Linear issues, Linear comments, commit messages (as the last line). Commit specifics: `git-commit` skill.
+
+Do NOT use tool-branded attribution — no `Co-Authored-By` trailer, no "Generated with Claude Code"/"Generated with opencode". This notice replaces them.
+
 ## Brevity
 
 Default to terse. Applies to ALL output — responses, configs, subagent findings. Compress before presenting; never relay subagent walls-of-text verbatim.

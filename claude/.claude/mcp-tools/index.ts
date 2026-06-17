@@ -5,10 +5,26 @@ import { execFile } from "child_process";
 import { promisify } from "util";
 import * as fs from "fs";
 import * as path from "path";
+import * as os from "os";
 
 const execFileAsync = promisify(execFile);
 const MAX_BUFFER = 10 * 1024 * 1024;
 const MAX_COMMENT_BYTES = 60_000;
+
+const ATTRIBUTION_NOTICE = "🤖 Generated with AI";
+const BRANDED_LINE =
+  /^[ \t>]*(?:co-authored-by:.*|.*generated with (?:claude code|opencode).*)\s*$/gim;
+
+// Append the AI-attribution notice as the final line, stripping tool-branded
+// attribution (Co-Authored-By, "Generated with Claude Code/opencode"). Idempotent.
+function withAttribution(text: string): string {
+  const stripped = text
+    .replace(BRANDED_LINE, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/\s+$/, "");
+  if (stripped.endsWith(ATTRIBUTION_NOTICE)) return stripped;
+  return stripped ? `${stripped}\n\n${ATTRIBUTION_NOTICE}` : ATTRIBUTION_NOTICE;
+}
 
 // Project directory: prefer PROJECT_DIR env var, fall back to cwd.
 // Claude Code sets cwd to project root when launching MCP servers,
@@ -236,13 +252,24 @@ server.tool(
       return text(`Error: File too large (${stat.size} bytes, max ${MAX_COMMENT_BYTES})`);
     }
 
+    let body: string;
     try {
-      const { stdout } = await execFileAsync("gh", ["pr", "comment", prUrl, "--body-file", resolved], {
+      body = withAttribution(await fs.promises.readFile(resolved, "utf-8"));
+    } catch (err: any) {
+      return text(`Error reading file: ${err.message}`);
+    }
+
+    const tmp = path.join(os.tmpdir(), `pr-comment-${Date.now()}.md`);
+    try {
+      await fs.promises.writeFile(tmp, body, "utf-8");
+      const { stdout } = await execFileAsync("gh", ["pr", "comment", prUrl, "--body-file", tmp], {
         encoding: "utf8",
       });
       return text(`Comment posted to ${prUrl}\n${stdout}`.trim());
     } catch (err: any) {
       return text(`Error posting comment: ${err.message}`);
+    } finally {
+      fs.promises.unlink(tmp).catch(() => {});
     }
   },
 );
