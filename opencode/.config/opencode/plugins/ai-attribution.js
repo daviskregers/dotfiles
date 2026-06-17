@@ -9,6 +9,8 @@ const NOTICE = "🤖 Generated with AI"
 const BRANDED_LINE = /^[ \t>]*(?:co-authored-by:.*|.*generated with (?:claude code|opencode).*)\s*$/gim
 // Branded text anywhere in a single-line command.
 const CMD_BRANDED = /co-authored-by:|generated with (?:claude code|opencode)/i
+// A notice line already present, in either the bare or "(model)" form.
+const NOTICE_PRESENT = new RegExp(`^[ \\t>]*${NOTICE}\\b`, "im")
 // --body "..." / -b '...' value capture.
 const BODY_RE = /(--body|-b)(\s+|=)("(?:[^"\\]|\\.)*"|'[^']*')/
 
@@ -24,7 +26,7 @@ function stripBranded(t) {
 
 function ensureNotice(t) {
   const s = stripBranded(t || "")
-  if (s.endsWith(NOTICE)) return s
+  if (NOTICE_PRESENT.test(s)) return s  // already attributed (bare or with model) — don't double
   return s ? s + "\n\n" + NOTICE : NOTICE
 }
 

@@ -14,15 +14,18 @@ const MAX_COMMENT_BYTES = 60_000;
 const ATTRIBUTION_NOTICE = "🤖 Generated with AI";
 const BRANDED_LINE =
   /^[ \t>]*(?:co-authored-by:.*|.*generated with (?:claude code|opencode).*)\s*$/gim;
+// A notice line already present, in either the bare or "(model)" form.
+const NOTICE_PRESENT = new RegExp(`^[ \\t>]*${ATTRIBUTION_NOTICE}\\b`, "im");
 
 // Append the AI-attribution notice as the final line, stripping tool-branded
-// attribution (Co-Authored-By, "Generated with Claude Code/opencode"). Idempotent.
+// attribution (Co-Authored-By, "Generated with Claude Code/opencode"). Idempotent —
+// leaves an existing notice (bare or with model name) untouched.
 function withAttribution(text: string): string {
   const stripped = text
     .replace(BRANDED_LINE, "")
     .replace(/\n{3,}/g, "\n\n")
     .replace(/\s+$/, "");
-  if (stripped.endsWith(ATTRIBUTION_NOTICE)) return stripped;
+  if (NOTICE_PRESENT.test(stripped)) return stripped;
   return stripped ? `${stripped}\n\n${ATTRIBUTION_NOTICE}` : ATTRIBUTION_NOTICE;
 }
 
