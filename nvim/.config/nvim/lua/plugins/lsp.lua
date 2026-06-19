@@ -1,151 +1,230 @@
--- :h lspconfig-all
---
--- :echo executable('lua-language-server')
--- ^ if returns 1, neovim can find it.
---
--- :help lsp
--- CTRL-X CTRL-O - omnicompletion
--- CTRL-] - jump to definition
--- =G format file
-return {
-    {
-        "neovim/nvim-lspconfig",
-        dependencies = {
-            {
-                "folke/lazydev.nvim",
-                ft = "lua",
-                opts = {
-                    library = {
-                        { path = "${3rd}/luv/library", words = { "vim%.uv" } },
-                    },
-                },
-            },
-            "saghen/blink.cmp",
-            "williamboman/mason.nvim",
-            "williamboman/mason-lspconfig.nvim",
+vim.pack.add({
+    'https://github.com/mason-org/mason.nvim',
+})
+
+require("mason").setup()
+
+local registry = require("mason-registry")
+local function ensure_installed(packages)
+    registry.refresh(function()
+        for _, name in ipairs(packages) do
+            local pkg = registry.get_package(name)
+            if not pkg:is_installed() then
+                pkg:install()
+            end
+        end
+    end)
+end
+
+ensure_installed({
+    "elixir-ls",
+    "eslint-lsp",
+    "gopls",
+    "intelephense",
+    "lua-language-server",
+    "omnisharp",
+    "pyright",
+    "stylua",
+    "typescript-language-server",
+    "vue-language-server",
+})
+
+vim.keymap.set('n', 'gd', vim.lsp.buf.definition, { desc = "Go to definition" })
+vim.keymap.set("n", '<leader>f', vim.lsp.buf.format, { desc = "Format Local buffer" })
+vim.keymap.set("n", "<leader>pd", vim.diagnostic.open_float, { desc = "Show line diagnostics" })
+
+vim.diagnostic.config({
+    virtual_text = {
+        prefix = '●', -- Could be '■', '▎', 'x'
+        source = "always", -- Or "if_many"
+    },
+    severity_sort = true,
+    float = {
+        source = "always", -- Or "if_many"
+    },
+    signs = true,
+    underline = true,
+})
+
+local capabilities = vim.lsp.protocol.make_client_capabilities()
+capabilities = vim.tbl_deep_extend("force", capabilities, require("blink.cmp").get_lsp_capabilities())
+
+vim.lsp.config("*", { capabilities = capabilities })
+vim.lsp.config("lua_ls", {
+    cmd = { "lua-language-server" },
+    filetypes = { "lua" },
+    root_markers = { ".luarc.json", ".luarc.jsonc", ".git" },
+    settings = {
+        Lua = {
+            diagnostics = { globals = { "vim" } },
         },
-        config = function()
-            local capabilities = require("blink.cmp").get_lsp_capabilities()
+    },
+})
+vim.lsp.config("gopls", {
+    cmd = { "gopls" },
+    filetypes = { "go", "gomod", "gowork", "gotmpl" },
+    root_markers = { "go.work", "go.mod", ".git" },
+})
+vim.lsp.config("intelephense", {
+    cmd = { "intelephense", "--stdio" },
+    filetypes = { "php" },
+    root_markers = { "composer.json", ".git" },
+})
+local mason_pkgs = vim.fn.stdpath("data") .. "/mason/packages"
 
-            require("mason").setup()
-            require("mason-lspconfig").setup({
-                automatic_enable = true,
-            })
+-- TypeScript/JS, plus Vue <script> via the @vue/typescript-plugin (volar hybrid mode).
+vim.lsp.config("typescript", {
+    cmd = { "typescript-language-server", "--stdio" },
+    filetypes = {
+        "javascript", "javascriptreact",
+        "typescript", "typescriptreact",
+        "vue",
+    },
+    root_markers = { "tsconfig.json", "jsconfig.json", "package.json", ".git" },
+    init_options = {
+        plugins = {
+            {
+                name = "@vue/typescript-plugin",
+                location = mason_pkgs .. "/vue-language-server/node_modules/@vue/typescript-plugin",
+                languages = { "vue" },
+            },
+        },
+    },
+})
+-- Vue templates (volar). Delegates <script> TS to the typescript server above.
+vim.lsp.config("vue_ls", {
+    cmd = { "vue-language-server", "--stdio" },
+    filetypes = { "vue" },
+    root_markers = { "package.json", ".git" },
+    init_options = {
+        typescript = {
+            tsdk = mason_pkgs .. "/typescript-language-server/node_modules/typescript/lib",
+        },
+    },
+})
+vim.lsp.config("pyright", {
+    cmd = { "pyright-langserver", "--stdio" },
+    filetypes = { "python" },
+    root_markers = {
+        "pyproject.toml", "setup.py", "setup.cfg",
+        "requirements.txt", "Pipfile", "pyrightconfig.json", ".git",
+    },
+})
+vim.lsp.config("elixirls", {
+    cmd = { "elixir-ls" },
+    filetypes = { "elixir", "eelixir", "heex", "surface" },
+    root_markers = { "mix.exs", ".git" },
+})
+vim.lsp.config("omnisharp", {
+    cmd = { "OmniSharp" }, -- requires the .NET SDK (`dotnet`) on PATH at runtime
+    filetypes = { "cs", "vb" },
+    root_markers = { "*.sln", "*.csproj", "omnisharp.json", ".git" },
+})
+-- ESLint diagnostics/fixes; complements the typescript server (lint rules, not language features).
+vim.lsp.config("eslint", {
+    cmd = { "vscode-eslint-language-server", "--stdio" },
+    filetypes = {
+        "javascript", "javascriptreact",
+        "typescript", "typescriptreact",
+        "vue", "svelte", "astro",
+    },
+    root_markers = {
+        ".eslintrc", ".eslintrc.js", ".eslintrc.cjs", ".eslintrc.json",
+        ".eslintrc.yaml", ".eslintrc.yml",
+        "eslint.config.js", "eslint.config.mjs", "eslint.config.cjs", "eslint.config.ts",
+        "package.json", ".git",
+    },
+    -- eslint resolves its working dir from settings.workspaceFolder; inject the
+    -- resolved root (raw path) or it fails with "path argument must be of type string".
+    before_init = function(_, config)
+        local root_dir = config.root_dir
+        if root_dir then
+            config.settings = config.settings or {}
+            config.settings.workspaceFolder = {
+                uri = root_dir,
+                name = vim.fn.fnamemodify(root_dir, ":t"),
+            }
+        end
+    end,
+    settings = {
+        validate = "on",
+        useESLintClass = false,
+        experimental = {},
+        format = true,
+        quiet = false,
+        onIgnoredFiles = "off",
+        run = "onType",
+        problems = { shortenToSingleLine = false },
+        nodePath = "",
+        workingDirectory = { mode = "auto" },
+        codeAction = {
+            disableRuleComment = { enable = true, location = "separateLine" },
+            showDocumentation = { enable = true },
+        },
+    },
+    handlers = {
+        ["eslint/openDoc"] = function(_, result)
+            if result then vim.ui.open(result.url) end
+            return {}
+        end,
+        ["eslint/confirmESLintExecution"] = function(_, result)
+            if not result then return end
+            return 4 -- approved
+        end,
+        ["eslint/probeFailed"] = function()
+            vim.notify("ESLint probe failed.", vim.log.levels.WARN)
+            return {}
+        end,
+        ["eslint/noLibrary"] = function()
+            vim.notify("Unable to find ESLint library.", vim.log.levels.WARN)
+            return {}
+        end,
+    },
+})
+vim.lsp.enable({
+    "lua_ls",
+    "intelephense",
+    "gopls",
+    "typescript",
+    "vue_ls",
+    "pyright",
+    "elixirls",
+    "omnisharp",
+    "eslint",
+})
 
-            vim.lsp.config("lua_ls", { capabilities = capabilities })
-            vim.lsp.config("gopls", {})
-            vim.lsp.config("intelephense", {})
-            vim.lsp.config("omnisharp", {
-                settings = {
-                    FormattingOptions = {
-                        -- Enables support for reading code style, naming convention and analyzer
-                        -- settings from .editorconfig.
-                        EnableEditorConfigSupport = true,
-                        -- Specifies whether 'using' directives should be grouped and sorted during
-                        -- document formatting.
-                        OrganizeImports = true,
-                    },
-                    MsBuild = {
-                        -- If true, MSBuild project system will only load projects for files that
-                        -- were opened in the editor. This setting is useful for big C# codebases
-                        -- and allows for faster initialization of code navigation features only
-                        -- for projects that are relevant to code that is being edited. With this
-                        -- setting enabled OmniSharp may load fewer projects and may thus display
-                        -- incomplete reference lists for symbols.
-                        LoadProjectsOnDemand = false,
-                    },
-                    RoslynExtensionsOptions = {
-                        -- Enables support for roslyn analyzers, code fixes and rulesets.
-                        EnableAnalyzersSupport = true,
-                        -- Enables support for showing unimported types and unimported extension
-                        -- methods in completion lists. When committed, the appropriate using
-                        -- directive will be added at the top of the current file. This option can
-                        -- have a negative impact on initial completion responsiveness,
-                        -- particularly for the first few completion sessions after opening a
-                        -- solution.
-                        EnableImportCompletion = true,
-                        -- Only run analyzers against open files when 'enableRoslynAnalyzers' is
-                        -- true
-                        AnalyzeOpenDocumentsOnly = false,
-                    },
-                    Sdk = {
-                        -- Specifies whether to include preview versions of the .NET SDK when
-                        -- determining which version to use for project loading.
-                        IncludePrereleases = true,
-                    },
-                },
-            })
+vim.api.nvim_create_user_command("LspInfo", "checkhealth vim.lsp", {})
 
-            vim.keymap.set("n", "<leader>f", function()
-                vim.lsp.buf.format()
-            end)
+vim.api.nvim_create_autocmd("LspAttach", {
+    callback = function(args)
+        local client = vim.lsp.get_client_by_id(args.data.client_id)
+        if not client then
+            print("For some reason we attached client that is nil")
+            return
+        end
 
-            vim.api.nvim_create_autocmd("LspAttach", {
-                callback = function(args)
-                    local opts = { buffer = args.buf }
-                    local term_opener = require("custom.terminal-open-file")
+        -- local opts = { buffer = args.buf }
+        -- local term_opener = require("plugins.terminal-open-file")
 
-                    vim.keymap.set("i", "<C-h>", function()
-                        vim.lsp.buf.signature_help()
-                    end, opts)
-                    vim.keymap.set("n", "K", function()
-                        vim.lsp.buf.hover()
-                    end, opts)
-                    vim.keymap.set("n", "[d", function()
-                        vim.diagnostic.goto_next()
-                    end, opts)
-                    vim.keymap.set("n", "]d", function()
-                        vim.diagnostic.goto_prev()
-                    end, opts)
-                    vim.keymap.set("n", "gca", function()
-                        vim.lsp.buf.code_action()
-                    end, opts)
-                    vim.keymap.set("n", "gd", function()
-                        if term_opener.is_terminal_buffer() then
-                            term_opener.open_file_under_cusror()
-                            return
-                        end
-                        vim.lsp.buf.definition()
-                    end, opts)
-                    vim.keymap.set("n", "grn", function()
-                        vim.lsp.buf.rename()
-                    end, opts)
-                    vim.keymap.set("n", "grr", function()
-                        vim.lsp.buf.references()
-                    end, opts)
-                    vim.keymap.set("n", "gvd", function()
-                        vim.diagnostic.open_float()
-                    end, opts)
-                    vim.keymap.set("n", "gws", function()
-                        vim.lsp.buf.workspace_symbol()
-                    end, opts)
+        -- vim.keymap.set("n", "gd", function()
+        --     print("hello!")
+        --     if term_opener.is_terminal_buffer() then
+        --         term_opener.open_file_under_cusror()
+        --         return
+        --     end
+        --     vim.lsp.buf.definition()
+        -- end, opts)
 
-                    local client = vim.lsp.get_client_by_id(args.data.client_id)
-                    if not client then
-                        print("For some reason we attached client that is nil")
+        if client:supports_method("textDocument/formatting") then
+            vim.api.nvim_create_autocmd("BufWritePre", {
+                buffer = args.buf,
+                callback = function()
+                    if CONFIG_DISABLE_FORMATTING then
                         return
                     end
-
-                    if client.supports_method("textDocument/formatting") then
-                        vim.api.nvim_create_autocmd("BufWritePre", {
-                            buffer = args.buf,
-                            callback = function()
-                                if CONFIG_DISABLE_FORMATTING then
-                                    return
-                                end
-                                vim.lsp.buf.format({ bufnr = args.buf, id = client.id })
-                            end,
-                        })
-                    end
+                    vim.lsp.buf.format({ bufnr = args.buf, id = client.id })
                 end,
             })
-        end,
-    },
-    {
-        "https://git.sr.ht/~whynothugo/lsp_lines.nvim",
-        config = function()
-            require("lsp_lines").setup()
-            vim.keymap.set("", "<Leader>dl", require("lsp_lines").toggle, { desc = "Toggle lsp_lines" })
-        end,
-    },
-}
+        end
+    end,
+})

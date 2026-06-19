@@ -1,5 +1,4 @@
-require("settings")
-require("remaps")
+vim.loader.enable()
 
--- :checkhealth lazy
-require("config.lazy")
+require("settings")
+require("plugins.init")
