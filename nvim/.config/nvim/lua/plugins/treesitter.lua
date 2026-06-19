@@ -1,54 +1,44 @@
--- :Inspect
--- :InspectTree + o to query edit
--- > (function_call) @fn
-
-local ensure_installed = {
-    "c", "lua", "vim", "vimdoc", "query",
-    "markdown", "markdown_inline", "python", "yaml",
+vim.pack.add {
+    { src = "https://github.com/romus204/tree-sitter-manager.nvim" }
 }
 
-local max_filesize = 100 * 1024 -- 100 KB
+vim.treesitter.language.register("python", "tiltfile")
 
-return {
-    {
-        "nvim-treesitter/nvim-treesitter",
-        branch = "main",
-        build = ":TSUpdate",
-        config = function()
-            local ts = require("nvim-treesitter")
-            ts.setup()
-            ts.install(ensure_installed)
+require("tree-sitter-manager").setup({
+    -- Default Options
+    parser_dir = vim.fn.stdpath("data") .. "/site/parser",
+    query_dir = vim.fn.stdpath("data") .. "/site/queries",
+    assume_installed = {}, -- blacklist languages
+    ensure_installed = {
+        "c", "lua", "vim", "vimdoc", "query",
+        "markdown", "markdown_inline", "python", "yaml",
+        "typescript",
+    }, -- parsers to install at startup
+    -- border = "rounded", -- border style for the TUI window
+    -- auto_install = false, -- auto-install when a new filetype is encountered
+    -- noauto_install = {}, -- blacklist from auto_install
+    -- highlight = true, -- enable treesitter highlighting (use list to whitelist)
+    -- nohighlight = {}, -- blacklist from highlight
+    -- languages = {}, -- override or add new parser sources
+    nerdfont = true, -- use Nerd Font icons in the manager UI
+})
 
-            -- Tiltfile is Starlark (a Python dialect) -> highlight with python grammar
-            vim.treesitter.language.register("python", "tiltfile")
+vim.api.nvim_create_autocmd("FileType", {
+    pattern = "*",
+    callback = function(args)
+        local buf = args.buf
+        local ft = vim.bo[buf].filetype
 
-            local function start(buf, lang)
-                if not vim.api.nvim_buf_is_valid(buf) then return end
-                pcall(vim.treesitter.start, buf, lang)
-            end
+        local lang = vim.treesitter.language.get_lang(ft)
+        if not lang then
+            return
+        end
 
-            -- main-branch replacement for the old `highlight` module:
-            -- enable treesitter highlighting per buffer, auto-installing missing parsers.
-            vim.api.nvim_create_autocmd("FileType", {
-                desc = "Start treesitter highlighting",
-                callback = function(ev)
-                    local lang = vim.treesitter.language.get_lang(vim.bo[ev.buf].filetype)
-                    if not lang then return end
+        local ok_add = pcall(vim.treesitter.language.add, lang)
+        if not ok_add then
+            return
+        end
 
-                    local ok, stats = pcall(vim.loop.fs_stat, vim.api.nvim_buf_get_name(ev.buf))
-                    if ok and stats and stats.size > max_filesize then return end
-
-                    if vim.tbl_contains(ts.get_installed(), lang) then
-                        start(ev.buf, lang)
-                    else
-                        ts.install(lang):await(function(err)
-                            if not err then
-                                vim.schedule(function() start(ev.buf, lang) end)
-                            end
-                        end)
-                    end
-                end,
-            })
-        end,
-    },
-}
+        pcall(vim.treesitter.start, buf, lang)
+    end,
+})
