@@ -1,8 +1,8 @@
 {
   "plugins": {
     "blink.cmp": {
-      "rev": "26ec6f0a1a8101eb134f8b8568d6099be015fe70",
-      "src": "https://github.com/Saghen/blink.cmp"
+      "rev": "bda905a4bf1b3edfa708b0be193b8c63d8620c96",
+      "src": "https://github.com/saghen/blink.cmp"
     },
     "blink.lib": {
       "rev": "5876dd95deeb70aadbe9f1c0b7117a135061cdac",
@@ -26,11 +26,11 @@
       "src": "https://github.com/mason-org/mason.nvim"
     },
     "mini.icons": {
-      "rev": "ac38c983aed0a2bd32a65ca3e2348e12e58ca292",
+      "rev": "e56797f90192d81f1fda02e662fc3e8e3d775027",
       "src": "https://github.com/nvim-mini/mini.icons"
     },
     "neogit": {
-      "rev": "5d1b65d6215928e941e1a6a4e76e02fd45ada31f",
+      "rev": "43ea1a0854052e583f647e0b35879f0158a70a78",
       "src": "https://github.com/NeogitOrg/neogit"
     },
     "nvim-config-local": {
@@ -58,7 +58,7 @@
       "src": "https://github.com/nvim-telescope/telescope-fzf-native.nvim"
     },
     "telescope.nvim": {
-      "rev": "9377230aa5305d9e9aca4ed8dadf1070fb4aa9fc",
+      "rev": "427b576c16792edad01a92b89721d923c19ad60f",
       "src": "https://github.com/nvim-telescope/telescope.nvim"
     },
     "todo-comments.nvim": {
