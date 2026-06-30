@@ -1,0 +1,19 @@
+# Mirrors the prior wezterm setup. Kitty graphics protocol (+ Unicode placeholders)
+# is enabled by default — that's what gives snacks.image true inline-in-buffer rendering.
+
+theme = Afterglow
+background = 282828
+background-opacity = 0.9
+
+font-family = FiraCode Nerd Font Mono
+font-size = 12
+
+window-padding-x = 0
+window-padding-y = 0
+window-padding-balance = true
+
+# Left option composes; right option acts as Alt (matched the wezterm send_composed_key_* pair).
+macos-option-as-alt = right
+
+# Shift+Enter → ESC+CR (meta-enter), as in the wezterm keybind.
+keybind = shift+enter=text:\x1b\r

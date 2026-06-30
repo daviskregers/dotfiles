@@ -12,7 +12,7 @@ require("tree-sitter-manager").setup({
     ensure_installed = {
         "c", "lua", "vim", "vimdoc", "query",
         "markdown", "markdown_inline", "python", "yaml",
-        "typescript",
+        "typescript", "mermaid",
     }, -- parsers to install at startup
     -- border = "rounded", -- border style for the TUI window
     -- auto_install = false, -- auto-install when a new filetype is encountered
