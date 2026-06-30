@@ -2,6 +2,7 @@ vim.pack.add({
     'https://github.com/nvim-lua/plenary.nvim',
 })
 
+require("plugins.mini")
 require("plugins.treesitter")
 require("plugins.blink")
 require("plugins.lsp")
@@ -15,7 +16,9 @@ require("plugins.whichkey")
 require("plugins.undotree")
 require("plugins.local-config")
 require("plugins.terminal")
+require("plugins.diffview")
 require("plugins.neogit")
+require("plugins.gitsigns")
 require("plugins.colorscheme")
 
 -- LEGACY / slop — to rewrite. Each is independent; delete the line + its lua/ folder to drop.
