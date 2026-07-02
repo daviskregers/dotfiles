@@ -28,6 +28,7 @@ Read PR changes → write title + description. NEVER modify source.
 - **Architecture**: include `## Architecture` with a mermaid diagram **only when the change has real control/data flow** worth showing, authored per the `diagram` skill (which decides when to diagram vs. skip). Flow-less changesets (config, renames, additive edits) → omit the section; the `## Changes` bullets carry it.
 - Compressed. No verbose restating of diff.
 - **Test plan**: enumerate each combination separately. Don't squeeze multiple dimensions into one line. E.g. if testing 3 formats × 2 scopes = 6 checklist items, not "test all formats with both scopes".
+- **Preserve checkbox state**: `read_pr_info` returns the current body. On refresh, carry over each `[x]` by default — a user checked it. Only reset `[x]`→`[ ]` when the new diff invalidates what that item verified (item's code path changed since it was checked). Small/unrelated fix → leave existing checks intact. New items start `[ ]`.
 
 ## AI Disclosure
 
