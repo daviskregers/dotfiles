@@ -12,6 +12,16 @@ Applies to: PR descriptions, PR comments, Linear issues, Linear comments, commit
 
 Do NOT use tool-branded attribution — no `Co-Authored-By` trailer, no "Generated with Claude Code"/"Generated with opencode". This notice replaces them.
 
+## PR descriptions
+
+Creating a PR (`gh pr create`, `/ship`, or ad-hoc) → author title/body via the `pr-describer` agent; NEVER write the description inline. It loads the `diagram` skill (mermaid architecture diagrams) + enforces the standard body structure. Flow: create PR with a stub body (`--title WIP --body _pending_`) → delegate to `pr-describer` with the PR URL → it reads the diff, sets title/body via `update-pr-info`.
+
+After any `git push`, check the branch for an existing PR (`gh pr view --json url,number`). PR exists → the diff changed, so its description is stale → re-delegate to `pr-describer` (PR URL) to refresh title/body. No PR → nothing to do.
+
+## TDD
+
+Test-driven by default for ALL feature/bugfix/refactor/behavioural-narrowing work, every project & agent. Red-green-refactor: failing test first → confirm it fails for the right reason (test must call REAL production code, not a test-file duplicate) → minimal impl → confirm pass → refactor green → repeat per behavior. Bugs: replicate with a failing test before fixing. Deletions/tightening: assert the new contract with a failing test ("X now rejected") before stripping source — never skip TDD just because change is subtractive. If impl reveals the test needs changing: rollback impl → fix test → verify fail → re-implement (never edit test+impl together). Mechanics: `tdd` skill.
+
 ## Brevity
 
 Default to terse. Applies to ALL output — responses, configs, subagent findings. Compress before presenting; never relay subagent walls-of-text verbatim.
