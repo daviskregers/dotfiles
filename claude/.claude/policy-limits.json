@@ -8,5 +8,7 @@
     }
   },
   "compliance_taints": [],
-  "defaults": {}
+  "defaults": {
+    "remote_control_at_startup": false
+  }
 }
