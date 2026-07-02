@@ -25,7 +25,7 @@ Load `git-commit` skill for the commit message.
    - `git diff --cached --stat`. Staged → conventional message per `git-commit`, `git commit`.
    - Nothing staged but branch has unpushed commits → skip to push. Nothing at all → stop: "Nothing to ship."
 4. **Push**: `git push -u origin $(git branch --show-current)`. Never force-push.
-5. **PR**: branch already has a PR? (`gh pr view --json url,number`) → reuse. Else `gh pr create --base <BASE> --draft --title <t> --body <b>` (drop `--draft` if `--ready`). Title/body from commits + diff.
+5. **PR**: branch already has a PR? (`gh pr view --json url,number`) → reuse. Else `gh pr create --base <BASE> --draft --title WIP --body _pending_` (drop `--draft` if `--ready`). **Then delegate title/body to the `pr-describer` agent** (pass PR URL) — it reads the diff and authors title + body (mermaid diagrams per `diagram` skill) via `update_pr_info`. Never write the description inline.
 6. **Copilot review**: call `request_copilot_review` with the PR URL.
 
 ## Phase D — PR-comment triage (skip if `--no-review`)
