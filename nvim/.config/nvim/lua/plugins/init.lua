@@ -28,4 +28,7 @@ require("agents")
 require("review-notes")
 require("worktree-agents")
 
+-- code-agents: editor-anchored parallel LLM agents (Step 1 = read verbs).
+require("code-agents")
+
 vim.api.nvim_create_user_command("PackUpdate", ":lua vim.pack.update()<CR>", {})
