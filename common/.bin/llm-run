@@ -1,0 +1,190 @@
+#!/usr/bin/env python3
+"""llm-run — provider-agnostic headless LLM dispatcher.
+
+Runs claude / opencode headless in the current directory and emits a NORMALIZED
+line-delimited event stream on stdout, one JSON object per line:
+
+    {"type":"session","session":"<id>"}
+    {"type":"text","text":"..."}
+    {"type":"thinking","text":"..."}
+    {"type":"tool","tool":"Bash","input":{...}}
+    {"type":"done","cost":0.01,"session":"<id>","denials":[...]}
+    {"type":"error","error":"..."}
+
+Consumers (nvim llm-agent/transport.lua) parse only these types.
+
+Usage:
+    llm-run <provider> [-m MODEL] [--agent NAME] [--session ID] [--resume] -- PROMPT
+
+claude is verified end-to-end. opencode is best-effort (untested — validate on an
+opencode machine); its raw event shapes may need adjustment in normalize_opencode.
+"""
+import json
+import subprocess
+import sys
+
+
+def main(argv):
+    provider, opts, prompt = parse_args(argv[1:])
+    if provider not in ("claude", "opencode"):
+        die(f"unknown provider: {provider}")
+    cmd = build_command(provider, opts, prompt)
+    return stream(provider, cmd)
+
+
+def parse_args(args):
+    """provider = first positional; flags until `--`; prompt = the rest joined."""
+    if not args:
+        die("usage: llm-run <provider> [flags] -- PROMPT")
+    provider, rest = args[0], args[1:]
+    opts = {"model": None, "agent": None, "session": None, "resume": False, "permit": False}
+    prompt_parts, i = [], 0
+    while i < len(rest):
+        a = rest[i]
+        if a == "--":
+            prompt_parts = rest[i + 1:]
+            break
+        elif a in ("-m", "--model"):
+            i += 1; opts["model"] = rest[i]
+        elif a == "--agent":
+            i += 1; opts["agent"] = rest[i]
+        elif a == "--session":
+            i += 1; opts["session"] = rest[i]
+        elif a == "--resume":
+            opts["resume"] = True
+        elif a == "--permit":
+            opts["permit"] = True  # route tool permissions back to nvim (see build_claude)
+        else:
+            die(f"unexpected argument: {a}")
+        i += 1
+    return provider, opts, " ".join(prompt_parts)
+
+
+# PreToolUse hook (per-invocation via --settings) that bridges tool-permission
+# decisions to nvim. No global settings change; active only for this run.
+PERMIT_SETTINGS = json.dumps({
+    "hooks": {"PreToolUse": [{
+        "matcher": "Bash|Write|Edit|MultiEdit|NotebookEdit",
+        "hooks": [{"type": "command", "command": "code-agents-permit"}],
+    }]}
+})
+
+
+def build_command(provider, o, prompt):
+    if provider == "claude":
+        return build_claude(o, prompt)
+    return build_opencode(o, prompt)
+
+
+def build_claude(o, prompt):
+    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose"]
+    if o["model"]:
+        cmd += ["--model", o["model"]]
+    if o["agent"]:
+        cmd += ["--agent", o["agent"]]
+    if o["resume"] and o["session"]:
+        cmd += ["--resume", o["session"]]
+    elif o["session"]:
+        cmd += ["--session-id", o["session"]]
+    if o["permit"]:
+        cmd += ["--settings", PERMIT_SETTINGS]
+    return cmd
+
+
+def build_opencode(o, prompt):
+    cmd = ["opencode", "run", "--format", "json"]
+    if o["model"]:
+        cmd += ["-m", o["model"]]
+    if o["agent"]:
+        cmd += ["--agent", o["agent"]]
+    if o["session"]:
+        cmd += ["-s", o["session"]]  # -s continues the given session (resume)
+    cmd += ["--", prompt]
+    return cmd
+
+
+def stream(provider, cmd):
+    """Run cmd, normalize each stdout line, emit normalized JSONL. Returns exit code.
+    Dedupes repeated session events (opencode stamps sessionID on every event)."""
+    normalize = normalize_claude if provider == "claude" else normalize_opencode
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, text=True, bufsize=1)
+    last_session = None
+    for line in proc.stdout:
+        line = line.strip()
+        if not line:
+            continue
+        try:
+            obj = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        for ev in normalize(obj):
+            if ev.get("type") == "session":
+                if ev.get("session") == last_session:
+                    continue
+                last_session = ev.get("session")
+            emit(ev)
+    return proc.wait()
+
+
+def normalize_claude(obj):
+    """claude stream-json object → 0+ normalized events."""
+    t = obj.get("type")
+    if t == "system" and obj.get("subtype") == "init":
+        yield {"type": "session", "session": obj.get("session_id")}
+    elif t == "assistant":
+        for part in obj.get("message", {}).get("content", []):
+            pt = part.get("type")
+            if pt == "text":
+                yield {"type": "text", "text": part.get("text", "")}
+            elif pt == "thinking":
+                yield {"type": "thinking", "text": part.get("thinking", "")}
+            elif pt == "tool_use":
+                yield {"type": "tool", "tool": part.get("name"), "input": part.get("input")}
+    elif t == "result":
+        if obj.get("is_error"):
+            yield {"type": "error", "error": obj.get("result") or obj.get("subtype", "error")}
+        yield {
+            "type": "done",
+            "cost": obj.get("total_cost_usd", 0),
+            "session": obj.get("session_id"),
+            "denials": obj.get("permission_denials", []),
+        }
+
+
+def normalize_opencode(obj):
+    """opencode `run --format json` object → 0+ normalized events.
+    Verified against kimi-k2.6: top-level `type`, payload under `part`,
+    terminal step carries part.reason == "stop"."""
+    t = obj.get("type", "")
+    sid = obj.get("sessionID") or obj.get("session")
+    part = obj.get("part") or {}
+    if t == "error":
+        err = obj.get("error") or {}
+        msg = (err.get("data") or {}).get("message") or err.get("name") or "error"
+        yield {"type": "error", "error": msg}
+        return
+    if sid:
+        yield {"type": "session", "session": sid}  # deduped in stream()
+    if t == "text" and part.get("text"):
+        yield {"type": "text", "text": part["text"]}
+    elif t == "reasoning" and part.get("text"):
+        yield {"type": "thinking", "text": part["text"]}
+    elif t == "tool_use":
+        state = part.get("state") or {}
+        yield {"type": "tool", "tool": part.get("tool"), "input": state.get("input")}
+    elif t == "step_finish" and part.get("reason") == "stop":
+        yield {"type": "done", "cost": part.get("cost", 0), "session": sid, "denials": []}
+
+
+def emit(ev):
+    sys.stdout.write(json.dumps(ev) + "\n")
+    sys.stdout.flush()
+
+
+def die(msg):
+    sys.stderr.write(f"llm-run: {msg}\n")
+    sys.exit(2)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv))
