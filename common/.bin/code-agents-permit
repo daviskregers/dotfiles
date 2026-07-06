@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# PreToolUse hook: bridge a background code-agents run's tool-permission requests
+# to Neovim, ASYNCHRONOUSLY. Wired per-invocation via `claude --settings`
+# (see llm-run --permit), so it never affects normal claude sessions.
+#
+# Flow: send the request to nvim → nvim either auto-decides (pre-approved) and
+# returns a decision immediately, or registers it + notifies the user and returns
+# PENDING:<file>. We then POLL that file (this subprocess waits in the background;
+# nvim stays responsive) until the user resolves it in the editor.
+#
+# Active only when CLANK_NVIM_ADDR is set. Fail-closed (deny) on unreachable/timeout.
+
+[ -z "$CLANK_NVIM_ADDR" ] && exit 0
+
+deny() { printf '{"hookSpecificOutput":{"hookEventName":"PreToolUse","permissionDecision":"deny","permissionDecisionReason":"%s"}}' "$1"; }
+
+tmp="$(mktemp)"
+cat > "$tmp"
+resp="$(nvim --server "$CLANK_NVIM_ADDR" \
+  --remote-expr "luaeval('require(\"code-agents.permission\").request(_A)', '$tmp')" 2>/dev/null)"
+
+case "$resp" in
+  PENDING:*)
+    df="${resp#PENDING:}"
+    for _ in $(seq 1 7200); do           # wait up to ~2h for a decision
+      if [ -f "$df" ]; then cat "$df"; rm -f "$df" "$tmp"; exit 0; fi
+      sleep 1
+    done
+    rm -f "$tmp"; deny "timed out waiting for editor decision"
+    ;;
+  "")
+    rm -f "$tmp"; deny "editor unreachable"
+    ;;
+  *)
+    rm -f "$tmp"; printf '%s' "$resp"   # immediate decision (auto-approved)
+    ;;
+esac
+exit 0
