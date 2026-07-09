@@ -45,6 +45,20 @@ def emit_deny(reason):
     }}, sys.stdout)
 
 
+# Values of human-message flags are prose, never a command — strip them before
+# scanning so a commit message / PR body that merely MENTIONS a dangerous string
+# ("… blocks rm -rf …") doesn't false-positive. Only -m/--message/--body; NOT -c
+# or --body-file, so genuinely dangerous quoted payloads (psql -c 'DROP …') and
+# real invocations stay scanned.
+MSG_FLAG = re.compile(
+    r"(?:-m|--message|--body)(?:=|\s+)(?:\"(?:[^\"\\]|\\.)*\"|'[^']*'|\S+)"
+)
+
+
+def strip_message_flags(cmd):
+    return MSG_FLAG.sub(" ", cmd)
+
+
 def main():
     data = json.load(sys.stdin)
     if data.get("tool_name") != "Bash":
@@ -52,8 +66,9 @@ def main():
     cmd = (data.get("tool_input") or {}).get("command")
     if not isinstance(cmd, str) or not cmd.strip():
         return
+    scan = strip_message_flags(cmd)
     for rx, label in DANGER:
-        if rx.search(cmd):
+        if rx.search(scan):
             emit_deny(
                 f"Blocked by the command guard — {label}. Denied so it can't run on a "
                 f"reflexive approval. If you genuinely intend it, run it yourself via the "
