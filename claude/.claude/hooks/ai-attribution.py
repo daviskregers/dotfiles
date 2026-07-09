@@ -96,12 +96,14 @@ def rewrite_command(cmd):
     is_gh_post = re.search(r"(?:^|[\n;&|(`])\s*gh\s+pr\s+(?:create|comment|edit)\b", view) is not None
     if not (is_commit or is_gh_post):
         return cmd, 'none'
-    if CMD_BRANDED.search(cmd):
-        return cmd, 'deny'
+    if CMD_BRANDED.search(view):  # scan the structural view — a message that MENTIONS
+        return cmd, 'deny'         # "Co-Authored-By" in prose isn't a branded trailer
 
     if is_commit:
-        # File/reuse-message commits can't take an extra -m safely.
-        if re.search(r'(?:^|\s)(?:-F|--file|-C|--reuse-message|--reedit-message)\b', cmd):
+        # File/reuse-message commits can't take an extra -m safely. Scan `view` (not raw)
+        # so "-F"/"--file" appearing inside a commit message don't false-deny. Bare "-C"
+        # dropped — it collides with git's global `-C <dir>` flag; --reuse-message covers it.
+        if re.search(r'(?:^|\s)(?:-F|--file|--reuse-message|--reedit-message)\b', view):
             return cmd, 'deny'
         # No inline message → editor-driven; nothing to inject.
         if not re.search(r'(?:^|\s)(?:-m|--message)\b', cmd):
@@ -109,7 +111,7 @@ def rewrite_command(cmd):
         return cmd.rstrip() + f' -m "{NOTICE}"', 'change'
 
     # gh pr create|comment|edit
-    if re.search(r'--body-file|(?:^|\s)-F\b|<<', cmd):
+    if re.search(r'--body-file|(?:^|\s)-F\b|<<', view):
         return cmd, 'deny'
     m = BODY_RE.search(cmd)
     if not m:

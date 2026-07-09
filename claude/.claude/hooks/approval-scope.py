@@ -15,7 +15,7 @@ import re
 
 # Whole-message bare approvals (short, opens with an affirmation).
 AFFIRM = re.compile(
-    r"^(y|ye|yes|yep|yup|yeah|ya|sure|ok|okay|k|proceed|go|go ahead|do it|"
+    r"^(ye|yes|yep|yup|yeah|ya|sure|ok|okay|proceed|go|go ahead|do it|"
     r"sounds good|lgtm|ship it|please|yes please|go for it|👍)\b",
     re.I,
 )

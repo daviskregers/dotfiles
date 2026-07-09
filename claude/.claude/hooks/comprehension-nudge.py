@@ -25,7 +25,6 @@ SRC_EXT = {
 }
 IGNORE = re.compile(r"(lock|\.min\.|generated|/vendor/|/node_modules/|/dist/)", re.I)
 MIN_LINES = 150
-MIN_FILES = 5
 STATE = os.path.expanduser("~/.claude/cache/comprehension-nudge.json")
 
 REASON = (
@@ -92,8 +91,9 @@ def main():
         return  # we already forced a continuation — don't loop
     cwd = data.get("cwd") or os.getcwd()
     lines, files = changed_source(cwd)
-    if lines < MIN_LINES and len(files) < MIN_FILES:
-        return  # not substantial
+    if lines < MIN_LINES:
+        return  # not substantial — line volume is the primary signal (5 one-line
+                # edits across files isn't "a build"); file set still keys the dedup sig
     sig = signature(cwd, files, lines)
     if already_nudged(cwd, sig):
         return  # same build state already nudged
