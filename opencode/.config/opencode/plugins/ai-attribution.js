@@ -53,15 +53,17 @@ function rewriteCommand(cmd) {
   const isCommit = /(?:^|[\n;&|(`])\s*git\s+commit\b/.test(view)
   const isGhPost = /(?:^|[\n;&|(`])\s*gh\s+pr\s+(?:create|comment|edit)\b/.test(view)
   if (!isCommit && !isGhPost) return { action: "none" }
-  if (CMD_BRANDED.test(cmd)) return { action: "deny" }
+  if (CMD_BRANDED.test(view)) return { action: "deny" }  // scan structural view — a message
 
   if (isCommit) {
-    if (/(?:^|\s)(?:-F|--file|-C|--reuse-message|--reedit-message)\b/.test(cmd)) return { action: "deny" }
+    // scan `view` (not raw) so -F/--file in a message don't false-deny; bare -C dropped
+    // (collides with git's global `-C <dir>` flag; --reuse-message covers it).
+    if (/(?:^|\s)(?:-F|--file|--reuse-message|--reedit-message)\b/.test(view)) return { action: "deny" }
     if (!/(?:^|\s)(?:-m|--message)\b/.test(cmd)) return { action: "none" }
     return { action: "change", cmd: cmd.replace(/\s+$/, "") + ` -m "${NOTICE}"` }
   }
 
-  if (/--body-file|(?:^|\s)-F\b|<</.test(cmd)) return { action: "deny" }
+  if (/--body-file|(?:^|\s)-F\b|<</.test(view)) return { action: "deny" }
   const m = BODY_RE.exec(cmd)
   if (!m) return { action: "none" }
   const raw = m[3]

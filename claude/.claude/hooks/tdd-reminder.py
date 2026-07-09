@@ -13,6 +13,7 @@ FAIL-OPEN: any error → no output → tool runs unchanged.
 import sys
 import json
 import os
+import re
 import subprocess
 
 SRC_EXT = {
@@ -20,7 +21,7 @@ SRC_EXT = {
     ".java", ".kt", ".swift", ".c", ".cc", ".cpp", ".h", ".hpp", ".cs",
     ".scala", ".ex", ".exs", ".m", ".mm", ".lua",
 }
-TEST_MARKERS = ("test", "spec", "__tests__")
+TEST_RE = re.compile(r"(^|[/_.\-])(tests?|specs?|__tests__)([/_.\-]|$)", re.I)
 
 REMINDER = (
     "TDD is default (global rule): before changing this source, there should be "
@@ -32,8 +33,9 @@ REMINDER = (
 
 
 def is_test_path(p):
-    pl = p.lower()
-    return any(m in pl for m in TEST_MARKERS)
+    # match test/spec as path SEGMENTS, not substrings — so latest.py / inspector.py
+    # aren't mistaken for tests.
+    return TEST_RE.search(p) is not None
 
 
 def repo_root(path):

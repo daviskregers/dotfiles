@@ -17,3 +17,4 @@ telemetry/
 mcp-tools/node_modules/
 session-env/
 .last-cleanup
+CLAUDE.personal.md
