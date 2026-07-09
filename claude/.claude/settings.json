@@ -9,7 +9,12 @@
       "Bash(git status*)",
       "Bash(git log*)",
       "Bash(git diff*)",
-      "Bash(rg:*)"
+      "Bash(rg:*)",
+      "mcp__custom-tools__list_pr_comments",
+      "mcp__custom-tools__resolve_pr_thread",
+      "mcp__claude_ai_Linear__get_issue",
+      "mcp__claude_ai_Linear__list_comments",
+      "mcp__claude_ai_Linear__list_issues"
     ]
   },
   "model": "opus[1m]",
@@ -43,6 +48,15 @@
             "command": "python3 \"/Users/daviskregers/.claude/hooks/tdd-reminder.py\""
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/daviskregers/.claude/hooks/dangerous-command-guard.py\""
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -63,6 +77,10 @@
           {
             "type": "command",
             "command": "python3 \"/Users/daviskregers/.claude/hooks/offloading-nudge.py\""
+          },
+          {
+            "type": "command",
+            "command": "python3 \"/Users/daviskregers/.claude/hooks/approval-scope.py\""
           }
         ]
       }
