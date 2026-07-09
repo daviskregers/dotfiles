@@ -1,6 +1,8 @@
--- Floating single-line input. Robust vs background agent callbacks that interrupt
--- the cmdline-based vim.ui.input (which delivered nil mid-stream). Returns
--- { buf, win, submit, cancel } so callers — and tests — can drive it.
+-- Floating input. Robust vs background agent callbacks that interrupt the
+-- cmdline-based vim.ui.input (which delivered nil mid-stream). Accepts
+-- multi-line pastes: the whole buffer is joined with newlines on submit, and
+-- the float grows to fit. Returns { buf, win, submit, cancel } so callers —
+-- and tests — can drive it.
 local M = {}
 
 -- `@` trigger: pick a repo file and insert `@<relpath> ` at the cursor (the agent
@@ -12,6 +14,8 @@ local function pick_file_insert()
   local action_state = require("telescope.actions.state")
   builtin.find_files({
     prompt_title = "@ file reference",
+    hidden = true,   -- include dot-dirs like .dk-notes/
+    no_ignore = true, -- include gitignored paths (.dk-notes/ is in global gitignore)
     attach_mappings = function(bufnr)
       actions.select_default:replace(function()
         local entry = action_state.get_selected_entry()
@@ -26,31 +30,58 @@ local function pick_file_insert()
   })
 end
 
-function M.prompt(title, on_submit)
+-- opts (optional):
+--   prefill      string  initial buffer content (split on \n); float grows to fit
+--   allow_empty  bool    fire on_submit even when the text is empty/whitespace —
+--                        used by the session-focus editor, where an empty commit
+--                        means "clear". Default: empty submits are ignored.
+function M.prompt(title, on_submit, opts)
+  opts = opts or {}
   local origin = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":.") -- file you're in, before the scratch buf
   local buf = vim.api.nvim_create_buf(false, true)
   vim.bo[buf].buftype = "nofile"
+  local prefill = vim.split(opts.prefill or "", "\n", { plain = true })
+  vim.api.nvim_buf_set_lines(buf, 0, -1, false, prefill)
   local w = math.max(40, math.floor(vim.o.columns * 0.5))
-  local hint = origin ~= "" and "  @ file · ^F current " or "  @ file "
+  -- ^S / <CR> submits from either mode. Multi-line: <A-CR> / <C-o>o / <C-v><CR>.
+  local hint = origin ~= "" and "  ^S/⏎ submit · ^U clear · @ file · ^F current " or "  ^S/⏎ submit · ^U clear · @ file "
   local win = vim.api.nvim_open_win(buf, true, {
-    relative = "editor", width = w, height = 1,
+    relative = "editor", width = w, height = math.max(1, #prefill),
     row = math.floor(vim.o.lines / 2), col = math.floor((vim.o.columns - w) / 2),
     style = "minimal", border = "rounded", title = " " .. title .. hint, title_pos = "center",
   })
+  -- Grow to fit multi-line pastes (capped so the float stays on-screen).
+  local function fit_height()
+    if not vim.api.nvim_win_is_valid(win) then return end
+    local lines = vim.api.nvim_buf_line_count(buf)
+    vim.api.nvim_win_set_height(win, math.max(1, math.min(lines, math.floor(vim.o.lines * 0.4))))
+  end
+  vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, { buffer = buf, callback = fit_height })
   vim.cmd("startinsert")
   local done = false
   local function finish(submit)
     if done then return end
     done = true
     vim.cmd("stopinsert") -- leave insert so downstream views open in normal mode
-    local text = vim.api.nvim_buf_get_lines(buf, 0, -1, false)[1] or ""
+    local text = table.concat(vim.api.nvim_buf_get_lines(buf, 0, -1, false), "\n")
     if vim.api.nvim_win_is_valid(win) then vim.api.nvim_win_close(win, true) end
-    if submit and text ~= "" then on_submit(text) end
+    if submit and (opts.allow_empty or text:match("%S")) then on_submit(text) end
   end
   local h = { buf = buf, win = win }
   h.submit = function() finish(true) end
   h.cancel = function() finish(false) end
-  vim.keymap.set({ "i", "n" }, "<CR>", h.submit, { buffer = buf, nowait = true })
+  h.clear = function()
+    if not vim.api.nvim_buf_is_valid(buf) then return end
+    vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "" })
+    if vim.api.nvim_win_is_valid(win) then vim.api.nvim_win_set_cursor(win, { 1, 0 }) end
+    fit_height()
+  end
+  -- ^S submits from either mode; <CR> also submits (consistent across modes).
+  -- Single-line inputs (allow-rule, focus) submit on Enter naturally. Multi-line
+  -- users can insert a literal newline with <A-CR> / <C-o>o / <C-v><CR>.
+  vim.keymap.set({ "i", "n" }, "<C-s>", h.submit, { buffer = buf, nowait = true })
+  vim.keymap.set("n", "<CR>", h.submit, { buffer = buf, nowait = true })
+  vim.keymap.set({ "i", "n" }, "<C-u>", h.clear, { buffer = buf, nowait = true }) -- wipe all content
   vim.keymap.set({ "i", "n" }, "<Esc>", h.cancel, { buffer = buf, nowait = true })
   vim.keymap.set("n", "q", h.cancel, { buffer = buf, nowait = true })
   vim.keymap.set("i", "@", pick_file_insert, { buffer = buf, desc = "@ file reference" })

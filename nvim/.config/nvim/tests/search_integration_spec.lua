@@ -11,6 +11,15 @@ end
 require("code-agents") -- registers keymaps
 local core = require("code-agents.core")
 
+-- Force claude provider so the fake transport is used (not opencode ACP).
+local function force_claude_default()
+  local p = vim.fn.tempname()
+  vim.fn.writefile({ "claude" }, p)
+  core.default_agent_file = p
+  return p
+end
+local _claude_file = force_claude_default()
+
 local function run_search_and_finish(text, code)
   package.loaded["code-agents.ui"].prompt = function(_, cb) cb("myquery") end
   vim.fn.maparg("<leader>pq", "n", false, true).callback()

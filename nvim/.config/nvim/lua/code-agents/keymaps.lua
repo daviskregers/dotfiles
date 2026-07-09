@@ -1,13 +1,16 @@
 -- Keymaps for code-agents.
 --   <leader>ae / aE  explain selection      → live conversation  (default / pick model)
+--   <leader>af       set session focus (prepended to every new agent's opening prompt)
 --   <leader>as       ask a question (x: about selection) → cited answer in conversation
 --   <leader>ac       command (write)        → background worktree agent; review on done
 --   <leader>pq / pQ  search question        → quickfix           (default / pick model)
 --   <leader>ar       review a finished agent's diff (accept / reject / improve)
---   <leader>ap       jump to an agent awaiting permission
+--   <leader>ap / aP  run a prompt — pick a verb (x: with selection)  (default / pick provider/model)
+--   <leader>aw       jump to an agent awaiting permission
 --   <leader>al       open an agent's conversation (the hub) · <leader>aK  remove ALL
 -- Conversation view: a add · r review · s stop · x kill · q close;
---   when awaiting permission: A allow · S session · I improve · D deny (q defers).
+--   when awaiting permission: A allow once · S allow session · W always (edit
+--   rule, persisted) · D deny (q defers). Requests are logged → :CodeAgentsPermissions.
 
 local core = require("code-agents.core")
 local prompts = require("code-agents.prompts")
@@ -43,76 +46,139 @@ end
 
 local review_agent -- forward-declared; defined below, used by the conversation's `r` key
 
--- Open a focused, live-updating conversation for agent `a` — the hub for all
--- per-agent ops. Renders the full transcript, refreshes as events stream (via
--- a.on_update). In-window: a add context · s stop · x kill · q close.
-local function open_conversation(a)
-  -- Deferred: opening/entering a float from within a ui.input/ui.select callback
-  -- (snacks) races the picker teardown and silently no-ops. schedule → clean context.
-  vim.schedule(function()
-  local buf = vim.api.nvim_create_buf(false, true)
-  vim.bo[buf].filetype = "markdown"
-  local w = math.floor(vim.o.columns * 0.6)
-  local h = math.floor(vim.o.lines * 0.7)
-  local win = vim.api.nvim_open_win(buf, true, {
-    relative = "editor", width = w, height = h,
-    row = math.floor((vim.o.lines - h) / 2), col = vim.o.columns - w - 2,
-    style = "minimal", border = "rounded",
-  })
-  vim.wo[win].wrap = true
-  vim.cmd("stopinsert") -- read-only view: ensure normal mode so q/a keymaps work
+-- Shared conversation view: one window, one buffer. All agents render here.
+local shared = { buf = nil, win = nil, agent = nil, keymaps_set = false }
 
-  local function refresh()
-    if not vim.api.nvim_buf_is_valid(buf) then a.on_update = nil; return end
-    vim.bo[buf].modifiable = true
-    vim.api.nvim_buf_set_lines(buf, 0, -1, false, core.render_transcript(a))
-    vim.bo[buf].modifiable = false
-    if vim.api.nvim_win_is_valid(win) then
-      pcall(vim.api.nvim_win_set_config, win, { title = string.format(
-        " %s [%s]  ·  a add · r review · s stop · x kill · q close ", a.id, a.status), title_pos = "center" })
-      pcall(vim.api.nvim_win_set_cursor, win, { vim.api.nvim_buf_line_count(buf), 0 })
+local function refresh_shared()
+  if not shared.agent then return end
+  if not shared.buf or not vim.api.nvim_buf_is_valid(shared.buf) then return end
+  vim.bo[shared.buf].modifiable = true
+  local lines, highlights = core.render_transcript(shared.agent)
+  vim.api.nvim_buf_set_lines(shared.buf, 0, -1, false, lines)
+  core.apply_transcript_highlights(shared.buf, highlights)
+  vim.bo[shared.buf].modifiable = false
+  if shared.win and vim.api.nvim_win_is_valid(shared.win) then
+    pcall(vim.api.nvim_win_set_config, shared.win, { title = string.format(
+      " %s [%s]  ·  a add · r review · s stop · x kill · q close ", shared.agent.id, shared.agent.status), title_pos = "center" })
+    pcall(vim.api.nvim_win_set_cursor, shared.win, { vim.api.nvim_buf_line_count(shared.buf), 0 })
+  end
+end
+
+local function close_shared()
+  if shared.win and vim.api.nvim_win_is_valid(shared.win) then
+    vim.api.nvim_win_close(shared.win, true)
+  end
+  shared.win, shared.agent = nil, nil
+end
+
+local function ensure_shared_window()
+  core.setup_highlights()
+  if not shared.buf or not vim.api.nvim_buf_is_valid(shared.buf) then
+    shared.buf = vim.api.nvim_create_buf(false, true)
+    vim.bo[shared.buf].filetype = "markdown"
+  end
+  if not shared.win or not vim.api.nvim_win_is_valid(shared.win) then
+    local w = math.floor(vim.o.columns * 0.6)
+    local h = math.floor(vim.o.lines * 0.7)
+    shared.win = vim.api.nvim_open_win(shared.buf, true, {
+      relative = "editor", width = w, height = h,
+      row = math.floor((vim.o.lines - h) / 2), col = vim.o.columns - w - 2,
+      style = "minimal", border = "rounded",
+    })
+    vim.wo[shared.win].wrap = true
+    vim.cmd("stopinsert")
+  else
+    vim.api.nvim_set_current_win(shared.win)
+  end
+  return shared.buf, shared.win
+end
+
+local function setup_shared_keymaps()
+  if shared.keymaps_set then return end
+  if not shared.buf then return end
+  local buf = shared.buf
+
+  local function current()
+    if not shared.agent then return nil end
+    -- agent may have been removed; verify it still exists
+    if not core.get(shared.agent.id) then shared.agent = nil; return nil end
+    return shared.agent
+  end
+
+  local function ask()
+    local a = current()
+    if not a then return end
+    ui.prompt("Ask " .. a.id, function(text) core.steer(a.id, text) end)
+  end
+
+  local function stop()
+    local a = current()
+    if not a then return end
+    core.stop(a.id)
+    refresh_shared()
+  end
+
+  local function kill()
+    local a = current()
+    if not a then return end
+    if not confirm("Remove " .. a.id .. "?") then return end
+    core.remove(a.id)
+    shared.agent = nil
+    local agents = core.list()
+    if #agents > 0 then
+      shared.agent = agents[1]
+      shared.agent.on_update = refresh_shared
+      refresh_shared()
+    else
+      close_shared()
     end
   end
 
-  local function close() if vim.api.nvim_win_is_valid(win) then vim.api.nvim_win_close(win, true) end end
-  local function ask()
-    ui.prompt("Ask " .. a.id, function(text) core.steer(a.id, text) end) -- a.on_update refreshes live
-  end
-  local function stop() core.stop(a.id); refresh() end
-  local function kill()
-    if confirm("Remove " .. a.id .. "?") then core.remove(a.id); close() end
-  end
-
-  a._view_buf = buf -- exposed for integration tests to drive the in-window keymaps
-  a.on_update = refresh
-  a.close_view = function() a.on_update = nil; close() end
-  refresh()
-  vim.keymap.set("n", "q", close, { buffer = buf, nowait = true, desc = "close" })
-  vim.keymap.set("n", "a", ask, { buffer = buf, nowait = true, desc = "add context" })
-  vim.keymap.set("n", "<CR>", ask, { buffer = buf, nowait = true, desc = "add context" })
-  vim.keymap.set("n", "s", stop, { buffer = buf, nowait = true, desc = "stop turn" })
-  vim.keymap.set("n", "x", kill, { buffer = buf, nowait = true, desc = "kill agent" })
-  vim.keymap.set("n", "r", function()
+  local function review()
+    local a = current()
+    if not a then return end
     if not a.worktree then return vim.notify("no changes to review for " .. a.id, vim.log.levels.INFO) end
-    close(); review_agent(a)
-  end, { buffer = buf, nowait = true, desc = "review changes" })
+    close_shared()
+    review_agent(a)
+  end
 
-  -- Resolve a pending permission request in context (non-blocking; q just defers).
   local function decide(choice)
     return function()
-      if not a.pending then return vim.notify("nothing pending for " .. a.id, vim.log.levels.INFO) end
+      local a = current()
+      if not a or not a.pending then return vim.notify("nothing pending", vim.log.levels.INFO) end
       local entry, perm = a.pending, require("code-agents.permission")
-      if choice == "improve" then
-        ui.prompt("Improve " .. a.id, function(txt) perm.resolve_pending(entry, "improve", txt) end)
+      if choice == "always" then
+        ui.prompt("Whitelist rule for " .. a.id, function(rule) perm.resolve_pending(entry, "always", rule) end,
+          { prefill = perm.suggest_rule(entry.tool, entry.input) })
       else
         perm.resolve_pending(entry, choice)
       end
     end
   end
-  vim.keymap.set("n", "A", decide("once"), { buffer = buf, nowait = true, desc = "allow" })
+
+  vim.keymap.set("n", "q", close_shared, { buffer = buf, nowait = true, desc = "close" })
+  vim.keymap.set("n", "a", ask, { buffer = buf, nowait = true, desc = "add context" })
+  vim.keymap.set("n", "<CR>", ask, { buffer = buf, nowait = true, desc = "add context" })
+  vim.keymap.set("n", "s", stop, { buffer = buf, nowait = true, desc = "stop turn" })
+  vim.keymap.set("n", "x", kill, { buffer = buf, nowait = true, desc = "kill agent" })
+  vim.keymap.set("n", "r", review, { buffer = buf, nowait = true, desc = "review changes" })
+  vim.keymap.set("n", "A", decide("once"), { buffer = buf, nowait = true, desc = "allow once" })
   vim.keymap.set("n", "S", decide("session"), { buffer = buf, nowait = true, desc = "allow session" })
-  vim.keymap.set("n", "I", decide("improve"), { buffer = buf, nowait = true, desc = "improve" })
+  vim.keymap.set("n", "W", decide("always"), { buffer = buf, nowait = true, desc = "always allow (edit rule)" })
   vim.keymap.set("n", "D", decide("deny"), { buffer = buf, nowait = true, desc = "deny" })
+  shared.keymaps_set = true
+end
+
+-- Open a focused, live-updating conversation for agent `a` in the shared window.
+local function open_conversation(a)
+  vim.schedule(function()
+    ensure_shared_window()
+    setup_shared_keymaps()
+    shared.agent = a
+    a._view_buf = shared.buf
+    a.on_update = refresh_shared
+    a.close_view = close_shared
+    refresh_shared()
   end)
 end
 
@@ -166,13 +232,13 @@ end
 
 -- Command / write verb: hand a task to a BACKGROUND agent working in its own
 -- isolated worktree (seeded from your live state). Edits are auto-allowed there
--- (safe — isolated); Bash still prompts (<leader>ap). Review its diff on done
+-- (safe — isolated); Bash still prompts (<leader>aw). Review its diff on done
 -- via <leader>ar — nothing merges to your tree until you accept.
 local function command(context, provider, model)
   ui.prompt("Command", function(task)
     local wtm = require("code-agents.worktree")
     local repo = core.repo_top()
-    local prov = provider or core.default_provider
+    local prov = provider or core.current_default_provider()
     local sid = wtm.uuid()          -- the claude session id (resumable)
     local id = prov .. "-" .. sid   -- worktree name encodes the provider (recovered on reattach)
     local path = wtm.path(vim.fn.stdpath("cache") .. "/code-agents", vim.fn.fnamemodify(repo, ":t"), id)
@@ -217,15 +283,49 @@ end
 
 -- ── agent picker + panel ─────────────────────────────────────────────────────
 
+-- Pick an agent → fn(agent). Telescope shows each agent's live transcript in the
+-- preview pane (via core.render_transcript); falls back to vim.ui.select without.
 local function pick_agent(prompt, fn)
   local agents = core.list()
   if #agents == 0 then return vim.notify("no code-agents", vim.log.levels.INFO) end
-  vim.ui.select(agents, {
-    prompt = prompt,
-    format_item = function(a)
-      return string.format("%s  [%s]  (%s/%s)", a.id, a.status, a.provider, a.model or "?")
+  local ok, pickers = pcall(require, "telescope.pickers")
+  if not ok then
+    return vim.ui.select(agents, { prompt = prompt, format_item = core.agent_label },
+      function(a) if a then fn(a) end end)
+  end
+  local finders = require("telescope.finders")
+  local conf = require("telescope.config").values
+  local actions = require("telescope.actions")
+  local action_state = require("telescope.actions.state")
+  local previewers = require("telescope.previewers")
+  pickers.new({}, {
+    prompt_title = prompt,
+    finder = finders.new_table({
+      results = agents,
+      entry_maker = function(a)
+        local title = (a.raw_prompt or ""):gsub("%s+", " ")
+        return { value = a, display = core.agent_label(a), ordinal = (a.id .. " " .. title):lower() }
+      end,
+    }),
+    sorter = conf.generic_sorter({}),
+    previewer = previewers.new_buffer_previewer({
+      title = "transcript",
+      define_preview = function(self, entry)
+        local lines = core.render_transcript(entry.value)
+        vim.bo[self.state.bufnr].filetype = "markdown"
+        vim.wo[self.state.winid].wrap = true
+        vim.api.nvim_buf_set_lines(self.state.bufnr, 0, -1, false, lines)
+      end,
+    }),
+    attach_mappings = function(bufnr)
+      actions.select_default:replace(function()
+        local e = action_state.get_selected_entry()
+        actions.close(bufnr)
+        if e then fn(e.value) end
+      end)
+      return true
     end,
-  }, function(a) if a then fn(a) end end)
+  }):find()
 end
 
 -- Review a finished agent's worktree diff: accept (merge to live) / reject
@@ -235,10 +335,21 @@ function review_agent(a)
   if not a.worktree then return vim.notify("no changes to review for " .. a.id, vim.log.levels.INFO) end
   local wtm = require("code-agents.worktree")
   local repo = a.repo or core.repo_top()
-  local patch = wtm.diff(a.worktree, a.seed)
+  local patch, ok = wtm.diff(a.worktree, a.seed)
+  if not ok then
+    -- Diff FAILED (e.g. seed unresolvable) — the changes are still in the worktree.
+    -- Never discard: that's how progress got lost. Keep it and point the user at it.
+    return vim.notify("code-agents: couldn't diff " .. a.id .. " (seed unresolvable) — worktree kept at "
+      .. a.worktree .. "; inspect it manually before discarding", vim.log.levels.ERROR)
+  end
   if vim.trim(patch) == "" then
-    core.remove(a.id) -- nothing to lose; cleans up the worktree
-    return vim.notify("code-agents: no changes from " .. a.id)
+    -- Genuinely empty — but still confirm before discarding, so a surprise "nothing
+    -- here" never nukes work the user believes they made.
+    if confirm("No changes detected from " .. a.id .. ". Discard its worktree and branch?") then
+      core.remove(a.id)
+      return vim.notify("code-agents: discarded " .. a.id .. " (no changes)")
+    end
+    return vim.notify("code-agents: kept " .. a.id .. " — worktree at " .. a.worktree)
   end
   local buf = vim.api.nvim_create_buf(false, true)
   vim.api.nvim_buf_set_lines(buf, 0, -1, false, vim.split(patch, "\n"))
@@ -259,7 +370,12 @@ function review_agent(a)
     if status == "applied" then
       core.remove(a.id); core.reload_changed() -- merged; remove discards the worktree
       vim.notify("code-agents: merged " .. a.id)
-    else
+    elseif status == "error" then
+      -- Diff FAILED (e.g. seed unresolvable) — work is still in the worktree. Never
+      -- discard or reseed (reseed would clobber it): keep it and point the user at it.
+      vim.notify("code-agents: couldn't diff " .. a.id .. " (seed unresolvable) — worktree kept at "
+        .. a.worktree .. "; inspect it manually before discarding", vim.log.levels.ERROR)
+    else -- "conflict"
       a.seed = wtm.reseed(repo, a.worktree) -- redo against current state
       core.steer(a.id, "Your changes no longer apply cleanly — the working tree changed since you "
         .. "started. Your worktree now holds the current versions; redo the task against them.")
@@ -275,6 +391,43 @@ function review_agent(a)
   vim.keymap.set("n", "i", function()
     close(); ui.prompt("Improve " .. a.id, function(t) core.steer(a.id, t) end)
   end, { buffer = buf, nowait = true })
+end
+
+-- ── session focus ─────────────────────────────────────────────────────────────
+
+-- Session-focus editor: the same shared float as every other input, prefilled
+-- with the current focus. allow_empty makes an empty commit meaningful here — it
+-- clears the focus (core.set_focus treats empty/whitespace as clear).
+local function edit_focus()
+  ui.prompt("Session focus", function(text)
+    core.set_focus(text)
+    vim.notify(core.get_focus() and "code-agents: focus set" or "code-agents: focus cleared")
+  end, { prefill = core.get_focus() or "", allow_empty = true })
+end
+
+-- ── prompt picker ─────────────────────────────────────────────────────────────
+
+-- Launcher: pick one of the plugin's verbs to run. Lists the current verbs for
+-- now; grows to custom saved prompts later. Visual mode captures the selection
+-- up-front (the picker leaves visual mode) and passes it as context.
+-- provider/model (optional) are threaded into the chosen verb — the capital
+-- <leader>aP variant picks them up-front, mirroring <leader>ac / <leader>aC.
+local function pick_prompt(sel, fname, sl, el, ft, provider, model)
+  local has_sel = sel ~= nil and sel ~= ""
+  local ctx = has_sel and
+    string.format("Context — `%s` lines %d-%d:\n```%s\n%s\n```", fname, sl, el, ft, sel) or nil
+  local verbs = {
+    { name = "ask", run = function() ask(ctx, provider, model) end },
+    { name = "command", run = function() command(ctx, provider, model) end },
+    { name = "search", run = function() search(provider, model) end },
+    { name = "explain", run = function()
+      if not has_sel then return vim.notify("explain needs a selection", vim.log.levels.INFO) end
+      open_conversation(core.dispatch({ verb = "explain", provider = provider, model = model,
+        prompt = prompts.explain(sel, fname, sl, el) }))
+    end },
+  }
+  vim.ui.select(verbs, { prompt = "Run prompt", format_item = function(v) return v.name end },
+    function(v) if v then v.run() end end)
 end
 
 -- ── bindings ─────────────────────────────────────────────────────────────────
@@ -295,6 +448,14 @@ vim.api.nvim_create_user_command("CodeAgentsLog", function()
   vim.bo.autoread = true
 end, { desc = "Open the code-agents debug log" })
 
+-- Open the permission audit log — every request + decision, so you can see what
+-- agents ran and grow the whitelist (W in the conversation persists a rule).
+vim.api.nvim_create_user_command("CodeAgentsPermissions", function()
+  vim.cmd("botright split " .. vim.fn.fnameescape(require("code-agents.permission").perm_log_path()))
+  vim.bo.autoread = true
+  vim.bo.filetype = "json"
+end, { desc = "Open the code-agents permission log" })
+
 vim.keymap.set("n", "<leader>ac", function() command() end,
   { desc = "code-agents: command (write, permission-gated)" })
 vim.keymap.set("x", "<leader>ac", function()
@@ -314,6 +475,8 @@ vim.keymap.set("x", "<leader>aC", function()
     string.format("Context — `%s` lines %d-%d:\n```%s\n%s\n```", fname, sl, el, ft, sel) or nil
   pick_provider_model(function(provider, model) command(ctx, provider, model) end)
 end, { desc = "code-agents: command with selection (pick provider/model)" })
+
+vim.keymap.set("n", "<leader>af", edit_focus, { desc = "code-agents: set session focus" })
 
 vim.keymap.set("n", "<leader>as", function() ask() end, { desc = "code-agents: ask a question" })
 vim.keymap.set("x", "<leader>as", function()
@@ -339,7 +502,7 @@ vim.keymap.set("n", "<leader>ar", function()
     local awaiting = #vim.tbl_filter(function(a) return a.status == "awaiting" end, all)
     local msg = "no agents ready to review"
     if running > 0 then msg = msg .. (" — %d still running"):format(running) end
-    if awaiting > 0 then msg = msg .. (" — %d awaiting permission (<leader>ap)"):format(awaiting) end
+    if awaiting > 0 then msg = msg .. (" — %d awaiting permission (<leader>aw)"):format(awaiting) end
     return vim.notify(msg, vim.log.levels.INFO)
   end
   if #done == 1 then return review_agent(done[1]) end
@@ -347,9 +510,28 @@ vim.keymap.set("n", "<leader>ar", function()
     function(a) if a then review_agent(a) end end)
 end, { desc = "code-agents: review agent changes" })
 
+-- Run a prompt: pick a verb (explain/ask/command/search) from a select window.
+vim.keymap.set("n", "<leader>ap", function() pick_prompt() end,
+  { desc = "code-agents: run a prompt (verb picker)" })
+vim.keymap.set("x", "<leader>ap", function() pick_prompt(read_visual()) end,
+  { desc = "code-agents: run a prompt with selection" })
+
+-- Capital variant: pick provider (claude / opencode) + model for the verb.
+vim.keymap.set("n", "<leader>aP", function()
+  pick_provider_model(function(provider, model)
+    pick_prompt(nil, nil, nil, nil, nil, provider, model)
+  end)
+end, { desc = "code-agents: run a prompt (pick provider/model)" })
+vim.keymap.set("x", "<leader>aP", function()
+  local sel, fname, sl, el, ft = read_visual() -- capture before the picker leaves visual mode
+  pick_provider_model(function(provider, model)
+    pick_prompt(sel, fname, sl, el, ft, provider, model)
+  end)
+end, { desc = "code-agents: run a prompt with selection (pick provider/model)" })
+
 -- Jump to an agent awaiting permission — opens its conversation so you decide
 -- in context (A/S/I/D there), or q to defer. No separate blocking prompt.
-vim.keymap.set("n", "<leader>ap", function()
+vim.keymap.set("n", "<leader>aw", function()
   local awaiting = vim.tbl_filter(function(a) return a.pending end, core.list())
   if #awaiting == 0 then return vim.notify("no pending approvals", vim.log.levels.INFO) end
   if #awaiting == 1 then return open_conversation(awaiting[1]) end
@@ -372,3 +554,27 @@ vim.keymap.set("n", "<leader>aK", function()
     vim.notify("removed " .. n .. " agent(s)")
   end
 end, { desc = "code-agents: remove ALL" })
+
+-- ── agent window navigation (]a / [a) ─────────────────────────────────────
+
+local function focused_agent_index(agents)
+  if not shared.agent then return nil end
+  for i, a in ipairs(agents) do
+    if a.id == shared.agent.id then return i end
+  end
+  return nil
+end
+
+vim.keymap.set("n", "]a", function()
+  local agents = core.list()
+  if #agents == 0 then return vim.notify("no code-agents", vim.log.levels.INFO) end
+  local idx = focused_agent_index(agents)
+  open_conversation(agents[(idx and idx < #agents) and (idx + 1) or 1])
+end, { desc = "code-agents: next agent" })
+
+vim.keymap.set("n", "[a", function()
+  local agents = core.list()
+  if #agents == 0 then return vim.notify("no code-agents", vim.log.levels.INFO) end
+  local idx = focused_agent_index(agents)
+  open_conversation(agents[(idx and idx > 1) and (idx - 1) or #agents])
+end, { desc = "code-agents: prev agent" })

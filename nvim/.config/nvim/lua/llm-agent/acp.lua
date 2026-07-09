@@ -38,7 +38,8 @@ function M.permission_option(options, choice)
   return nil
 end
 
--- Drive one prompt over ACP. opts: prompt, cwd, on_event(ev), on_permission(entry)
+-- Drive one prompt over ACP. opts: prompt, cwd, session, resume,
+-- on_event(ev), on_permission(entry)
 -- where entry = {tool,input,session,respond(choice)}, on_done(), on_exit(code).
 -- Returns the vim.system handle. Shell (verified live, not unit-tested).
 function M.run(opts)
@@ -89,11 +90,46 @@ function M.run(opts)
   proc = vim.system({ "opencode", "acp" }, { cwd = opts.cwd, stdin = true, text = true, stdout = on_stdout },
     function(o) vim.schedule(function() if opts.on_exit then opts.on_exit(o.code) end end) end)
 
+  local function prompt_session(session, on_err)
+    request("session/prompt", { sessionId = session, prompt = { { type = "text", text = opts.prompt } } },
+      function(_, err)
+        if err then
+          local msg = vim.inspect(err)
+          if msg:find("session not found") or msg:find("Session not found") then
+            if on_err then on_err() return end
+          end
+          if opts.on_event then
+            opts.on_event({ type = "error", error = "session/prompt failed: " .. msg })
+          end
+        end
+        if not err and opts.on_done then opts.on_done() end
+      end)
+  end
+
   request("initialize", { protocolVersion = 1, clientCapabilities = { fs = { readTextFile = false, writeTextFile = false } } },
     function()
-      request("session/new", { cwd = opts.cwd or vim.fn.getcwd(), mcpServers = {} }, function(res)
-        request("session/prompt", { sessionId = res and res.sessionId, prompt = { { type = "text", text = opts.prompt } } },
-          function() if opts.on_done then opts.on_done() end end)
+      if opts.resume and opts.session then
+        return prompt_session(opts.session, function()
+          -- stale session — mint a new one and retry
+          request("session/new", { cwd = opts.cwd or vim.fn.getcwd(), mcpServers = {} }, function(res, err)
+            if err and opts.on_event then
+              opts.on_event({ type = "error", error = "session/new failed: " .. vim.inspect(err) })
+              return
+            end
+            local session = res and res.sessionId
+            if session and opts.on_event then opts.on_event({ type = "session", session = session }) end
+            prompt_session(session)
+          end)
+        end)
+      end
+      request("session/new", { cwd = opts.cwd or vim.fn.getcwd(), mcpServers = {} }, function(res, err)
+        if err and opts.on_event then
+          opts.on_event({ type = "error", error = "session/new failed: " .. vim.inspect(err) })
+          return
+        end
+        local session = res and res.sessionId
+        if session and opts.on_event then opts.on_event({ type = "session", session = session }) end
+        prompt_session(session)
       end)
     end)
   return proc

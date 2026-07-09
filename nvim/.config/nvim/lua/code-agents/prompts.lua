@@ -37,6 +37,20 @@ function M.command(task, context)
   }, "\n")
 end
 
+-- Prepend the session focus/goal as a block above `prompt`. Pure. Returns
+-- `prompt` unchanged when focus is nil/empty/whitespace — so the empty-focus
+-- path is byte-identical to today. Sits above search's parser-contract format
+-- instructions and introduces no `path:line:col`-shaped lines.
+function M.inject_focus(prompt, focus)
+  if not focus or vim.trim(focus) == "" then return prompt end
+  return table.concat({
+    "Session focus (applies to this task):",
+    vim.trim(focus),
+    "",
+    prompt or "",
+  }, "\n")
+end
+
 function M.explain(selection, fname, sl, el)
   local header = string.format("%s:%d-%d", fname, sl, el)
   return table.concat({

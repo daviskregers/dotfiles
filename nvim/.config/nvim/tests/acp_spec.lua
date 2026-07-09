@@ -46,3 +46,156 @@ describe("permission_option", function()
     assert.are.equal("reject", acp.permission_option(options, "deny"))
   end)
 end)
+
+describe("run", function()
+  it("surfaces the ACP session id before permission requests rely on it", function()
+    local writes, events = {}, {}
+    local stdout_cb
+    local old_system, old_schedule = vim.system, vim.schedule
+
+    vim.schedule = function(fn) fn() end
+    vim.system = function(_, opts)
+      stdout_cb = opts.stdout
+      return {
+        write = function(_, chunk) writes[#writes + 1] = chunk end,
+      }
+    end
+
+    local ok, err = pcall(function()
+      acp.run({
+        cwd = "/tmp",
+        prompt = "hi",
+        on_event = function(ev) events[#events + 1] = ev end,
+      })
+      stdout_cb(nil, vim.json.encode({ jsonrpc = "2.0", id = 1, result = {} }) .. "\n")
+      stdout_cb(nil, vim.json.encode({ jsonrpc = "2.0", id = 2, result = { sessionId = "sess-1" } }) .. "\n")
+    end)
+
+    vim.system, vim.schedule = old_system, old_schedule
+    assert.is_true(ok, err)
+    assert.are.same({ type = "session", session = "sess-1" }, events[1])
+    assert.is_truthy(writes[3]:find('"method":"session/prompt"', 1, true))
+  end)
+
+  it("reuses an existing session on resumed turns", function()
+    local writes = {}
+    local stdout_cb
+    local old_system, old_schedule = vim.system, vim.schedule
+
+    vim.schedule = function(fn) fn() end
+    vim.system = function(_, opts)
+      stdout_cb = opts.stdout
+      return {
+        write = function(_, chunk) writes[#writes + 1] = chunk end,
+      }
+    end
+
+    local ok, err = pcall(function()
+      acp.run({ cwd = "/tmp", prompt = "again", session = "sess-9", resume = true })
+      stdout_cb(nil, vim.json.encode({ jsonrpc = "2.0", id = 1, result = {} }) .. "\n")
+    end)
+
+    vim.system, vim.schedule = old_system, old_schedule
+    assert.is_true(ok, err)
+    assert.is_nil(writes[2]:find('"method":"session/new"', 1, true))
+    assert.is_truthy(writes[2]:find('"method":"session/prompt"', 1, true))
+    assert.is_truthy(writes[2]:find('"sessionId":"sess%-9"'))
+  end)
+
+  it("surfaces session/new errors via on_event so they show in transcript", function()
+    local events = {}
+    local stdout_cb
+    local old_system, old_schedule = vim.system, vim.schedule
+
+    vim.schedule = function(fn) fn() end
+    vim.system = function(_, opts)
+      stdout_cb = opts.stdout
+      return {
+        write = function(_, chunk) end,
+        kill = function() end,
+      }
+    end
+
+    local ok, err = pcall(function()
+      acp.run({
+        cwd = "/tmp", prompt = "hi",
+        on_event = function(ev) events[#events + 1] = ev end,
+      })
+      stdout_cb(nil, vim.json.encode({ jsonrpc = "2.0", id = 1, result = {} }) .. "\n")
+      stdout_cb(nil, vim.json.encode({ jsonrpc = "2.0", id = 2, error = { code = -32600, message = "session/new failed" } }) .. "\n")
+    end)
+
+    vim.system, vim.schedule = old_system, old_schedule
+    assert.is_true(ok, err)
+    assert.are.equal("error", events[1].type)
+    assert.is_truthy(events[1].error:find("session/new"))
+  end)
+
+  it("surfaces session/prompt errors via on_event so they show in transcript", function()
+    local events = {}
+    local stdout_cb
+    local old_system, old_schedule = vim.system, vim.schedule
+
+    vim.schedule = function(fn) fn() end
+    vim.system = function(_, opts)
+      stdout_cb = opts.stdout
+      return {
+        write = function(_, chunk) end,
+        kill = function() end,
+      }
+    end
+
+    local ok, err = pcall(function()
+      acp.run({
+        cwd = "/tmp", prompt = "hi", session = "sess-42", resume = true,
+        on_event = function(ev) events[#events + 1] = ev end,
+      })
+      stdout_cb(nil, vim.json.encode({ jsonrpc = "2.0", id = 1, result = {} }) .. "\n")
+      stdout_cb(nil, vim.json.encode({ jsonrpc = "2.0", id = 2, error = { code = -32600, message = "prompt rejected" } }) .. "\n")
+    end)
+
+    vim.system, vim.schedule = old_system, old_schedule
+    assert.is_true(ok, err)
+    assert.are.equal("error", events[1].type)
+    assert.is_truthy(events[1].error:find("session/prompt"))
+  end)
+
+  it("auto-recovers from stale session by creating a new one and retrying prompt", function()
+    local writes, events = {}, {}
+    local stdout_cb
+    local old_system, old_schedule = vim.system, vim.schedule
+
+    vim.schedule = function(fn) fn() end
+    vim.system = function(_, opts)
+      stdout_cb = opts.stdout
+      return {
+        write = function(_, chunk) writes[#writes + 1] = chunk end,
+        kill = function() end,
+      }
+    end
+
+    local ok, err = pcall(function()
+      acp.run({
+        cwd = "/tmp", prompt = "hi", session = "old-sess", resume = true,
+        on_event = function(ev) events[#events + 1] = ev end,
+      })
+      stdout_cb(nil, vim.json.encode({ jsonrpc = "2.0", id = 1, result = {} }) .. "\n")
+      -- session/prompt fails with "session not found" → should trigger session/new
+      stdout_cb(nil, vim.json.encode({ jsonrpc = "2.0", id = 2, error = { code = -32602, message = "Session not found" } }) .. "\n")
+      -- session/new succeeds
+      stdout_cb(nil, vim.json.encode({ jsonrpc = "2.0", id = 3, result = { sessionId = "new-sess" } }) .. "\n")
+      -- session/prompt succeeds
+      stdout_cb(nil, vim.json.encode({ jsonrpc = "2.0", id = 4, result = {} }) .. "\n")
+    end)
+
+    vim.system, vim.schedule = old_system, old_schedule
+    assert.is_true(ok, err)
+    -- No error event should be emitted since we recovered
+    assert.are.equal(1, #events)
+    assert.are.same({ type = "session", session = "new-sess" }, events[1])
+    -- Verify the retry sequence: prompt(old) → new → prompt(new)
+    assert.is_truthy(writes[2]:find('"sessionId":"old%-sess"'))
+    assert.is_truthy(writes[3]:find('"method":"session/new"'))
+    assert.is_truthy(writes[4]:find('"sessionId":"new%-sess"'))
+  end)
+end)
