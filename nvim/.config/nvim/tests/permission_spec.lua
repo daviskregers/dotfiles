@@ -37,6 +37,7 @@ end)
 describe("matches_allow (reuse claude's pre-approvals)", function()
   it("allows a Bash command matching a glob rule", function()
     assert.is_true(perm.matches_allow("Bash", { command = "git status -s" }, { "Bash(git status*)" }))
+    assert.is_true(perm.matches_allow("bash", { command = "git status -s" }, { "Bash(git status*)" }))
     assert.is_true(perm.matches_allow("Bash", { command = "rg foo bar" }, { "Bash(rg:*)" }))
   end)
 
@@ -47,6 +48,30 @@ describe("matches_allow (reuse claude's pre-approvals)", function()
   it("allows a bare tool-name rule and scopes Bash rules to Bash", function()
     assert.is_true(perm.matches_allow("Read", {}, { "Read" }))
     assert.is_false(perm.matches_allow("Read", {}, { "Bash(git status*)" }))
+  end)
+
+  it("allows a compound command only when EVERY sub-command is allowed", function()
+    local rules = { "Bash(git status*)", "Bash(git log*)", "Bash(cd:*)", "Bash(npm:*)" }
+    assert.is_true(perm.matches_allow("Bash", { command = "git status && git log" }, rules))
+    assert.is_true(perm.matches_allow("Bash", { command = "cd foo && npm test" }, rules))
+  end)
+
+  it("prompts (no over-allow) when a chained sub-command isn't allowlisted", function()
+    -- The tail must not ride in free on the allowed prefix.
+    assert.is_false(perm.matches_allow("Bash", { command = "git status && rm -rf /" }, { "Bash(git status*)" }))
+    assert.is_false(perm.matches_allow("Bash", { command = "rg foo | xargs rm" }, { "Bash(rg:*)" }))
+  end)
+end)
+
+describe("split_commands", function()
+  it("splits on && || | ; and newlines", function()
+    assert.are.same({ "git status", "rm -rf /" }, perm.split_commands("git status && rm -rf /"))
+    assert.are.same({ "cd foo", "grep x", "ls" }, perm.split_commands("cd foo | grep x ; ls"))
+    assert.are.same({ "a", "b" }, perm.split_commands("a || b"))
+  end)
+
+  it("returns the single command when there are no operators", function()
+    assert.are.same({ "git status -s" }, perm.split_commands("git status -s"))
   end)
 end)
 
@@ -80,6 +105,7 @@ describe("request / resolve_pending (async)", function()
   end
   before_each(function()
     perm._reset(); perm.allow_rules = {}
+    perm._perm_log = vim.fn.tempname() -- audit writes here, not the real cache
     perm._notify_pending = function() end -- silence the notify/attach shell
   end)
 
@@ -104,13 +130,79 @@ describe("request / resolve_pending (async)", function()
     assert.are.equal(0, #perm.pending)
   end)
 
-  it("resolve_pending 'improve' writes deny + feedback", function()
+  it("resolve_pending 'deny' writes a deny decision file", function()
     perm.request(reqfile({ tool_name = "Bash", tool_input = { command = "rm x" }, session_id = "s1" }))
     local entry = perm.pending[1]
-    perm.resolve_pending(entry, "improve", "use a Map")
+    perm.resolve_pending(entry, "deny")
     local d = vim.json.decode(vim.fn.readfile(entry.decisionfile)[1]).hookSpecificOutput
     assert.are.equal("deny", d.permissionDecision)
-    assert.are.equal("use a Map", d.permissionDecisionReason)
+  end)
+
+  it("resolve_pending 'always' allows, persists the (editable) rule, and remembers it", function()
+    perm._allow_store = vim.fn.tempname()
+    perm.request(reqfile({ tool_name = "Bash", tool_input = { command = "ls -la" }, session_id = "s1" }))
+    local entry = perm.pending[1]
+    perm.resolve_pending(entry, "always", "Bash(ls:*)")
+    -- allowed now
+    assert.are.equal("allow", vim.json.decode(vim.fn.readfile(entry.decisionfile)[1]).hookSpecificOutput.permissionDecision)
+    -- persisted to the store file …
+    local persisted = perm.parse_allow_rules(table.concat(vim.fn.readfile(perm._allow_store), "\n"))
+    assert.is_true(vim.tbl_contains(persisted, "Bash(ls:*)"))
+    -- … and live so the next matching command is auto-allowed
+    assert.is_true(vim.tbl_contains(perm.allow_rules, "Bash(ls:*)"))
+    assert.is_true(perm.resolve_auto("Bash", { command = "ls -la /tmp" }))
+    vim.fn.delete(perm._allow_store); perm._allow_store = nil
+  end)
+end)
+
+describe("suggest_rule (editable whitelist starting point)", function()
+  it("suggests an executable-scoped Bash rule from the command", function()
+    assert.are.equal("Bash(npm:*)", perm.suggest_rule("Bash", { command = "npm test --watch" }))
+    assert.are.equal("Bash(npm:*)", perm.suggest_rule("bash", { command = "npm test --watch" }))
+    assert.are.equal("Bash(git:*)", perm.suggest_rule("Bash", { command = "  git push origin main" }))
+  end)
+
+  it("falls back to the bare tool for Bash without a command / other tools", function()
+    assert.are.equal("Bash", perm.suggest_rule("Bash", {}))
+    assert.are.equal("Write", perm.suggest_rule("Write", { file_path = "x" }))
+  end)
+end)
+
+describe("why (what caused the prompt)", function()
+  it("explains that a shell command isn't in the allow-list", function()
+    assert.is_truthy(perm.why("Bash", { command = "ls" }):find("allow%-list"))
+  end)
+
+  it("names the tool for a non-Bash prompt", function()
+    assert.is_truthy(perm.why("SomeTool", {}):find("SomeTool"))
+  end)
+end)
+
+describe("add_rule_to_json (pure allow-store merge)", function()
+  it("creates permissions.allow when absent", function()
+    local out = perm.parse_allow_rules(perm.add_rule_to_json("", "Bash(ls:*)"))
+    assert.are.same({ "Bash(ls:*)" }, out)
+  end)
+
+  it("appends without duplicating an existing rule", function()
+    local j = perm.add_rule_to_json('{"permissions":{"allow":["Read"]}}', "Bash(ls:*)")
+    assert.are.same({ "Read", "Bash(ls:*)" }, perm.parse_allow_rules(j))
+    assert.are.same({ "Read", "Bash(ls:*)" }, perm.parse_allow_rules(perm.add_rule_to_json(j, "Bash(ls:*)")))
+  end)
+end)
+
+describe("audit (permission log)", function()
+  it("appends a JSONL record with the tool, command, and decision", function()
+    perm._perm_log = vim.fn.tempname()
+    perm.audit({ event = "once", tool = "Bash", cmd = "ls -la" })
+    perm.audit({ event = "deny", tool = "Bash", cmd = "rm x" })
+    local lines = vim.fn.readfile(perm._perm_log)
+    assert.are.equal(2, #lines)
+    local first = vim.json.decode(lines[1])
+    assert.are.equal("once", first.event)
+    assert.are.equal("ls -la", first.cmd)
+    assert.is_truthy(first.time)
+    vim.fn.delete(perm._perm_log); perm._perm_log = nil
   end)
 end)
 

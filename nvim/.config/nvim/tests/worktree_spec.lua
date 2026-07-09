@@ -33,6 +33,41 @@ describe("diff_args", function()
   end)
 end)
 
+describe("diff (integration)", function()
+  local function fresh_repo()
+    local repo = vim.fn.tempname(); vim.fn.mkdir(repo, "p")
+    local function git(...) vim.system({ "git", ... }, { cwd = repo }):wait() end
+    git("init", "-q"); git("config", "user.email", "t@t"); git("config", "user.name", "t")
+    vim.fn.writefile({ "original" }, repo .. "/f.txt"); git("add", "-A"); git("commit", "-qm", "init")
+    return repo
+  end
+
+  it("returns ok=true with a real patch when the seed resolves and the worktree changed", function()
+    local repo = fresh_repo()
+    local wtpath = repo .. "/.wt/agent-1"
+    wt.create(repo, wtpath, "code-agents/agent-1") -- seed = HEAD
+    vim.fn.writefile({ "agent-edited" }, wtpath .. "/f.txt")
+
+    local patch, ok = wt.diff(wtpath, "HEAD")
+    assert.is_true(ok)
+    assert.is_truthy(patch:find("agent-edited", 1, true))
+
+    wt.discard(repo, wtpath); vim.fn.delete(repo, "rf")
+  end)
+
+  it("signals ok=false when the seed can't be resolved (NOT mistaken for 'no changes')", function()
+    local repo = fresh_repo()
+    local wtpath = repo .. "/.wt/agent-1"
+    wt.create(repo, wtpath, "code-agents/agent-1")
+    vim.fn.writefile({ "agent-edited" }, wtpath .. "/f.txt") -- real changes exist
+
+    local _, ok = wt.diff(wtpath, "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef") -- GC'd/lost seed
+    assert.is_false(ok) -- must not report empty-patch success → callers won't discard the work
+
+    wt.discard(repo, wtpath); vim.fn.delete(repo, "rf")
+  end)
+end)
+
 describe("create (integration)", function()
   it("seeds the worktree from LIVE state — uncommitted changes are present", function()
     local repo = vim.fn.tempname(); vim.fn.mkdir(repo, "p")
@@ -128,6 +163,23 @@ describe("create (integration)", function()
 
     assert.are.equal("conflict", wt.apply(repo, wtpath))
     assert.are.same({ "you-diverged" }, vim.fn.readfile(repo .. "/f.txt")) -- live untouched, no markers
+
+    wt.discard(repo, wtpath); vim.fn.delete(repo, "rf")
+  end)
+
+  it("apply returns 'error' (NOT 'applied') when the diff fails — never silently discards", function()
+    local repo = vim.fn.tempname(); vim.fn.mkdir(repo, "p")
+    local function git(...) vim.system({ "git", ... }, { cwd = repo }):wait() end
+    git("init", "-q"); git("config", "user.email", "t@t"); git("config", "user.name", "t")
+    vim.fn.writefile({ "original" }, repo .. "/f.txt"); git("add", "-A"); git("commit", "-qm", "init")
+
+    local wtpath = repo .. "/.wt/agent-1"
+    wt.create(repo, wtpath, "code-agents/agent-1")
+    vim.fn.writefile({ "agent-edited" }, wtpath .. "/f.txt") -- real work exists in the worktree
+
+    -- Seed unresolvable (GC'd) → the diff command FAILS. It must NOT read as an empty
+    -- patch → "applied" (which makes the caller discard the worktree). Surface "error".
+    assert.are.equal("error", wt.apply(repo, wtpath, "deadbeefdeadbeefdeadbeefdeadbeefdeadbeef"))
 
     wt.discard(repo, wtpath); vim.fn.delete(repo, "rf")
   end)

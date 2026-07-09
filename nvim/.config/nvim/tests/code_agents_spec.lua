@@ -1,3 +1,10 @@
+-- Stub the transport BEFORE core loads so dispatch tests don't spawn a real
+-- process. Pure tests below are unaffected.
+package.loaded["llm-agent.transport"] = {
+  config = {},
+  run = function() return { kill = function() end } end,
+}
+package.loaded["code-agents.core"] = nil
 local core = require("code-agents.core")
 
 describe("parse_search_results", function()
@@ -69,6 +76,39 @@ describe("model_for", function()
   end)
 end)
 
+describe("current_default_provider", function()
+  it("prefers the project .dk-notes/.agent like the C-/ picker", function()
+    local cwd = vim.fn.getcwd()
+    local root = vim.fn.tempname()
+    local notes = root .. "/.dk-notes"
+    vim.fn.mkdir(notes, "p")
+    vim.fn.writefile({ "opencode" }, notes .. "/.agent")
+    core.default_agent_file = nil
+    vim.cmd("cd " .. vim.fn.fnameescape(root))
+    assert.are.equal("opencode", core.current_default_provider())
+    vim.cmd("cd " .. vim.fn.fnameescape(cwd))
+    vim.fn.delete(root, "rf")
+  end)
+
+  it("reads opencode from the shared .agent file", function()
+    local p = vim.fn.tempname()
+    vim.fn.writefile({ "opencode" }, p)
+    core.default_agent_file = p
+    assert.are.equal("opencode", core.current_default_provider())
+    vim.fn.delete(p)
+    core.default_agent_file = nil
+  end)
+
+  it("maps claude-family agent names like haiku back to the claude provider", function()
+    local p = vim.fn.tempname()
+    vim.fn.writefile({ "haiku" }, p)
+    core.default_agent_file = p
+    assert.are.equal("claude", core.current_default_provider())
+    vim.fn.delete(p)
+    core.default_agent_file = nil
+  end)
+end)
+
 describe("on_search_complete", function()
   it("results found → open qflist and close the view", function()
     local r = core.on_search_complete("a/b.lua:1:1: hit\nc/d.lua:2:3: hit2", 0)
@@ -113,9 +153,28 @@ describe("render_transcript", function()
     assert.is_truthy(joined:find("ans"))
   end)
 
+  it("renders user turns as a boxed block with dedicated highlight metadata", function()
+    local lines, highlights = core.render_transcript({ status = "done", transcript = {
+      { kind = "you", text = "line1\nline2" },
+    } })
+    assert.are.same({ "╭─ you", "│ line1", "│ line2", "╰─", "", "", "── done  ·  a: reply   q: close ──" }, lines)
+    assert.are.same({ { border = { 1, 1 }, body = { 2, 3 }, footer = { 4, 4 } } }, highlights)
+  end)
+
   it("shows a tool's target path incl. opencode's camelCase filePath", function()
     local a = { status = "running", transcript = { { kind = "tool", tool = "read", input = { filePath = "a/b.lua" } } } }
     assert.is_truthy(table.concat(core.render_transcript(a), "\n"):find("a/b.lua", 1, true))
+  end)
+
+  it("renders subagent task calls with a distinct icon and the description", function()
+    local a = { status = "running", transcript = {
+      { kind = "tool", tool = "task", input = { description = "review authentication logic", prompt = "check auth.ts" } }
+    } }
+    local rendered = table.concat(core.render_transcript(a), "\n")
+    assert.is_truthy(rendered:find("▶"))
+    assert.is_truthy(rendered:find("review authentication logic", 1, true))
+    -- raw JSON blob should not leak into the transcript
+    assert.is_nil(rendered:find('"prompt":'))
   end)
 
   it("renders error entries with a ✗ marker", function()
@@ -145,6 +204,85 @@ describe("render_transcript", function()
   it("falls back to a status line when empty", function()
     assert.are.same({ "(no output — status: running)" },
       core.render_transcript({ status = "running", transcript = {} }))
+  end)
+end)
+
+describe("agent_label (picker display)", function()
+  it("shows id, status, provider and model", function()
+    local label = core.agent_label({ id = "ask-1", status = "running", provider = "claude", model = "opus" })
+    for _, part in ipairs({ "ask%-1", "running", "claude", "opus" }) do
+      assert.is_truthy(label:find(part))
+    end
+  end)
+
+  it("falls back to ? for an unknown model", function()
+    assert.is_truthy(core.agent_label({ id = "ask-1", status = "done", provider = "opencode" }):find("?", 1, true))
+  end)
+
+  it("includes the first prompt (truncated) as a title", function()
+    local label = core.agent_label({
+      id = "ask-1", status = "running", provider = "claude", model = "opus",
+      transcript = { { kind = "you", text = "Refactor the auth module for clarity" }
+      }
+    })
+    assert.is_truthy(label:find("Refactor the auth"))
+  end)
+
+  it("prefers raw_prompt over the injected transcript for the title", function()
+    local label = core.agent_label({
+      id = "ask-1", status = "running", provider = "claude", model = "opus",
+      raw_prompt = "Refactor auth",
+      transcript = { { kind = "you", text = "Session focus: ship it\n\nRefactor auth" } }
+    })
+    assert.is_truthy(label:find("Refactor auth", 1, true))
+    assert.is_nil(label:find("Session focus"))
+  end)
+
+  it("does not leak raw newlines into the label", function()
+    local label = core.agent_label({
+      id = "ask-1", status = "running", provider = "claude", model = "opus",
+      transcript = { { kind = "you", text = "line1\nline2\nline3" } }
+    })
+    assert.is_nil(label:find("\n"))
+    assert.is_truthy(label:find("line1 line2"))
+  end)
+end)
+
+describe("session focus store", function()
+  before_each(function() core.clear_focus() end)
+
+  it("starts unset, sets, and reports the focus", function()
+    assert.is_nil(core.get_focus())
+    core.set_focus("ship the refactor")
+    assert.are.equal("ship the refactor", core.get_focus())
+  end)
+
+  it("clearing / empty / whitespace unsets it", function()
+    core.set_focus("x")
+    core.clear_focus()
+    assert.is_nil(core.get_focus())
+    core.set_focus("")
+    assert.is_nil(core.get_focus())
+    core.set_focus("  \n ")
+    assert.is_nil(core.get_focus())
+  end)
+end)
+
+describe("dispatch focus injection", function()
+  before_each(function() core._reset() end)
+
+  it("prepends the session focus to the agent's first `you` transcript entry", function()
+    core.set_focus("keep it minimal")
+    local a = core.dispatch({ verb = "ask", prompt = "Question: how?" })
+    local you = a.transcript[1]
+    assert.are.equal("you", you.kind)
+    assert.is_truthy(you.text:find("keep it minimal", 1, true))
+    assert.is_truthy(you.text:find("Question: how?", 1, true))
+  end)
+
+  it("leaves the prompt byte-identical when no focus is set", function()
+    local a = core.dispatch({ verb = "ask", prompt = "Question: how?" })
+    assert.are.equal("Question: how?", a.transcript[1].text)
   end)
 end)
 

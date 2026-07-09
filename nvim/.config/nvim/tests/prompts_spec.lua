@@ -42,6 +42,30 @@ describe("prompts.command", function()
   end)
 end)
 
+describe("prompts.inject_focus", function()
+  it("prepends the focus above the prompt when set", function()
+    local out = p.inject_focus("Task: do the thing", "ship the parser refactor")
+    assert.is_truthy(out:find("ship the parser refactor", 1, true))
+    assert.is_truthy(out:find("Task: do the thing", 1, true))
+    -- focus appears before the original prompt
+    assert.is_true(out:find("ship the parser refactor", 1, true) < out:find("Task: do the thing", 1, true))
+  end)
+
+  it("is a no-op (byte-identical) when focus is nil or empty/whitespace", function()
+    local prompt = p.search("find x")
+    assert.are.equal(prompt, p.inject_focus(prompt, nil))
+    assert.are.equal(prompt, p.inject_focus(prompt, ""))
+    assert.are.equal(prompt, p.inject_focus(prompt, "   \n  "))
+  end)
+
+  it("introduces no path:line:col-shaped line the search parser would grab", function()
+    local out = p.inject_focus(p.search("q"), "refactor the auth module")
+    local extra = core.parse_search_results(out)
+    -- the focus block adds no parseable qf items beyond what the format line already implies
+    assert.are.equal(0, #extra)
+  end)
+end)
+
 describe("prompts.explain", function()
   it("embeds the file:range header and the selection", function()
     local prompt = p.explain("local x = 1", "src/foo.lua", 10, 10)

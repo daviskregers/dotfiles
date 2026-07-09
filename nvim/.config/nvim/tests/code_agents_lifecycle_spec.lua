@@ -15,10 +15,24 @@ package.loaded["llm-agent.transport"] = {
 package.loaded["code-agents.core"] = nil
 local core = require("code-agents.core")
 
+local function force_claude_default()
+  local p = vim.fn.tempname()
+  vim.fn.writefile({ "claude" }, p)
+  core.default_agent_file = p
+  return p
+end
+
+local function reset_env()
+  core._reset()
+  fake.runs, fake.handles = {}, {}
+  if fake._default_agent_file then vim.fn.delete(fake._default_agent_file) end
+  fake._default_agent_file = force_claude_default()
+end
+
 local function last_run() return fake.runs[#fake.runs] end
 
 describe("dispatch", function()
-  before_each(function() core._reset(); fake.runs, fake.handles = {}, {} end)
+  before_each(reset_env)
 
   it("registers a running agent and launches one turn", function()
     local a = core.dispatch({ verb = "search", prompt = "find x" })
@@ -94,7 +108,7 @@ describe("dispatch", function()
 end)
 
 describe("stop / remove", function()
-  before_each(function() core._reset(); fake.runs, fake.handles = {}, {} end)
+  before_each(reset_env)
 
   it("stop kills the process, marks stopped, keeps the record", function()
     local a = core.dispatch({ verb = "search", prompt = "p" })
@@ -139,7 +153,7 @@ describe("stop / remove", function()
 end)
 
 describe("steer", function()
-  before_each(function() core._reset(); fake.runs, fake.handles = {}, {} end)
+  before_each(reset_env)
 
   it("resumes a finished agent's session with fresh output", function()
     local a = core.dispatch({ verb = "search", prompt = "first" })
@@ -177,16 +191,75 @@ describe("steer", function()
     assert.is_true(last_run().permit) -- steered turns stay permission-gated
   end)
 
+  it("passes resume + session through on opencode steered turns", function()
+    local acp_calls = {}
+    package.loaded["llm-agent.acp"] = {
+      run = function(opts)
+        acp_calls[#acp_calls + 1] = opts
+        return { kill = function() end }
+      end,
+    }
+    package.loaded["code-agents.core"] = nil
+    core = require("code-agents.core")
+    force_claude_default()
+    reset_env()
+
+    local a = core.dispatch({ verb = "ask", provider = "opencode", prompt = "first" })
+    a.session = "sess-42"
+    a.proc = nil
+
+    core.steer(a.id, "more")
+    local run = acp_calls[#acp_calls]
+    assert.is_true(run.resume)
+    assert.are.equal("sess-42", run.session)
+  end)
+
+  it("fires on_update immediately when steer launches so the title flips to running", function()
+    local a = core.dispatch({ verb = "ask", prompt = "first" })
+    last_run().on_event({ type = "text", text = "answer" })
+    last_run().on_exit(0, "")
+    local refreshed = false
+    a.on_update = function() refreshed = true end
+    core.steer(a.id, "follow up")
+    assert.is_true(refreshed)
+    assert.are.equal("running", a.status)
+  end)
+
   it("refuses to steer a busy (still-running) agent", function()
     local a = core.dispatch({ verb = "search", prompt = "p" }) -- no on_exit → busy
     local runs_before = #fake.runs
     core.steer(a.id, "x")
     assert.are.equal(runs_before, #fake.runs) -- no new turn launched
   end)
+
+  it("reconstructs full conversation context for opencode steer so the LLM remembers", function()
+    local acp_calls = {}
+    package.loaded["llm-agent.acp"] = {
+      run = function(opts)
+        acp_calls[#acp_calls + 1] = opts
+        return { kill = function() end }
+      end,
+    }
+    package.loaded["code-agents.core"] = nil
+    core = require("code-agents.core")
+    force_claude_default()
+    reset_env()
+
+    local a = core.dispatch({ verb = "ask", provider = "opencode", prompt = "What is 2+2?" })
+    -- simulate prior response in transcript (as ingest_event would do)
+    a.transcript[#a.transcript + 1] = { kind = "text", text = "The answer is 4." }
+    a.proc = nil
+
+    core.steer(a.id, "What is 3+3?")
+    local run = acp_calls[#acp_calls]
+    assert.is_truthy(run.prompt:find("What is 2+2?", 1, true))
+    assert.is_truthy(run.prompt:find("The answer is 4.", 1, true))
+    assert.is_truthy(run.prompt:find("What is 3+3?", 1, true))
+  end)
 end)
 
 describe("transcript", function()
-  before_each(function() core._reset(); fake.runs, fake.handles = {}, {} end)
+  before_each(reset_env)
 
   local function kinds(a)
     return vim.tbl_map(function(e) return e.kind end, a.transcript)
@@ -231,7 +304,7 @@ describe("transcript", function()
 end)
 
 describe("transcript persistence", function()
-  before_each(function() core._reset() end)
+  before_each(reset_env)
 
   it("persists entries and reloads them (survives an nvim restart)", function()
     core.logs_dir = vim.fn.tempname()
@@ -257,7 +330,7 @@ describe("parse_worktree_name", function()
 end)
 
 describe("reattach", function()
-  before_each(function() core._reset() end)
+  before_each(reset_env)
 
   it("reconstructs agents from existing worktrees + restores their transcript", function()
     local root = vim.fn.tempname()
@@ -278,10 +351,44 @@ describe("reattach", function()
   it("is a no-op when the worktree dir doesn't exist", function()
     assert.are.equal(0, core.reattach("/repos/platform", vim.fn.tempname()))
   end)
+
+  it("restores the persisted seed so post-restart review diffs against the ORIGINAL base", function()
+    local root = vim.fn.tempname()
+    vim.fn.mkdir(root .. "/platform/claude-sess-ccc", "p")
+    core.logs_dir = vim.fn.tempname()
+    core.save_seed("claude-sess-ccc", "abc123seed") -- captured at dispatch, before restart
+    core.reattach("/repos/platform", root)
+    local a = core.find_by_session("sess-ccc")
+    assert.is_not_nil(a)
+    assert.are.equal("abc123seed", a.seed) -- else diff falls back to HEAD → empty when agent committed
+    vim.fn.delete(root, "rf"); vim.fn.delete(core.logs_dir, "rf"); core.logs_dir = nil
+  end)
 end)
 
 describe("turn-complete attention", function()
-  before_each(function() core._reset(); fake.runs, fake.handles = {}, {} end)
+  before_each(reset_env)
+
+  it("completes opencode turns on on_done so the agent is steerable again", function()
+    local acp_calls = {}
+    package.loaded["llm-agent.acp"] = {
+      run = function(opts)
+        acp_calls[#acp_calls + 1] = opts
+        return { kill = function() end }
+      end,
+    }
+    package.loaded["code-agents.core"] = nil
+    core = require("code-agents.core")
+    reset_env()
+
+    local a = core.dispatch({ verb = "command", provider = "opencode", prompt = "x" })
+    local run = acp_calls[#acp_calls]
+    run.on_done()
+    assert.are.equal("done", a.status)
+    assert.is_nil(a.proc) -- steerable again
+    -- on_exit is a no-op when already done (guard prevents double-completion)
+    run.on_exit(0)
+    assert.are.equal("done", a.status)
+  end)
 
   it("notifies when an interactive agent's turn completes", function()
     local msgs, orig = {}, vim.notify
@@ -303,7 +410,7 @@ describe("turn-complete attention", function()
 end)
 
 describe("error surfacing", function()
-  before_each(function() core._reset(); fake.runs, fake.handles = {}, {} end)
+  before_each(reset_env)
 
   it("records stderr in the transcript on non-zero exit", function()
     local a = core.dispatch({ verb = "search", prompt = "p" })
@@ -326,7 +433,7 @@ describe("error surfacing", function()
 end)
 
 describe("counts", function()
-  before_each(function() core._reset(); fake.runs, fake.handles = {}, {} end)
+  before_each(reset_env)
 
   it("tallies by status", function()
     local a = core.dispatch({ verb = "search", prompt = "p" })

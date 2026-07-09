@@ -10,6 +10,7 @@
 
 local M = {}
 local uv = vim.uv or vim.loop
+local default_agent = require("agents.default")
 
 -- ── config ────────────────────────────────────────────────────────────────
 
@@ -28,6 +29,12 @@ M.config = {
     opencode = { models = nil, default_model = "github-copilot/claude-sonnet-4.5", agents = {} },
   },
 }
+
+M.default_agent_file = nil
+
+function M.current_default_provider()
+  return default_agent.provider(M.config.providers, M.config.default_provider, M.default_agent_file)
+end
 
 local state = { agents = {} }   -- id -> agent
 
@@ -415,7 +422,7 @@ function M.spawn(prompt, opts)
   local top = M.repo_toplevel()
   assert(top, "not in a git repository")
 
-  local provider = opts.provider or M.config.default_provider
+  local provider = opts.provider or M.current_default_provider()
   local pcfg = M.config.providers[provider] or {}
   local model = opts.model or pcfg.default_model
 

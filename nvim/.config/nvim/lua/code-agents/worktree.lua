@@ -80,18 +80,24 @@ end
 
 -- The agent's full change set vs its seed, as a unified patch (staging -A so new
 -- files are included). `seed` defaults to the worktree's own tracked baseline.
+-- Returns patch(string), ok(bool). ok=false means the diff command itself FAILED
+-- (e.g. an unresolvable/GC'd seed) — callers MUST NOT treat that as "no changes"
+-- and discard the worktree; the changes are still there, we just couldn't diff.
 function M.diff(worktree, seed)
   git(worktree, { "add", "-A" })
   local res = git(worktree, { "diff", "--cached", "--binary", seed or "HEAD" })
-  return res.stdout or ""
+  return res.stdout or "", res.code == 0
 end
 
 -- Merge the agent's worktree changes into the live tree. Checks FIRST — if the
 -- patch won't apply cleanly (your tree diverged since seed), returns "conflict"
 -- and leaves the live tree untouched (caller sends the agent back to redo).
 -- Otherwise applies and returns "applied". "" patch → "applied" (nothing to do).
+-- If the diff itself FAILS (unresolvable/GC'd seed) → "error"; the caller MUST NOT
+-- discard the worktree — the work is still there, we just couldn't diff it.
 function M.apply(repo, worktree, seed)
-  local patch = M.diff(worktree, seed)
+  local patch, ok = M.diff(worktree, seed)
+  if not ok then return "error" end
   if vim.trim(patch) == "" then return "applied" end
   local tmp = vim.fn.tempname()
   local f = io.open(tmp, "w"); f:write(patch); f:close()
