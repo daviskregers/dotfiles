@@ -67,12 +67,33 @@ def emit_deny(reason):
     }}, sys.stdout)
 
 
+def command_view(cmd):
+    """Structure-only view for DETECTION: drop heredoc bodies and quoted strings
+    so `git commit` / `gh pr …` appearing as data (a commit message, a heredoc, or
+    another command's args) isn't mistaken for the real command being invoked."""
+    s = cmd
+    while True:
+        m = re.search(r"<<-?\s*(['\"]?)([A-Za-z_]\w*)\1", s)
+        if not m:
+            break
+        tag = re.escape(m.group(2))
+        pat = re.compile(re.escape(m.group(0)) + r".*?^\s*" + tag + r"\s*$", re.S | re.M)
+        new = pat.sub(" ", s, count=1)
+        if new == s:  # no terminator found → drop from the heredoc operator to end
+            new = s[:m.start()] + " "
+        s = new
+    s = re.sub(r"'[^']*'", " ", s)
+    s = re.sub(r'"(?:[^"\\]|\\.)*"', " ", s)
+    return s
+
+
 def rewrite_command(cmd):
     """Return (new_cmd, action) where action in {'change','none','deny'}."""
     if NOTICE in cmd:
         return cmd, 'none'
-    is_commit = re.search(r'\bgit\s+commit\b', cmd) is not None
-    is_gh_post = re.search(r'\bgh\s+pr\s+(?:create|comment|edit)\b', cmd) is not None
+    view = command_view(cmd)
+    is_commit = re.search(r"(?:^|[\n;&|(`])\s*git\s+commit\b", view) is not None
+    is_gh_post = re.search(r"(?:^|[\n;&|(`])\s*gh\s+pr\s+(?:create|comment|edit)\b", view) is not None
     if not (is_commit or is_gh_post):
         return cmd, 'none'
     if CMD_BRANDED.search(cmd):
