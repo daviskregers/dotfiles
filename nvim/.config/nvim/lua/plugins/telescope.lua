@@ -1,18 +1,46 @@
+local FZF_PLUGIN_NAME = 'telescope-fzf-native.nvim'
+
+local function find_fzf_plugin_dir()
+    local pack_root = vim.fn.stdpath('data') .. '/site/pack'
+    for name, type in vim.fs.dir(pack_root) do
+        if type == 'directory' then
+            local candidate = pack_root .. '/' .. name .. '/opt/' .. FZF_PLUGIN_NAME
+            if vim.fn.isdirectory(candidate) == 1 then
+                return candidate
+            end
+        end
+    end
+    return pack_root .. '/core/opt/' .. FZF_PLUGIN_NAME
+end
+
+local FZF_PLUGIN_DIR = find_fzf_plugin_dir()
+local FZF_LIB = FZF_PLUGIN_DIR .. '/build/libfzf.so'
+
+local function build_fzf_native(path)
+    path = path or FZF_PLUGIN_DIR
+    local obj = vim.system({ 'make' }, { cwd = path }):wait()
+    if obj.code ~= 0 then
+        vim.notify(
+            string.format('Failed to build %s in %s (exit %d):\n%s', FZF_PLUGIN_NAME, path, obj.code, obj.stderr or ''),
+            vim.log.levels.ERROR
+        )
+        return false
+    end
+    return true
+end
+
 vim.api.nvim_create_autocmd('PackChanged', {
     callback = function(ev)
         local name, kind = ev.data.spec.name, ev.data.kind
-        if name == 'telescope-fzf-native.nvim' and (kind == 'install' or kind == 'update') then
-            vim.system({ 'cmake', '-S.', '-Bbuild', '-DCMAKE_BUILD_TYPE=Release' }, { cwd = ev.data.path }, function(obj)
-                if obj.code ~= 0 then
-                    vim.notify 'cmake --build failed for telescope-fzf-native.nvim'
-                else
-                    vim.system({ 'cmake', '--build', 'build', '--config', 'Release', '--target', 'install' },
-                        { cwd = ev.data.path })
-                end
-            end)
+        if name == FZF_PLUGIN_NAME and (kind == 'install' or kind == 'update') then
+            build_fzf_native(ev.data.path)
         end
     end,
 })
+
+vim.api.nvim_create_user_command('BuildFzfNative', function()
+    build_fzf_native()
+end, { desc = 'Build telescope-fzf-native.nvim C extension' })
 
 vim.pack.add({
     'https://github.com/nvim-telescope/telescope.nvim',
@@ -46,7 +74,14 @@ telescope.setup {
     }
 }
 
-telescope.load_extension('fzf')
+if vim.fn.filereadable(FZF_LIB) == 1 or build_fzf_native(FZF_PLUGIN_DIR) then
+    telescope.load_extension('fzf')
+else
+    vim.notify(
+        string.format('%s is missing (%s). Run :BuildFzfNative to rebuild it.', FZF_PLUGIN_NAME, FZF_LIB),
+        vim.log.levels.WARN
+    )
+end
 
 require('plugins.telescope-multigrep').setup {}
 
