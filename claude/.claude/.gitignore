@@ -4,6 +4,7 @@ file-history/
 history.jsonl
 image-cache/
 mcp-needs-auth-cache.json
+policy-limits.json
 paste-cache/
 plugins/
 projects/
