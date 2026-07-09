@@ -30,10 +30,28 @@ function ensureNotice(t) {
   return s ? s + "\n\n" + NOTICE : NOTICE
 }
 
+const reEsc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+// Structure-only view for DETECTION: drop heredoc bodies + quoted strings so
+// `git commit` / `gh pr …` appearing as data (a message, heredoc, or another
+// command's args) isn't mistaken for the real command being invoked.
+function commandView(cmd) {
+  let s = cmd
+  for (;;) {
+    const m = /<<-?\s*(['"]?)([A-Za-z_]\w*)\1/.exec(s)
+    if (!m) break
+    const pat = new RegExp(reEsc(m[0]) + "[\\s\\S]*?^\\s*" + reEsc(m[2]) + "\\s*$", "m")
+    const next = s.replace(pat, " ")
+    s = next === s ? s.slice(0, m.index) + " " : next  // no terminator → drop to end
+  }
+  return s.replace(/'[^']*'/g, " ").replace(/"(?:[^"\\]|\\.)*"/g, " ")
+}
+
 function rewriteCommand(cmd) {
   if (cmd.includes(NOTICE)) return { action: "none" }
-  const isCommit = /\bgit\s+commit\b/.test(cmd)
-  const isGhPost = /\bgh\s+pr\s+(?:create|comment|edit)\b/.test(cmd)
+  const view = commandView(cmd)
+  const isCommit = /(?:^|[\n;&|(`])\s*git\s+commit\b/.test(view)
+  const isGhPost = /(?:^|[\n;&|(`])\s*gh\s+pr\s+(?:create|comment|edit)\b/.test(view)
   if (!isCommit && !isGhPost) return { action: "none" }
   if (CMD_BRANDED.test(cmd)) return { action: "deny" }
 
