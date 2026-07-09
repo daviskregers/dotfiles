@@ -1,7 +1,7 @@
 {
   "plugins": {
     "blink.cmp": {
-      "rev": "9dcb1f3a9164f10c8950a790aace576f2e89dc78",
+      "rev": "72d81f789f1ae5f8765a87a5a5fc3562ad687df7",
       "src": "https://github.com/saghen/blink.cmp"
     },
     "blink.lib": {
@@ -42,7 +42,7 @@
       "src": "https://github.com/nvim-mini/mini.icons"
     },
     "neogit": {
-      "rev": "6fc2fa890bd2031ed999c074daab0fb4feff20a5",
+      "rev": "a0847c4bea5a5f92a36e3f3bf7da99d7d685d3ac",
       "src": "https://github.com/NeogitOrg/neogit"
     },
     "nvim-config-local": {
@@ -82,7 +82,7 @@
       "src": "https://github.com/folke/todo-comments.nvim"
     },
     "tree-sitter-manager.nvim": {
-      "rev": "966c28dbc68fc99c82c51a64b6ec37f420aab880",
+      "rev": "09e3a321eea8100cacd2e759c3a6c9d350295fab",
       "src": "https://github.com/romus204/tree-sitter-manager.nvim"
     },
     "which-key.nvim": {
