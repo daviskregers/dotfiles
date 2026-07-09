@@ -8,9 +8,11 @@
     "allow": [
       "Bash(git status*)",
       "Bash(git log*)",
-      "Bash(git diff*)"
+      "Bash(git diff*)",
+      "Bash(rg:*)"
     ]
   },
+  "model": "opus[1m]",
   "hooks": {
     "Notification": [
       {
@@ -30,6 +32,48 @@
           {
             "type": "command",
             "command": "python3 \"/Users/daviskregers/.claude/hooks/ai-attribution.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/daviskregers/.claude/hooks/tdd-reminder.py\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/daviskregers/.claude/hooks/pr-refresh-reminder.py\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/daviskregers/.claude/hooks/offloading-nudge.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"/Users/daviskregers/.claude/hooks/comprehension-nudge.py\""
           }
         ]
       }

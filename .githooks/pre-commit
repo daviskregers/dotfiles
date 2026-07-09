@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# pre-commit: block committing the dotfiles parent while the two `skills`
+# submodule clones point at different commits.
+#
+# The skills repo is cloned separately under claude/ and opencode/; the global
+# dual-setup rule requires both pointers to match before a parent commit.
+# This git hook enforces it for EVERY commit path — Claude Code, opencode, or a
+# plain `git commit` — not just one agent's tool calls.
+#
+# Compares the STAGED gitlink SHAs (what will actually be committed). Fail-open:
+# if either pointer isn't staged/readable, don't block.
+set -euo pipefail
+
+CC=claude/.claude/skills
+OC=opencode/.config/opencode/skills
+
+sha() { git ls-files --stage -- "$1" 2>/dev/null | awk '$1=="160000"{print $2; exit}'; }
+
+cc_sha=$(sha "$CC") || true
+oc_sha=$(sha "$OC") || true
+
+# Only enforce when both pointers are present in the index.
+[ -n "${cc_sha:-}" ] && [ -n "${oc_sha:-}" ] || exit 0
+
+if [ "$cc_sha" != "$oc_sha" ]; then
+  echo "✗ skills submodule pointers diverge:" >&2
+  echo "    $CC -> ${cc_sha:0:9}" >&2
+  echo "    $OC -> ${oc_sha:0:9}" >&2
+  echo "  Sync both clones to the same commit before committing the parent" >&2
+  echo "  (global dual-setup rule). Bypass with --no-verify if intentional." >&2
+  exit 1
+fi
+exit 0
