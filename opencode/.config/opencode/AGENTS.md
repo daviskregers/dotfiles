@@ -8,7 +8,7 @@ Changes to commands/skills/agent-prompts sync between Claude Code (`~/.dotfiles/
 
 ## AI attribution
 
-AI-generated content posted externally ends with `🤖 Generated with AI` (optionally `(model)`): PR descriptions/comments, Linear issues/comments, commit messages (last line — see `git-commit`). NEVER tool-branded (`Co-Authored-By`, "Generated with Claude Code/opencode") — this replaces them.
+AI-generated content posted externally ends with `🤖 Generated with AI` (optionally `(model)`): PR descriptions/comments, Linear issues/comments, commit messages (last line — see `git-commit`). NEVER tool-branded (`Co-Authored-By`, "Generated with Claude Code/opencode") — this replaces them. Why: reader awareness + EU AI Act transparency mandate ([Art. 50](https://www.europarl.europa.eu/topics/en/article/20230601STO93804/eu-ai-act-first-regulation-on-artificial-intelligence#transparency-requirements-10)) — not optional courtesy; don't drop.
 
 ## PR descriptions
 
