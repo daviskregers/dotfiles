@@ -12,5 +12,6 @@ tmux/.local/bin
 *.swp
 .code-review
 .ai-artifacts
+__pycache__/
 
 .DS_Store
