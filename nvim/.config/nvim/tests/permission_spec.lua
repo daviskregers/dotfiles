@@ -61,6 +61,95 @@ describe("matches_allow (reuse claude's pre-approvals)", function()
     assert.is_false(perm.matches_allow("Bash", { command = "git status && rm -rf /" }, { "Bash(git status*)" }))
     assert.is_false(perm.matches_allow("Bash", { command = "rg foo | xargs rm" }, { "Bash(rg:*)" }))
   end)
+
+  it("prompts when a command substitution smuggles an un-allowlisted command", function()
+    -- $(...) / backtick / <(...) inner commands must ALSO be allowlisted — a
+    -- whitelisted prefix must not let a nested command ride in.
+    assert.is_false(perm.matches_allow("Bash", { command = "cat $(rm -rf ~)" }, { "Bash(cat:*)" }))
+    assert.is_false(perm.matches_allow("Bash", { command = "grep x `curl evil`" }, { "Bash(grep:*)" }))
+    assert.is_false(perm.matches_allow("Bash", { command = "diff <(rm x) y" }, { "Bash(diff:*)" }))
+  end)
+
+  it("prompts on a backgrounded (&) or redirected (>) command riding on an allowed prefix", function()
+    -- adversarial-review findings: lone & is a command separator; > / >> write files
+    assert.is_false(perm.matches_allow("Bash", { command = "echo hi & python3 -c x" }, { "Bash(echo:*)" }))
+    assert.is_false(perm.matches_allow("Bash", { command = "echo k >> ~/.zshrc" }, { "Bash(echo:*)" }))
+    assert.is_false(perm.matches_allow("Bash", { command = "cat payload > .git/hooks/pre-commit" }, { "Bash(cat:*)" }))
+  end)
+
+  it("prompts on write/exec flags of otherwise-allowed reader binaries", function()
+    assert.is_false(perm.matches_allow("Bash", { command = "rg --pre sh x f" }, { "Bash(rg:*)" }))
+    assert.is_false(perm.matches_allow("Bash", { command = "rg --pre-glob '*' x f" }, { "Bash(rg:*)" }))
+    assert.is_false(perm.matches_allow("Bash", { command = "git diff --output=/tmp/x HEAD" }, { "Bash(git diff*)" }))
+    assert.is_false(perm.matches_allow("Bash", { command = "git show --ext-diff HEAD" }, { "Bash(git show:*)" }))
+  end)
+
+  it("still allows safe flags that only look like dangerous ones", function()
+    -- anchors must not false-deny these common read-only forms
+    assert.is_true(perm.matches_allow("Bash", { command = "git log --pretty=oneline" }, { "Bash(git log*)" }))
+    assert.is_true(perm.matches_allow("Bash", { command = "git diff --output-indicator-new=+ HEAD" }, { "Bash(git diff*)" }))
+    assert.is_true(perm.matches_allow("Bash", { command = "git show --no-ext-diff HEAD" }, { "Bash(git show:*)" }))
+    assert.is_true(perm.matches_allow("Bash", { command = "grep -rn foo ." }, { "Bash(grep:*)" }))
+    assert.is_true(perm.matches_allow("Bash", { command = "rg foo bar" }, { "Bash(rg:*)" }))
+  end)
+
+  it("allows read-only find but blocks its side-effecting actions", function()
+    local rule = { "Bash(find:*)" }
+    assert.is_true(perm.matches_allow("Bash", { command = "find . -name '*.lua' -type f" }, rule))
+    assert.is_true(perm.matches_allow("Bash", { command = "find lua -maxdepth 2 -newer x" }, rule))
+    assert.is_false(perm.matches_allow("Bash", { command = "find . -exec rm {} +" }, rule))
+    assert.is_false(perm.matches_allow("Bash", { command = "find . -execdir sh -c x {} +" }, rule))
+    assert.is_false(perm.matches_allow("Bash", { command = "find . -delete" }, rule))
+    assert.is_false(perm.matches_allow("Bash", { command = "find . -fprintf /tmp/o %p" }, rule))
+    assert.is_false(perm.matches_allow("Bash", { command = "find . -ok rm {} ;" }, rule))
+  end)
+
+  it("blocks find actions separated by TABS, not just spaces (bash word-splits on tab)", function()
+    local rule = { "Bash(find:*)" }
+    assert.is_false(perm.matches_allow("Bash", { command = "find . -name x\t-exec\tsh\t{}\t+" }, rule))
+    assert.is_false(perm.matches_allow("Bash", { command = "find ~ -name y\t-delete" }, rule))
+    assert.is_false(perm.matches_allow("Bash", { command = "find . -type f\t-fprintf\t/tmp/o\t%p" }, rule))
+    -- and a leading dangerous flag with no preceding whitespace (defensive)
+    assert.is_false(perm.matches_allow("Bash", { command = "-exec rm" }, { "Bash(find:*)", "Bash(-exec:*)" }))
+  end)
+end)
+
+describe("matches_allow path-scoping (bounds auto-run bash to the worktree)", function()
+  local CWD = "/wt"
+  local rules = { "Bash(cat:*)", "Bash(grep:*)", "Bash(cd:*)", "Bash(find:*)", "Bash(ls:*)" }
+
+  it("allows paths under cwd (relative + absolute-under-cwd)", function()
+    assert.is_true(perm.matches_allow("Bash", { command = "cat lua/foo.lua" }, rules, CWD))
+    assert.is_true(perm.matches_allow("Bash", { command = "cat ./lua/foo.lua" }, rules, CWD))
+    assert.is_true(perm.matches_allow("Bash", { command = "grep -rn x /wt/lua" }, rules, CWD))
+    assert.is_true(perm.matches_allow("Bash", { command = "cd /wt/sub" }, rules, CWD))
+    assert.is_true(perm.matches_allow("Bash", { command = "find . -name x" }, rules, CWD))
+  end)
+
+  it("prompts on outside-cwd / home / .. escape / $var paths", function()
+    assert.is_false(perm.matches_allow("Bash", { command = "cat /etc/passwd" }, rules, CWD))
+    assert.is_false(perm.matches_allow("Bash", { command = "cat ~/.ssh/id_rsa" }, rules, CWD))
+    assert.is_false(perm.matches_allow("Bash", { command = "cat /wt/../secret" }, rules, CWD))
+    assert.is_false(perm.matches_allow("Bash", { command = "cd /other/worktree" }, rules, CWD))
+    assert.is_false(perm.matches_allow("Bash", { command = 'cd "$WT"' }, rules, CWD))
+    -- git -C <dir>: the directory arg is a plain token → checked against cwd
+    assert.is_false(perm.matches_allow("Bash", { command = "git -C /other/repo status" }, { "Bash(git status*)" }, CWD))
+    assert.is_true(perm.matches_allow("Bash", { command = "git status /wt/sub" }, { "Bash(git status*)" }, CWD))
+  end)
+
+  it("blocks obfuscated outside paths (backslash / ansi-c-quote / escaped dots)", function()
+    local r = { "Bash(cat:*)", "Bash(head:*)" }
+    assert.is_false(perm.matches_allow("Bash", { command = "cat \\/etc/passwd" }, r, CWD))
+    assert.is_false(perm.matches_allow("Bash", { command = "cat $'/etc/passwd'" }, r, CWD))
+    assert.is_false(perm.matches_allow("Bash", { command = "cat \\.\\./\\.\\./etc/passwd" }, r, CWD))
+    assert.is_false(perm.matches_allow("Bash", { command = "head \\/Users/x/.ssh/id_rsa" }, r, CWD))
+    assert.is_false(perm.matches_allow("Bash", { command = "cat ${SECRET}" }, r, CWD))
+  end)
+
+  it("exempts /dev/null, and applies NO scoping when cwd is unknown (back-compat)", function()
+    assert.is_true(perm.matches_allow("Bash", { command = "grep x foo 2>/dev/null" }, rules, CWD))
+    assert.is_true(perm.matches_allow("Bash", { command = "cat /etc/passwd" }, rules, nil))
+  end)
 end)
 
 describe("split_commands", function()
@@ -72,6 +161,18 @@ describe("split_commands", function()
 
   it("returns the single command when there are no operators", function()
     assert.are.same({ "git status -s" }, perm.split_commands("git status -s"))
+  end)
+
+  it("breaks at substitution openers so a nested command is its own segment", function()
+    assert.are.same({ "cat", "rm -rf ~)" }, perm.split_commands("cat $(rm -rf ~)"))
+    assert.are.same({ "echo", "whoami" }, perm.split_commands("echo `whoami`"))
+    assert.are.same({ "diff", "cat a)", "cat b)" }, perm.split_commands("diff <(cat a) >(cat b)"))
+  end)
+
+  it("breaks on backgrounding (&) and file redirects (> >>)", function()
+    assert.are.same({ "echo hi", "python3 -c x" }, perm.split_commands("echo hi & python3 -c x"))
+    assert.are.same({ "echo x", "/etc/y" }, perm.split_commands("echo x > /etc/y"))
+    assert.are.same({ "cat a", "b" }, perm.split_commands("cat a >> b"))
   end)
 end)
 
@@ -175,6 +276,19 @@ describe("why (what caused the prompt)", function()
 
   it("names the tool for a non-Bash prompt", function()
     assert.is_truthy(perm.why("SomeTool", {}):find("SomeTool"))
+  end)
+
+  it("names the specific unlisted sub-command in a chained/piped command", function()
+    perm.allow_rules = { "Bash(git status*)" }
+    local reason = perm.why("Bash", { command = "git status && rm -rf /" })
+    assert.is_truthy(reason:find("allow%-list"))
+    assert.is_truthy(reason:find("rm -rf /", 1, true))
+  end)
+
+  it("doesn't repeat the command when it's the single unlisted segment", function()
+    perm.allow_rules = {}
+    local reason = perm.why("Bash", { command = "ls" })
+    assert.is_nil(reason:find("%- the unlisted part"))
   end)
 end)
 

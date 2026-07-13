@@ -28,6 +28,18 @@ describe("build_cmd", function()
     assert.are.same({ "llm-run", "opencode", "--", "x" },
       t.build_cmd({ provider = "opencode", model = "", agent = "", session = "", prompt = "x" }))
   end)
+
+  it("threads effort after model (provider-agnostic; llm-run maps per provider)", function()
+    assert.are.same(
+      { "llm-run", "claude", "-m", "opus", "--effort", "high", "--", "go" },
+      t.build_cmd({ provider = "claude", model = "opus", effort = "high", prompt = "go" }))
+  end)
+
+  it("omits --effort when unset or empty", function()
+    assert.is_falsy(vim.tbl_contains(t.build_cmd({ provider = "opencode", prompt = "x" }), "--effort"))
+    assert.is_falsy(vim.tbl_contains(
+      t.build_cmd({ provider = "claude", effort = "", prompt = "x" }), "--effort"))
+  end)
 end)
 
 describe("parse_event", function()

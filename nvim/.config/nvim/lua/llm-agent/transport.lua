@@ -7,12 +7,14 @@ local M = {}
 
 M.config = { llm_run = "llm-run" } -- override in tests
 
--- Build the `llm-run` argv. Pure. opts: provider, model, agent, session,
+-- Build the `llm-run` argv. Pure. opts: provider, model, effort, agent, session,
 -- resume (bool), prompt, permit (bool → route tool permissions back to nvim).
--- Empty-string optionals are omitted. llm-run translates --permit per provider.
+-- Empty-string optionals are omitted. llm-run translates --permit and --effort
+-- per provider (claude → --effort, opencode → --variant).
 function M.build_cmd(opts)
   local cmd = { M.config.llm_run, opts.provider }
   if opts.model and opts.model ~= "" then vim.list_extend(cmd, { "-m", opts.model }) end
+  if opts.effort and opts.effort ~= "" then vim.list_extend(cmd, { "--effort", opts.effort }) end
   if opts.agent and opts.agent ~= "" then vim.list_extend(cmd, { "--agent", opts.agent }) end
   if opts.session and opts.session ~= "" then vim.list_extend(cmd, { "--session", opts.session }) end
   if opts.resume then table.insert(cmd, "--resume") end
@@ -44,8 +46,8 @@ local function ensure_servername()
   return vim.v.servername
 end
 
--- Dispatch one turn. opts: provider, model, agent, session, resume, prompt, cwd,
--- on_event(ev), on_exit(code, stderr). Callbacks run scheduled (main loop).
+-- Dispatch one turn. opts: provider, model, effort, agent, session, resume, prompt,
+-- cwd, on_event(ev), on_exit(code, stderr). Callbacks run scheduled (main loop).
 -- Returns the vim.system handle.
 function M.run(opts)
   local partial, stderr = "", {}
@@ -53,7 +55,10 @@ function M.run(opts)
   return vim.system(cmd, {
     cwd = opts.cwd,
     text = true,
-    env = { CLANK_NVIM_ADDR = ensure_servername() },
+    -- Merges with nvim's env (clear_env defaults false). Pin the privacy knob so
+    -- headless agents send essential traffic only, independent of which settings
+    -- sources claude loads.
+    env = { CLANK_NVIM_ADDR = ensure_servername(), CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC = "1" },
     stdout = function(_, data)
       if not data then return end
       partial = partial .. data

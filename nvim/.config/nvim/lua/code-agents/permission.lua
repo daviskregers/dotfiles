@@ -31,6 +31,17 @@ end
 function M.split_commands(command)
   local flat = tostring(command or "")
     :gsub("&&", "\0"):gsub("||", "\0"):gsub("|", "\0"):gsub(";", "\0"):gsub("\n", "\0")
+    -- Also break at command/process-substitution openers so a nested command must
+    -- ALSO be allowlisted (`cat $(rm -rf ~)` → "cat" + "rm -rf ~)"). Only ever adds
+    -- segments → never grants extra.
+    :gsub("%$%(", "\0"):gsub("`", "\0"):gsub("<%(", "\0"):gsub(">%(", "\0")
+    -- Collapse harmless redirect idioms BEFORE the >/& split so they don't force a
+    -- prompt: fd-dups (`2>&1`, `>&2`, `2>&-`) and writes to /dev/null.
+    :gsub("%d*>>?&[%d%-]", " "):gsub("&?%d*>>?%s*/dev/null", " ")
+    -- ...and on a lone `&` (background = command separator: `echo x & payload`) and
+    -- file redirects `>`/`>>` (write target must itself be allowlisted, so it never
+    -- is → `echo x > ~/.zshrc` prompts). `&&` and `>(` were already consumed above.
+    :gsub(">>", "\0"):gsub("&", "\0"):gsub(">", "\0")
   local parts = {}
   for seg in flat:gmatch("[^%z]+") do
     local s = vim.trim(seg)
@@ -39,9 +50,36 @@ function M.split_commands(command)
   return parts
 end
 
+-- Options that turn an otherwise read-only "reader" binary into a writer/executor,
+-- which the command prefix can't see: rg runs a program (`--pre`/`--pre-glob`/
+-- `--hostname-bin`), git writes/execs a helper (`--output`/`--ext-diff`), and find's
+-- action predicates (`-exec`/`-execdir`/`-ok`/`-okdir`/`-delete`/`-fprint*`/`-fls`).
+-- A segment carrying any of these is never auto-allowed, whatever prefix it matches.
+-- Anchored so safe look-alikes (`--pretty`, `--output-indicator-*`, `--no-ext-diff`)
+-- don't false-trip. This is a denylist (fail-open for an unknown dangerous flag) —
+-- defense-in-depth over the deny-by-default prefix match, not a proof.
+local DANGEROUS_ARG = {
+  "%-%-pre[%s=%-]", "%-%-hostname%-bin",        -- rg → exec a program
+  "%-%-output[%s=]", "%-%-ext%-diff",           -- git → write file / run diff helper
+  " %-exec", " %-ok", " %-delete", " %-fprint", " %-fls", -- find → exec / delete / write
+}
+local function has_dangerous_arg(cmd)
+  -- Normalize ALL whitespace (tab/CR/…) to single spaces and pad with a leading
+  -- space first: bash word-splits on tab too, so a literal-space anchor like
+  -- ` -exec` would otherwise miss `find x<TAB>-exec<TAB>sh` (a real -exec). The pad
+  -- also catches a segment that begins with a dangerous flag.
+  local s = " " .. tostring(cmd or ""):gsub("%s+", " ")
+  for _, pat in ipairs(DANGEROUS_ARG) do
+    if s:find(pat) then return true end
+  end
+  return false
+end
+
 -- Does ONE shell command match any Bash allow rule? Rules ("Bash(git status*)",
--- "Bash(rg:*)") → prefix-match up to the first glob/`:` wildcard.
+-- "Bash(rg:*)") → prefix-match up to the first glob/`:` wildcard. A segment carrying
+-- a write/exec flag (above) is rejected up front regardless of prefix.
 local function bash_command_allowed(cmd, rules)
+  if has_dangerous_arg(cmd) then return false end
   for _, rule in ipairs(rules or {}) do
     local pat = rule:match("^Bash%((.+)%)$")
     if pat then
@@ -52,12 +90,52 @@ local function bash_command_allowed(cmd, rules)
   return false
 end
 
+-- Path-scoping (deny-by-default): bounds auto-run bash to the agent's worktree.
+-- A segment auto-allows only if every path-looking token resolves UNDER `cwd`.
+-- Absolute paths outside cwd, `~`, escaping `..`, and unresolved `$var` paths →
+-- false (prompt) — so `cat /etc/shadow`, `cd /other`, `git -C /elsewhere …` ask.
+-- `cwd` nil/"" disables scoping (callers without a known cwd keep the old
+-- behavior). Heuristic + fail-closed: anything it can't prove is inside cwd, it
+-- rejects. Variable paths aren't resolved (parked) → they prompt. /dev/* exempt.
+local function paths_within_cwd(cmd, cwd)
+  if not cwd or cwd == "" then return true end
+  local root = cwd:gsub("/+$", "")
+  for raw in tostring(cmd):gmatch("%S+") do
+    -- Unescape shell backslash-escapes (`\/`→`/`, `\.`→`.`) so obfuscated absolute
+    -- and traversal paths can't dodge the `^/` / `..` anchors below.
+    local t = raw:gsub("^[\"']+", ""):gsub("[\"']+$", ""):gsub("\\(.)", "%1")
+    -- Any shell-variable / ANSI-C-quote reference (`$WT`, `${DIR}`, `$'…'`, `$"…"`)
+    -- is unresolvable pre-expansion → could point anywhere → prompt. Anchored to `$`
+    -- + word/brace/quote so a regex end-anchor (`grep "foo$"`) is NOT flagged.
+    if t:find("%$['\"{%w_]") then return false end
+    local looks_path = t:match("^~") or t:match("^/") or t:match("^%.%.?/")
+      or t == ".." or t:find("/", 1, true)
+    if looks_path and not t:match("^/dev/") then
+      if t:match("^~") then return false end                                 -- home
+      if t == ".." or t:find("../", 1, true) or t:find("/..", 1, true) then return false end -- .. escape
+      if t:match("^/") and t ~= root and t:sub(1, #root + 1) ~= root .. "/" then return false end -- outside cwd
+    end
+  end
+  return true
+end
+
+-- The first sub-command (split like matches_allow does) that ISN'T allow-listed —
+-- so `why()` can name the exact piece that's outside the allow-list, not just
+-- gesture at the whole (possibly compound/chained) command line. Pure.
+local function offending_segment(command, rules)
+  for _, cmd in ipairs(M.split_commands(command)) do
+    if not bash_command_allowed(cmd, rules) then return cmd end
+  end
+  return nil
+end
+
 -- Does a tool call match any of claude's pre-approval rules? Reuses the user's
 -- existing allowlist so pre-approved commands run silently. Bare tool-name rules
 -- ("Read") match directly. A Bash command is allowed only when EVERY sub-command
--- (split on && || | ; \n) is allowlisted — so a chained/piped command never rides
--- in on an allowed prefix (`git status && rm -rf /` still prompts).
-function M.matches_allow(tool, input, rules)
+-- (split on && || | ; \n …) is allowlisted AND stays within `cwd` — so a chained/
+-- piped command never rides in on an allowed prefix (`git status && rm -rf /`),
+-- and no allowed reader reaches outside the worktree (`cat /etc/shadow`).
+function M.matches_allow(tool, input, rules, cwd)
   input = type(input) == "table" and input or {}
   for _, rule in ipairs(rules or {}) do
     if rule == tool then return true end
@@ -67,6 +145,7 @@ function M.matches_allow(tool, input, rules)
   if #cmds == 0 then return false end
   for _, cmd in ipairs(cmds) do
     if not bash_command_allowed(cmd, rules) then return false end
+    if not paths_within_cwd(cmd, cwd) then return false end
   end
   return true
 end
@@ -133,10 +212,18 @@ end
 
 -- Human explanation of why this call needs approval (mirrors claude showing the
 -- triggering rule). Everything auto-allowable is resolved before we prompt, so
--- reaching here always means "not in the allow-list". Pure.
+-- reaching here always means "not in the allow-list". For a chained/piped
+-- command, names the specific sub-command that's outside the allow-list rather
+-- than just the whole (already-shown) command line. Pure.
 function M.why(tool, input)
   if is_bash(tool) then
-    return "shell command not in the allow-list (can run outside the worktree)"
+    local reason = "shell command not in the allow-list (can run outside the worktree)"
+    local cmd = M._sig(tool, input)
+    local offending = offending_segment(cmd, M.allow_rules)
+    if offending and offending ~= vim.trim(cmd) then
+      reason = reason .. " — the unlisted part: " .. offending
+    end
+    return reason
   end
   return tool .. " not in the allow-list"
 end
@@ -196,7 +283,7 @@ function M.request(reqfile)
   if not f then return M.hook_output("deny", "no request file") end
   local req = M.parse_hook_input(f:read("*a")); f:close()
   if not req then return M.hook_output("deny", "unparseable permission request") end
-  if M.resolve_auto(req.tool, req.input) then return M.hook_output("allow") end
+  if M.resolve_auto(req.tool, req.input, req.cwd) then return M.hook_output("allow") end
   local decisionfile = reqfile .. ".decision"
   local entry = { tool = req.tool, input = req.input, session = req.session, decisionfile = decisionfile }
   -- claude/llm-run transport: the hook polls the decision file, so we respond by writing it.
@@ -252,10 +339,10 @@ end
 
 -- Should this tool call be allowed silently (no notify)? True if read-only, or
 -- remembered this session, or matching claude's pre-approval allowlist.
-function M.resolve_auto(tool, input)
+function M.resolve_auto(tool, input, cwd)
   if M.classify(tool) == "allow" then return true end
   if M.session_allow[M.request_key(tool, input)] then return true end
-  return M.matches_allow(tool, input, M.allow_rules)
+  return M.matches_allow(tool, input, M.allow_rules, cwd)
 end
 
 -- Stable key for a tool call — what "allow for session" remembers. Bash keys on

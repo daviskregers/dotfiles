@@ -67,7 +67,7 @@ describe("model_for", function()
   it("resolves claude per-verb aliases", function()
     assert.are.equal("haiku", core.model_for("claude", "search"))
     assert.are.equal("sonnet", core.model_for("claude", "explain"))
-    assert.are.equal("opus", core.model_for("claude", "command"))
+    assert.are.equal("sonnet", core.model_for("claude", "command"))
   end)
 
   it("returns nil for unknown provider/verb (caller falls back to provider default)", function()
@@ -299,5 +299,63 @@ describe("resolve_model", function()
   it("falls back to the provider default when no per-verb default", function()
     core.config.providers.opencode.default_model = "gh/sonnet"
     assert.are.equal("gh/sonnet", core.resolve_model("opencode", "search", nil))
+  end)
+end)
+
+describe("efforts (reasoning-effort levels)", function()
+  it("claude: static CLI levels, high first", function()
+    assert.are.same({ "high", "medium", "low", "xhigh", "max" }, core.efforts("claude"))
+  end)
+end)
+
+describe("resolve_effort", function()
+  it("prefers an explicit override (from a pick variant)", function()
+    assert.are.equal("max", core.resolve_effort("claude", "max"))
+  end)
+
+  it("falls back to the provider default_effort", function()
+    assert.are.equal("high", core.resolve_effort("claude", nil))
+    assert.are.equal("high", core.resolve_effort("claude", ""))
+  end)
+
+  it("returns nil when the provider has no default (opencode → its own CLI default)", function()
+    assert.is_nil(core.resolve_effort("opencode", nil))
+  end)
+end)
+
+describe("parse_opencode_variants", function()
+  -- Mirrors `opencode models --verbose`: `provider/id` header + pretty JSON block.
+  local sample = table.concat({
+    "opencode/deepseek-v4-flash",
+    '{',
+    '  "id": "deepseek-v4-flash",',
+    '  "providerID": "opencode",',
+    '  "variants": {',
+    '    "low": { "reasoningEffort": "low" },',
+    '    "high": { "reasoningEffort": "high" },',
+    '    "max": { "reasoningEffort": "max" }',
+    '  }',
+    '}',
+    "opencode/big-pickle",
+    '{',
+    '  "id": "big-pickle",',
+    '  "providerID": "opencode",',
+    '  "variants": {}',
+    '}',
+  }, "\n")
+
+  it("maps full provider/model id → variant keys, high first", function()
+    local m = core.parse_opencode_variants(sample)
+    assert.are.same({ "high", "low", "max" }, m["opencode/deepseek-v4-flash"])
+  end)
+
+  it("yields an empty list for a model with no variants", function()
+    local m = core.parse_opencode_variants(sample)
+    assert.are.same({}, m["opencode/big-pickle"])
+  end)
+
+  it("returns an empty table on blank/garbage input", function()
+    assert.are.same({}, core.parse_opencode_variants(""))
+    assert.are.same({}, core.parse_opencode_variants("not json at all\nmore noise"))
   end)
 end)

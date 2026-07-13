@@ -142,3 +142,10 @@ local function swap_word_forward()
 end
 
 vim.keymap.set("n", "<leader>sw", swap_word_forward, { desc = "Swap word with the next word" })
+
+-- statusline: append the code-agents segment (background agent counts +
+-- claude 5h usage) onto nvim's built-in default rather than replacing it —
+-- nothing else in this config sets 'statusline'. Plain %{...} (not %{%...%})
+-- so literal "%"/"(" in the returned text (e.g. "5h:42%(1h5m)") render as-is
+-- instead of being re-scanned as statusline items.
+vim.o.statusline = vim.o.statusline .. "%{v:lua.require('code-agents.statusline').get()} "
