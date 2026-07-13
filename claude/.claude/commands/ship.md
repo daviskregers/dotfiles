@@ -8,11 +8,11 @@ Pipeline: local review (pre-commit) → pause → commit → push → draft PR �
 ## Input
 
 Target base branch (+ optional `--ready`, `--no-review`, title/context): $ARGUMENTS — no base given? Ask.
-Load `git-commit` skill for the commit message.
+Load `git-commit` (commit message) + `driver-gate` (triage loop, Phases A & D).
 
 ## Phase A — Local review (pre-commit; skip if `--no-review`)
 
-1. Run the `/review-fix` flow (Phases 1–3): review the working tree → present findings → triage one-at-a-time (show finding → investigate → verdict → **STOP** → fix/skip). Don't commit here — that's Phase C.
+1. Review the **working tree** (`git diff` + `git diff --cached`; both empty → last commit): spawn `code-review-analysis` agent → structured findings. Then run the `driver-gate` **triage loop** over them: per finding, triage (trivial → fast; load-bearing → show anchors, **withhold AI verdict, user commits their read first**, reveal + challenge) → **STOP** → fix (TDD) / skip via `SKIP:`. Don't commit here — that's Phase C.
 
 ## Phase B — Validate (pause)
 
@@ -39,5 +39,5 @@ Load `git-commit` skill for the commit message.
 - Base branch is explicit (arg) — if missing, ask; never guess.
 - Local review happens BEFORE commit; always pause (Phase B) for user validation before committing.
 - Staged-only commit. Don't stage extra files.
-- Triage is one-at-a-time — never batch verdicts, always show the finding/comment text. Never marks the PR ready.
+- Triage is one-at-a-time (driver-gate) — never batch verdicts; load-bearing items withhold AI's verdict until the user commits their read. Never marks the PR ready.
 - Halt the chain on any step failure (commit hook, push reject, PR error); report + stop, don't retry blindly.

@@ -2,9 +2,9 @@
 description: Bulk-read all PR comments, then investigate each via /comment one-at-a-time
 ---
 
-Bulk-fetch a PR's comments, build a queue, walk each through the `/comment` flow sequentially.
+Bulk-fetch a PR's comments, build a queue, walk each through the `/comment` (`driver-gate` triage) flow sequentially.
 Each fix → its own commit (user-reviewed). One push at the end, then reply + resolve all.
-Load `tdd` skill (fix phases), `git-commit` (per-fix commits).
+Load `driver-gate` (triage-loop pattern), `tdd` (fix phases), `git-commit` (per-fix commits).
 
 ## Input
 
@@ -23,7 +23,7 @@ List numbered: `N. path:line — author — one-line gist`. State total actionab
 
 For each item, in order:
 1. Header: `Comment N/total — path:line — author`. Then **quote the comment body verbatim** (blockquote) so the user sees what it refers to, with its `url`.
-2. Run the `/comment` flow: Phase 1 investigate → verdict (Real / False positive / Debatable) → **STOP, wait for user**.
+2. Run the `/comment` flow: triage (trivial → fast; load-bearing → show anchors, **withhold AI verdict, user commits their own read first**, then reveal + challenge) → **STOP, wait for user**. Skip only via `SKIP: <reason>`.
 3. Outcome:
    - **Fix**: TDD (failing test → minimal fix → suite). Then **STOP — show the diff; user reviews.** On approval, commit as a **separate commit** (staged-only, conventional msg per `git-commit`; exactly one commit per fixed comment). Record commit sha.
    - **Ignore / false positive**: no change.
@@ -44,7 +44,8 @@ Confirm reply text with user before posting (outward-facing).
 ## Rules
 
 - Never batch verdicts — strictly one comment, one stop.
-- Phase 1 investigation mandatory per item; never assume a comment valid.
+- Load-bearing comments: never reveal AI's verdict before the user commits their read (driver-gate mechanic 3). Trivial → handle fast, don't manufacture a gate.
+- Any `SKIP:` is carried into the close note as an un-owned decision.
 - No fix without user confirmation. All fixes TDD. User reviews the diff before every commit.
 - One commit per fix. Reply/resolve happen only in Phase 4, after the single push.
 - Always quote the comment body being triaged — the user needs the original to judge. Verdict/analysis stays terse; code as `path:line`.
