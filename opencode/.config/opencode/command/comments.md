@@ -23,7 +23,7 @@ List numbered: `N. path:line — author — one-line gist`. State total actionab
 
 For each item, in order:
 1. Header: `Comment N/total — path:line — author`. Then **quote the comment body verbatim** (blockquote) so the user sees what it refers to, with its `url`.
-2. Run the `/comment` flow: triage (trivial → fast; load-bearing → show anchors, **withhold AI verdict, user commits their own read first**, then reveal + challenge) → **STOP, wait for user**. Skip only via `SKIP: <reason>`.
+2. Run the `/comment` flow: triage (trivial → fast; load-bearing → show anchors, **withhold AI verdict, user commits their own read + why first**, then reveal + challenge symmetrically) → **STOP, wait for user**. Skip only via `SKIP: <reason>`.
 3. Outcome:
    - **Fix**: TDD (failing test → minimal fix → suite). Then **STOP — show the diff; user reviews.** On approval, commit as a **separate commit** (staged-only, conventional msg per `git-commit`; exactly one commit per fixed comment). Record commit sha.
    - **Ignore / false positive**: no change.

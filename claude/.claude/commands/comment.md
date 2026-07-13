@@ -16,9 +16,9 @@ Classify the comment (driver-gate mechanic 2):
 
 ## Phase 2: Predict-first (load-bearing only)
 
-1. Show the referenced code as `path:line` **anchors** + the question ("is this real, and why?"). **Do NOT state your verdict yet.**
-2. **STOP. User commits their own read** — Real / False positive / Debatable, in their words. Skip only via `SKIP: <reason>` (carried into the close note as an un-owned decision).
-3. **Reveal + challenge.** Now give AI's verdict + reasoning. Diverges from the user's read? Dig there. Then adversarially test the surviving call — what breaks if it's wrong. **STOP, wait for user** on how to proceed.
+1. Show the referenced code as `path:line` **anchors** (neutral facts — what exists, not "no X") + the question ("is this real, and why?"). **Do NOT state your verdict yet.**
+2. **STOP. User commits their own read + why** — Real / False positive / Debatable, with a one-line rationale from the code. Bare verdict with no why → doesn't proceed. Skip only via `SKIP: <reason>` (carried into the close note as an un-owned decision).
+3. **Reveal + challenge symmetrically.** Now give AI's verdict + reasoning. Attack AI's OWN verdict as hard as the user's; the user's pre-reveal call binds unless they overturn it with a stated reason. Diverges? Dig there. **STOP, wait for user** on how to proceed.
 
 ## Phase 3: Fix (user confirmed)
 
