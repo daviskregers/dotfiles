@@ -23,11 +23,11 @@ Test-driven by default for ALL feature/bugfix/refactor/behavioural-narrowing wor
 Discipline for any non-trivial plan — plan mode or ad-hoc, `/spec` or not. Scales to stakes (trivial/mechanical → just do it).
 
 - **Explore before you plan.** Legacy/unfamiliar surface → read-only mapping pass FIRST; don't sequence slices whose end you can't yet see. Oversized slices = under-exploration, not a splitting problem — map, then plan.
-- **Decompose fuzzy/multi-part work into ordered, independently-shippable units** (child tickets where a tracker exists), dependency-sequenced, the enabling refactor its own earlier unit/PR (per Craft) — NOT one flat spec. `/spec` = a single well-scoped slice, not this decomposition.
+- **Decompose fuzzy/multi-part work into ordered, independently-shippable units** (child tickets where a tracker exists), dependency-sequenced, the enabling refactor its own earlier unit/PR (per Craft) — NOT one flat spec. Then run each unit (or a batch of related ones — `/spec` batches shared-subsystem tickets) through `/spec` (or equivalent), reusing the mapping pass rather than re-scouting; `/spec` scopes a slice, it doesn't do this decomposition.
 - **Trace the full data path, not just the write.** Enumerate downstream consumers of the changed data (reads, displays, exports, resets, migrations, other services) — list them or state there are none. Write-path-only plans are the recurring miss.
 - **Slice to ≤ ~5 min manual verify each;** get the SLICING approved before writing code (its own scoped approval — see Approvals). First PR of a new pattern may be fat (tracer bullet) — optimise the followers, not the first.
 - **Each acceptance criterion maps 1:1 to a verification step;** carry an explicit `## Out of scope` (surface-and-park), never silent drops.
-- **Build from real code + ticket, not truncated/assumed context;** before finalising, check drift vs the ticket/PR description.
+- **Don't plan from assumed/truncated context;** before finalising, check drift vs the ticket/PR description.
 
 ## Shared reasoning — keep me in the loop
 
