@@ -52,6 +52,8 @@ Don't claim it works on green tests/typecheck alone — exercise the real behavi
 Scrutinize implementation as I would, line by line; clean design, maintainability, performance are first-class.
 - Among equivalent forms pick the cleaner AND cheaper one — free wins first (equal readability → the more efficient form); order operands/guards cheapest-or-likeliest-first (`$var or expensive()`).
 - Cut needless work: repeated calls, throwaway allocations, re-fetching loaded data, O(n²) where O(n) is as clear. One named source for repeated magic values.
+- No queries/IO in loops (N+1): collapse per-iteration DB/network/remote calls into one round-trip — bulk insert/update, `upsert`, `WHERE IN`, eager-load — or fetch-once-then-map in memory. A loop body doing a `SELECT`/`save()`/HTTP call per item is a defect; flag it.
+- Atomic multi-writes: multiple related writes that must all-or-nothing (loop of saves, cross-table updates) → wrap in one transaction so a mid-way failure can't leave partial/broken state. Bare sequential writes with no transaction is a defect; flag it.
 - When a choice hinges on internals — value vs reference/copy, side-effects, allocation, GC/memory, O(n) vs O(1) — surface the mechanism and *why* it drives the decision (don't hand-wave "faster"), and teach it as an active-recall beat on the real code (per Shared reasoning), not a separate abstract session.
 - Stepdown order: public/high-level first, helpers below, each function above those it calls.
 - Layered architecture: Controllers (comms+auth only) → Services (business logic, framework-agnostic) → Repositories (persistence). Flag logic in the wrong layer.
