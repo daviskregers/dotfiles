@@ -1,47 +1,38 @@
 ---
-description: Investigate code review comment — verify, explain, TDD fix if confirmed
+description: Investigate code review comment — you commit your own read first, then AI reveals + TDD-fixes if confirmed
 ---
 
-Investigate review finding. Do NOT assume valid — verify first, fix only after user confirms.
-Load `tdd` skill for Phases 2-3.
+Investigate one review finding via the `driver-gate` **triage loop** (single item). Do NOT assume valid. The gate: on a load-bearing comment, AI withholds its verdict until YOU commit your own read — no thumbs-up on an analysis you didn't form. Load `driver-gate` (pattern) + `tdd` (fix phase).
 
 ## Input
 
 Comment: $1 — none? Ask user to paste.
 
-## Phase 1: Investigate (always)
+## Phase 1: Triage
 
-1. Read referenced code. Understand ACTUAL behavior.
-2. Verdict:
-   - **Real**: what's wrong, trigger, impact. Show code path.
-   - **False positive**: why concern doesn't apply.
-   - **Debatable**: both sides. Let user decide.
-3. Present verdict. **STOP. Wait for user.**
+Classify the comment (driver-gate mechanic 2):
+- **Trivial/mechanical** (typo, rename, obvious nitpick, reversible one-liner) → say so, skip the gate, go to Phase 3 with a one-line plan. Don't manufacture a gate.
+- **Load-bearing** (logic correctness, cross-layer, security/data integrity, wide blast radius) → Phase 2.
 
-## Phase 2: Test (user confirmed)
+## Phase 2: Predict-first (load-bearing only)
 
-4. Write failing test demonstrating issue.
-5. Run → confirm fails (bugs) or documents gap (missing behavior).
+1. Show the referenced code as `path:line` **anchors** + the question ("is this real, and why?"). **Do NOT state your verdict yet.**
+2. **STOP. User commits their own read** — Real / False positive / Debatable, in their words. Skip only via `SKIP: <reason>` (carried into the close note as an un-owned decision).
+3. **Reveal + challenge.** Now give AI's verdict + reasoning. Diverges from the user's read? Dig there. Then adversarially test the surviving call — what breaks if it's wrong. **STOP, wait for user** on how to proceed.
 
-## Phase 3: Fix
+## Phase 3: Fix (user confirmed)
 
-6. Minimal fix. Run test → pass. Full suite → no regressions.
-
-Test change during impl → follow `tdd` rollback protocol.
+TDD — failing test demonstrating the issue → run, confirm fails → minimal fix → test passes → full suite, no regressions. Test change mid-impl → `tdd` rollback protocol.
 
 ## Output
 
-- Verdict block: ≤6 lines total.
-- Real bug → label + trigger + impact, each ≤1 line. Code as `path:line`.
-- False positive → 1 line why.
-- Debatable → ≤2 lines each side.
-- No restatement of the comment.
-- No code dumps — reference `path:line`.
+- Trivial → 1 line (what + fix).
+- Load-bearing → your read + AI verdict + divergence, each ≤1 line. Code as `path:line`. No comment restatement, no code dumps.
+- False positive → say so, stop.
 
 ## Rules
 
-- Phase 1 mandatory. Never skip.
-- Never fix without user confirmation.
-- All changes use TDD — failing test first, then minimal fix. No exceptions.
-- False positive → say so, stop.
-- Trivial fix → say so, user might fix manually.
+- Never reveal AI's verdict on a load-bearing comment before the user commits theirs — that withholding IS the gate.
+- Triage honestly; don't gate trivia (trains bypass) or wave through load-bearing (hands back the stamp).
+- Never fix without user confirmation. All fixes TDD.
+- Trivial fix → user might fix manually; offer.

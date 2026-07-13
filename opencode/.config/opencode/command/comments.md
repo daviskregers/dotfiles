@@ -2,9 +2,9 @@
 description: Bulk-read all PR comments, then investigate each via /comment one-at-a-time
 ---
 
-Bulk-fetch a PR's comments, build a queue, walk each through the `/comment` flow sequentially.
+Bulk-fetch a PR's comments, build a queue, walk each through the `/comment` (`driver-gate` triage) flow sequentially.
 Each fix → its own commit (user-reviewed). One push at the end, then reply + resolve all.
-Load `tdd` skill (fix phases), `caveman-commit` (per-fix commits).
+Load `driver-gate` (triage-loop pattern), `tdd` (fix phases), `git-commit` (per-fix commits).
 
 ## Input
 
@@ -13,7 +13,7 @@ PR URL/number: $1 — none? Resolve current branch's PR via `gh pr view --json u
 ## Phase 0: Bulk read
 
 1. Resolve PR URL: `$1`, else `gh pr view --json url`.
-2. Call `list-pr-comments` tool → normalized JSON queue: `items[]` with `index, kind (inline|review|conversation), threadId, path, line, author, body, url`, plus `total` + `skippedResolved`. Resolved threads + empty bodies already filtered.
+2. Call `list_pr_comments` (MCP) → normalized JSON queue: `items[]` with `index, kind (inline|review|conversation), threadId, path, line, author, body, url`, plus `total` + `skippedResolved`. Resolved threads + empty bodies already filtered.
 
 ## Phase 1: Present queue
 
@@ -23,9 +23,9 @@ List numbered: `N. path:line — author — one-line gist`. State total actionab
 
 For each item, in order:
 1. Header: `Comment N/total — path:line — author`. Then **quote the comment body verbatim** (blockquote) so the user sees what it refers to, with its `url`.
-2. Run the `/comment` flow: Phase 1 investigate → verdict (Real / False positive / Debatable) → **STOP, wait for user**.
+2. Run the `/comment` flow: triage (trivial → fast; load-bearing → show anchors, **withhold AI verdict, user commits their own read first**, then reveal + challenge) → **STOP, wait for user**. Skip only via `SKIP: <reason>`.
 3. Outcome:
-   - **Fix**: TDD (failing test → minimal fix → suite). Then **STOP — show the diff; user reviews.** On approval, commit as a **separate commit** (staged-only, conventional msg per `caveman-commit`; exactly one commit per fixed comment). Record commit sha.
+   - **Fix**: TDD (failing test → minimal fix → suite). Then **STOP — show the diff; user reviews.** On approval, commit as a **separate commit** (staged-only, conventional msg per `git-commit`; exactly one commit per fixed comment). Record commit sha.
    - **Ignore / false positive**: no change.
 4. Record the close note for later (fixed → what changed + commit sha; ignored → why). **Do NOT reply or resolve yet.**
 5. Advance to N+1.
@@ -37,14 +37,15 @@ Single `git push` of all the per-fix commits. Nothing fixed → skip.
 ## Phase 4: Reply + resolve
 
 For each handled item, post its recorded close note then resolve:
-- Inline (`threadId`): `resolve-pr-thread` tool with `threadId` + `replyBody` (reply, then resolve).
+- Inline (`threadId`): `resolve_pr_thread` with `threadId` + `replyBody` (reply, then resolve).
 - Review/conversation (`threadId` null): reply via `gh pr comment`, nothing to resolve.
 Confirm reply text with user before posting (outward-facing).
 
 ## Rules
 
 - Never batch verdicts — strictly one comment, one stop.
-- Phase 1 investigation mandatory per item; never assume a comment valid.
+- Load-bearing comments: never reveal AI's verdict before the user commits their read (driver-gate mechanic 3). Trivial → handle fast, don't manufacture a gate.
+- Any `SKIP:` is carried into the close note as an un-owned decision.
 - No fix without user confirmation. All fixes TDD. User reviews the diff before every commit.
 - One commit per fix. Reply/resolve happen only in Phase 4, after the single push.
 - Always quote the comment body being triaged — the user needs the original to judge. Verdict/analysis stays terse; code as `path:line`.
