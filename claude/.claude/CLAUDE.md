@@ -28,6 +28,7 @@ Discipline for any non-trivial plan — plan mode or ad-hoc, `/spec` or not. Sca
 - **Slice to ≤ ~5 min manual verify each;** get the SLICING approved before writing code (its own scoped approval — see Approvals). First PR of a new pattern may be fat (tracer bullet) — optimise the followers, not the first.
 - **Each acceptance criterion maps 1:1 to a verification step;** carry an explicit `## Out of scope` (surface-and-park), never silent drops.
 - **Don't plan from assumed/truncated context;** before finalising, check drift vs the ticket/PR description.
+- **High-stakes plans — refute before finalising.** Shared/irreversible/critical-path or multi-PR decomposition → fresh-context adversarial pass: agent given only ticket + plan, tasked to find the fatal flaw — unstated assumption, un-enumerated data-path consumer, mis-sequenced/oversized slice, acceptance criterion with no verification step. Same clean-context refutation as *Verify*, moved earlier (catches plan defects before they propagate into every downstream PR). Distinct from `/spec`'s judge panel (fork selection) — this refutes the chosen plan. Skip routine/reversible.
 
 ## Shared reasoning — keep me in the loop
 
