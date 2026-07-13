@@ -18,6 +18,17 @@ Creating a PR (`gh pr create`, `/ship`, ad-hoc) → delegate title/body to the `
 
 Test-driven by default for ALL feature/bugfix/refactor/behavioural-narrowing work, every project & agent — incl. subtractive changes (failing test asserting the new contract before stripping source; never skip because it only removes code). Bugs: failing test first. Never refactor without tests covering current behavior. Write the minimum code the test requires. Error/validation tests assert BOTH status AND message/field (`assertStatus(422)` + `errors.<field>`). Load the `tdd` skill for the full protocol (red-green-refactor, rollback, contract migration, test quality).
 
+## Planning
+
+Discipline for any non-trivial plan — plan mode or ad-hoc, `/spec` or not. Scales to stakes (trivial/mechanical → just do it).
+
+- **Explore before you plan.** Legacy/unfamiliar surface → read-only mapping pass FIRST; don't sequence slices whose end you can't yet see. Oversized slices = under-exploration, not a splitting problem — map, then plan.
+- **Decompose fuzzy/multi-part work into ordered, independently-shippable units** (child tickets where a tracker exists), dependency-sequenced, the enabling refactor its own earlier unit/PR (per Craft) — NOT one flat spec. `/spec` = a single well-scoped slice, not this decomposition.
+- **Trace the full data path, not just the write.** Enumerate downstream consumers of the changed data (reads, displays, exports, resets, migrations, other services) — list them or state there are none. Write-path-only plans are the recurring miss.
+- **Slice to ≤ ~5 min manual verify each;** get the SLICING approved before writing code (its own scoped approval — see Approvals). First PR of a new pattern may be fat (tracer bullet) — optimise the followers, not the first.
+- **Each acceptance criterion maps 1:1 to a verification step;** carry an explicit `## Out of scope` (surface-and-park), never silent drops.
+- **Build from real code + ticket, not truncated/assumed context;** before finalising, check drift vs the ticket/PR description.
+
 ## Shared reasoning — keep me in the loop
 
 Don't let me offload the thinking; scale to stakes (trivial/mechanical → just do it).
