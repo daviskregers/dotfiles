@@ -152,6 +152,37 @@ describe("stop / remove", function()
   end)
 end)
 
+describe("reseed_after_accept", function()
+  before_each(reset_env)
+
+  it("keeps the agent registered and refreshes its seed (accepting a merge no longer ends the session)",
+    function()
+      local repo = vim.fn.tempname(); vim.fn.mkdir(repo, "p")
+      local function git(...) vim.system({ "git", "-C", repo, ... }, {}):wait() end
+      git("init", "-q"); git("config", "user.email", "t@t"); git("config", "user.name", "t")
+      vim.fn.writefile({ "x" }, repo .. "/f.txt"); git("add", "-A"); git("commit", "-qm", "i")
+      local wtpath = repo .. "/.wt/x"
+      require("code-agents.worktree").create(repo, wtpath, "code-agents/x")
+
+      local a = core.dispatch({ verb = "command", prompt = "p" })
+      a.worktree, a.repo, a.seed = wtpath, repo, "HEAD"
+
+      -- Simulate the merge that just landed: the live tree now has this uncommitted
+      -- change (what wtm.apply() would have just written via `git apply`).
+      vim.fn.writefile({ "merged-change" }, repo .. "/f.txt")
+
+      core.reseed_after_accept(a.id, repo)
+
+      assert.are.equal(1, #core.list())    -- still registered — session survives accept
+      assert.is_not_nil(core.get(a.id))
+      assert.are_not.equal("HEAD", a.seed) -- seed refreshed to the new (post-merge) live state
+      -- worktree resynced to the merged live state, ready to keep working from it
+      assert.are.same({ "merged-change" }, vim.fn.readfile(wtpath .. "/f.txt"))
+
+      vim.fn.delete(repo, "rf")
+    end)
+end)
+
 describe("steer", function()
   before_each(reset_env)
 

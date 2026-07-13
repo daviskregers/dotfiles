@@ -40,6 +40,29 @@ describe("prompts.command", function()
   it("works with no context", function()
     assert.is_truthy(p.command("make a new module"):find("make a new module", 1, true))
   end)
+
+  it("steers exploration toward the Read/Grep/Glob tools", function()
+    local prompt = p.command("do x")
+    assert.is_truthy(prompt:find("Grep", 1, true))
+    assert.is_truthy(prompt:find("Read", 1, true))
+  end)
+
+  it("frames an autonomous background agent that doesn't pause to ask", function()
+    assert.is_truthy(p.command("do x"):lower():find("without pausing to ask", 1, true))
+  end)
+
+  it("discourages approval-gated bash (prefer tools; keep bash to plain reads in-worktree)", function()
+    local prompt = p.command("do x"):lower()
+    assert.is_truthy(prompt:find("approval", 1, true))
+  end)
+
+  it("stays surgical without forbidding tests (must not conflict with TDD)", function()
+    local prompt = p.command("do x"):lower()
+    assert.is_truthy(prompt:find("surgical", 1, true))
+    -- must NOT tell the agent to skip tests — that would contradict the TDD rule in CLAUDE.md
+    assert.is_nil(prompt:find("no tests", 1, true))
+    assert.is_nil(prompt:find("don't add tests", 1, true))
+  end)
 end)
 
 describe("prompts.inject_focus", function()

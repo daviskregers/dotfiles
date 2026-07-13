@@ -103,6 +103,16 @@ if [ -n "$SEVEN_D" ]; then
   LIMITS="${LIMITS} | ${SEVEN_COLOR}7d:${SEVEN_D_INT}%${SEVEN_RESET_STR}\033[0m"
 fi
 
+# --- Cache for nvim code-agents statusline segment (read via code-agents/statusline.lua) ---
+if [ -n "$FIVE_H" ]; then
+  mkdir -p "$HOME/.claude/cache"
+  jq -n --argjson updated_at "$(date +%s)" \
+        --argjson used_percentage "$FIVE_H" \
+        --argjson resets_at "${FIVE_RESET:-null}" \
+        '{updated_at: $updated_at, five_hour: {used_percentage: $used_percentage, resets_at: $resets_at}}' \
+        > "$HOME/.claude/cache/rate-limits.json"
+fi
+
 # --- Cost ---
 COST=$(echo "$INPUT" | jq -r '.cost.total_cost_usd // empty' 2>/dev/null)
 COST_STR=""

@@ -38,6 +38,13 @@ local function read_visual()
   return table.concat(lines, "\n"), fname, sl, el, ft
 end
 
+-- Whole-buffer content for normal-mode explain (visual mode explains the selection).
+local function read_buffer()
+  local lines = vim.api.nvim_buf_get_lines(0, 0, -1, false)
+  local fname = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(0), ":.")
+  return table.concat(lines, "\n"), fname, 1, #lines
+end
+
 local function confirm(msg)
   return vim.fn.confirm(msg, "&Yes\n&No", 2) == 1
 end
@@ -210,31 +217,40 @@ local function fuzzy_pick(items, prompt, on_choice)
   }):find()
 end
 
+-- Pick provider → model → reasoning effort, then cb(provider, model, effort).
+-- effort is nil when the provider/model exposes no levels (picker skips the step)
+-- → the provider CLI default stands, exactly as before this knob existed.
 local function pick_provider_model(cb)
   local providers = vim.tbl_keys(core.config.providers)
   table.sort(providers)
   fuzzy_pick(providers, "Provider", function(provider)
+    local function with_model(model)
+      local efforts = core.efforts(provider, model)
+      if not efforts or #efforts == 0 then return cb(provider, model, nil) end
+      fuzzy_pick(efforts, "Effort (" .. provider .. ")", function(effort) cb(provider, model, effort) end)
+    end
     local models = core.models(provider)
-    if not models or #models == 0 then return cb(provider, nil) end
-    fuzzy_pick(models, "Model (" .. provider .. ")", function(model) cb(provider, model) end)
+    if not models or #models == 0 then return with_model(nil) end
+    fuzzy_pick(models, "Model (" .. provider .. ")", with_model)
   end)
 end
 
 -- ── verbs ────────────────────────────────────────────────────────────────────
 
-local function explain(provider, model)
-  local sel, fname, sl, el = read_visual()
-  if sel == "" then return vim.notify("empty selection", vim.log.levels.INFO) end
-  local a = core.dispatch({ verb = "explain", provider = provider, model = model,
-    prompt = prompts.explain(sel, fname, sl, el) })
-  open_conversation(a)
+-- Dispatch an explain agent over source (sel,fname,sl,el); guards empty, opens the
+-- view. provider/model/effort optional (nil = plugin default). The single guard for
+-- every explain binding — callers only acquire the source (selection or whole file).
+local function explain(sel, fname, sl, el, provider, model, effort)
+  if sel == "" then return vim.notify("nothing to explain", vim.log.levels.INFO) end
+  open_conversation(core.dispatch({ verb = "explain", provider = provider, model = model, effort = effort,
+    prompt = prompts.explain(sel, fname, sl, el) }))
 end
 
 -- Command / write verb: hand a task to a BACKGROUND agent working in its own
 -- isolated worktree (seeded from your live state). Edits are auto-allowed there
 -- (safe — isolated); Bash still prompts (<leader>aw). Review its diff on done
 -- via <leader>ar — nothing merges to your tree until you accept.
-local function command(context, provider, model)
+local function command(context, provider, model, effort)
   ui.prompt("Command", function(task)
     local wtm = require("code-agents.worktree")
     local repo = core.repo_top()
@@ -244,7 +260,7 @@ local function command(context, provider, model)
     local path = wtm.path(vim.fn.stdpath("cache") .. "/code-agents", vim.fn.fnamemodify(repo, ":t"), id)
     local ok, seed = wtm.create(repo, path, wtm.branch_prefix .. id)
     if not ok then return vim.notify("code-agents: worktree create failed", vim.log.levels.ERROR) end
-    local a = core.dispatch({ verb = "command", provider = prov, model = model, permit = true,
+    local a = core.dispatch({ verb = "command", provider = prov, model = model, effort = effort, permit = true,
       session = sid, prompt = prompts.command(task, context), cwd = path, worktree = path, seed = seed })
     a.repo = repo
     vim.notify("code-agents: " .. a.id .. " running in background — <leader>ar to review when done")
@@ -253,18 +269,19 @@ end
 
 -- Ask: a free-form question about the repo → cited prose answer in the
 -- conversation (read-only). Visual mode passes the selection as context.
-local function ask(context, provider, model)
+local function ask(context, provider, model, effort)
   ui.prompt("Ask", function(q)
-    local a = core.dispatch({ verb = "ask", provider = provider, model = model, prompt = prompts.ask(q, context) })
+    local a = core.dispatch({ verb = "ask", provider = provider, model = model, effort = effort,
+      prompt = prompts.ask(q, context) })
     open_conversation(a)
   end)
 end
 
-local function search(provider, model)
+local function search(provider, model, effort)
   ui.prompt("Search", function(q)
     local a -- declared first so on_done's closure captures the local, not a nil global
     a = core.dispatch({
-      verb = "search", provider = provider, model = model, prompt = prompts.search(q),
+      verb = "search", provider = provider, model = model, effort = effort, prompt = prompts.search(q),
       on_done = function(text, code)
         local r = core.on_search_complete(text, code)
         if r.action == "error" then
@@ -328,9 +345,10 @@ local function pick_agent(prompt, fn)
   }):find()
 end
 
--- Review a finished agent's worktree diff: accept (merge to live) / reject
--- (discard) / improve (steer). On a merge conflict, the worktree is re-seeded to
--- your current state and the agent is sent back to redo — live tree untouched.
+-- Review a finished agent's worktree diff: accept (merge to live, keep session
+-- alive to test/steer further) / reject (discard) / improve (steer). On a merge
+-- conflict, the worktree is re-seeded to your current state and the agent is
+-- sent back to redo — live tree untouched.
 function review_agent(a)
   if not a.worktree then return vim.notify("no changes to review for " .. a.id, vim.log.levels.INFO) end
   local wtm = require("code-agents.worktree")
@@ -368,8 +386,12 @@ function review_agent(a)
     local status = wtm.apply(repo, a.worktree, a.seed)
     close()
     if status == "applied" then
-      core.remove(a.id); core.reload_changed() -- merged; remove discards the worktree
-      vim.notify("code-agents: merged " .. a.id)
+      -- Keep the session: reseed (not remove) so the worktree lands back in sync
+      -- with the now-merged live tree — you can test the change, then steer this
+      -- same agent to continue, instead of losing it the moment you accept.
+      core.reseed_after_accept(a.id, repo)
+      core.reload_changed()
+      vim.notify("code-agents: merged " .. a.id .. " — session kept, ready to continue")
     elseif status == "error" then
       -- Diff FAILED (e.g. seed unresolvable) — work is still in the worktree. Never
       -- discard or reseed (reseed would clobber it): keep it and point the user at it.
@@ -410,19 +432,19 @@ end
 -- Launcher: pick one of the plugin's verbs to run. Lists the current verbs for
 -- now; grows to custom saved prompts later. Visual mode captures the selection
 -- up-front (the picker leaves visual mode) and passes it as context.
--- provider/model (optional) are threaded into the chosen verb — the capital
--- <leader>aP variant picks them up-front, mirroring <leader>ac / <leader>aC.
-local function pick_prompt(sel, fname, sl, el, ft, provider, model)
+-- provider/model/effort (optional) are threaded into the chosen verb — the
+-- capital <leader>aP variant picks them up-front, mirroring <leader>ac / <leader>aC.
+local function pick_prompt(sel, fname, sl, el, ft, provider, model, effort)
   local has_sel = sel ~= nil and sel ~= ""
   local ctx = has_sel and
     string.format("Context — `%s` lines %d-%d:\n```%s\n%s\n```", fname, sl, el, ft, sel) or nil
   local verbs = {
-    { name = "ask", run = function() ask(ctx, provider, model) end },
-    { name = "command", run = function() command(ctx, provider, model) end },
-    { name = "search", run = function() search(provider, model) end },
+    { name = "ask", run = function() ask(ctx, provider, model, effort) end },
+    { name = "command", run = function() command(ctx, provider, model, effort) end },
+    { name = "search", run = function() search(provider, model, effort) end },
     { name = "explain", run = function()
       if not has_sel then return vim.notify("explain needs a selection", vim.log.levels.INFO) end
-      open_conversation(core.dispatch({ verb = "explain", provider = provider, model = model,
+      open_conversation(core.dispatch({ verb = "explain", provider = provider, model = model, effort = effort,
         prompt = prompts.explain(sel, fname, sl, el) }))
     end },
   }
@@ -432,16 +454,25 @@ end
 
 -- ── bindings ─────────────────────────────────────────────────────────────────
 
-vim.keymap.set("x", "<leader>ae", function() explain() end, { desc = "code-agents: explain selection" })
+-- Normal mode explains the whole file; visual mode explains just the selection.
+-- Capital variant picks provider/model/effort first. read_visual returns a 5th value
+-- (ft) — destructured into locals so it never lands in explain's provider slot.
+vim.keymap.set("n", "<leader>ae", function() explain(read_buffer()) end,
+  { desc = "code-agents: explain file" })
+vim.keymap.set("x", "<leader>ae", function()
+  local sel, fname, sl, el = read_visual()
+  explain(sel, fname, sl, el)
+end, { desc = "code-agents: explain selection" })
+
+local function explain_pick(sel, fname, sl, el)
+  pick_provider_model(function(p, m, e) explain(sel, fname, sl, el, p, m, e) end)
+end
+vim.keymap.set("n", "<leader>aE", function() explain_pick(read_buffer()) end,
+  { desc = "code-agents: explain file (pick model)" })
 vim.keymap.set("x", "<leader>aE", function()
   local sel, fname, sl, el = read_visual()
-  if sel == "" then return vim.notify("empty selection", vim.log.levels.INFO) end
-  pick_provider_model(function(provider, model)
-    local a = core.dispatch({ verb = "explain", provider = provider, model = model,
-      prompt = prompts.explain(sel, fname, sl, el) })
-    open_conversation(a)
-  end)
-end, { desc = "code-agents: explain (pick model)" })
+  explain_pick(sel, fname, sl, el)
+end, { desc = "code-agents: explain selection (pick model)" })
 
 vim.api.nvim_create_user_command("CodeAgentsLog", function()
   vim.cmd("botright split " .. vim.fn.fnameescape(vim.fn.stdpath("cache") .. "/code-agents.log"))
@@ -465,15 +496,15 @@ vim.keymap.set("x", "<leader>ac", function()
   command(ctx)
 end, { desc = "code-agents: command with selection" })
 
--- Capital variant: pick provider (claude / opencode) + model for this command.
+-- Capital variant: pick provider (claude / opencode) + model + effort for this command.
 vim.keymap.set("n", "<leader>aC", function()
-  pick_provider_model(function(provider, model) command(nil, provider, model) end)
+  pick_provider_model(function(provider, model, effort) command(nil, provider, model, effort) end)
 end, { desc = "code-agents: command (pick provider/model)" })
 vim.keymap.set("x", "<leader>aC", function()
   local sel, fname, sl, el, ft = read_visual()
   local ctx = sel ~= "" and
     string.format("Context — `%s` lines %d-%d:\n```%s\n%s\n```", fname, sl, el, ft, sel) or nil
-  pick_provider_model(function(provider, model) command(ctx, provider, model) end)
+  pick_provider_model(function(provider, model, effort) command(ctx, provider, model, effort) end)
 end, { desc = "code-agents: command with selection (pick provider/model)" })
 
 vim.keymap.set("n", "<leader>af", edit_focus, { desc = "code-agents: set session focus" })
@@ -488,7 +519,7 @@ end, { desc = "code-agents: ask about selection" })
 
 vim.keymap.set("n", "<leader>pq", function() search() end, { desc = "code-agents: search → quickfix" })
 vim.keymap.set("n", "<leader>pQ", function()
-  pick_provider_model(function(provider, model) search(provider, model) end)
+  pick_provider_model(function(provider, model, effort) search(provider, model, effort) end)
 end, { desc = "code-agents: search (pick model)" })
 
 -- Review finished background agents' changes (accept/reject/improve their diff).
@@ -518,14 +549,14 @@ vim.keymap.set("x", "<leader>ap", function() pick_prompt(read_visual()) end,
 
 -- Capital variant: pick provider (claude / opencode) + model for the verb.
 vim.keymap.set("n", "<leader>aP", function()
-  pick_provider_model(function(provider, model)
-    pick_prompt(nil, nil, nil, nil, nil, provider, model)
+  pick_provider_model(function(provider, model, effort)
+    pick_prompt(nil, nil, nil, nil, nil, provider, model, effort)
   end)
 end, { desc = "code-agents: run a prompt (pick provider/model)" })
 vim.keymap.set("x", "<leader>aP", function()
   local sel, fname, sl, el, ft = read_visual() -- capture before the picker leaves visual mode
-  pick_provider_model(function(provider, model)
-    pick_prompt(sel, fname, sl, el, ft, provider, model)
+  pick_provider_model(function(provider, model, effort)
+    pick_prompt(sel, fname, sl, el, ft, provider, model, effort)
   end)
 end, { desc = "code-agents: run a prompt with selection (pick provider/model)" })
 

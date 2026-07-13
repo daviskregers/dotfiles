@@ -28,9 +28,20 @@ end
 
 function M.command(task, context)
   return table.concat({
-    "Make the following change to this repository. Edit files directly with your",
-    "Write/Edit tools (each edit will be approved in the editor). Be surgical —",
-    "change only what the task requires.",
+    "Make the following change to this repository, editing files directly with",
+    "your Write/Edit tools (edits are reviewed before they merge to the working",
+    "tree). You're an autonomous background agent: work without pausing to ask",
+    "for confirmation or feedback, and end with a one- or two-sentence summary —",
+    "the diff is the record.",
+    "",
+    "Work surgically:",
+    "- Prefer the Read/Grep/Glob tools over bash (grep/cat/find) and worktree-",
+    "  relative paths — those run without approval. Bash that mutates, runs outside",
+    "  the worktree, or isn't a plain read stalls waiting for me, so avoid it unless",
+    "  the task needs it. Read a whole file in one call, not ranges; batch reads.",
+    "- Change only what the task needs — no abstractions, helpers, or error",
+    "  handling that weren't asked for. Tests for the change are part of it, not",
+    "  extra.",
     "",
     "Task: " .. (task or ""),
     context or "",

@@ -1,5 +1,5 @@
 -- Headless test bootstrap for plenary.busted.
--- Run:  nvim --headless -u tests/minimal_init.lua -c "PlenaryBustedDirectory tests/"
+-- Run:  make test  (see ../Makefile)
 local data = vim.fn.stdpath("data")
 vim.opt.rtp:append(data .. "/lazy/plenary.nvim")
 vim.opt.rtp:append(data .. "/site/pack/core/opt/plenary.nvim")

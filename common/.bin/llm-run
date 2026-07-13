@@ -14,7 +14,10 @@ line-delimited event stream on stdout, one JSON object per line:
 Consumers (nvim llm-agent/transport.lua) parse only these types.
 
 Usage:
-    llm-run <provider> [-m MODEL] [--agent NAME] [--session ID] [--resume] -- PROMPT
+    llm-run <provider> [-m MODEL] [--effort LEVEL] [--agent NAME] [--session ID] [--resume] -- PROMPT
+
+--effort is the provider-agnostic reasoning-effort knob: claude --effort
+(low|medium|high|xhigh|max), opencode --variant (provider-specific, e.g. high).
 
 claude is verified end-to-end. opencode is best-effort (untested — validate on an
 opencode machine); its raw event shapes may need adjustment in normalize_opencode.
@@ -37,7 +40,7 @@ def parse_args(args):
     if not args:
         die("usage: llm-run <provider> [flags] -- PROMPT")
     provider, rest = args[0], args[1:]
-    opts = {"model": None, "agent": None, "session": None, "resume": False, "permit": False}
+    opts = {"model": None, "effort": None, "agent": None, "session": None, "resume": False, "permit": False}
     prompt_parts, i = [], 0
     while i < len(rest):
         a = rest[i]
@@ -46,6 +49,8 @@ def parse_args(args):
             break
         elif a in ("-m", "--model"):
             i += 1; opts["model"] = rest[i]
+        elif a == "--effort":
+            i += 1; opts["effort"] = rest[i]
         elif a == "--agent":
             i += 1; opts["agent"] = rest[i]
         elif a == "--session":
@@ -77,9 +82,14 @@ def build_command(provider, o, prompt):
 
 
 def build_claude(o, prompt):
-    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose"]
+    # --strict-mcp-config + no --mcp-config → zero MCP servers. These are repo-scoped
+    # code agents; the user's global MCP tools (Gmail/Drive/etc.) are irrelevant here
+    # and a privacy/context-bloat liability, so drop them all.
+    cmd = ["claude", "-p", prompt, "--output-format", "stream-json", "--verbose", "--strict-mcp-config"]
     if o["model"]:
         cmd += ["--model", o["model"]]
+    if o["effort"]:
+        cmd += ["--effort", o["effort"]]  # low|medium|high|xhigh|max
     if o["agent"]:
         cmd += ["--agent", o["agent"]]
     if o["resume"] and o["session"]:
@@ -95,6 +105,8 @@ def build_opencode(o, prompt):
     cmd = ["opencode", "run", "--format", "json"]
     if o["model"]:
         cmd += ["-m", o["model"]]
+    if o["effort"]:
+        cmd += ["--variant", o["effort"]]  # opencode's name for provider reasoning effort
     if o["agent"]:
         cmd += ["--agent", o["agent"]]
     if o["session"]:

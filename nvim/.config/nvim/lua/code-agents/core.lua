@@ -15,9 +15,12 @@ local transcript_ns = vim.api.nvim_create_namespace("code_agents_transcript")
 -- the cross-machine default). Override on opencode machines via local-config.
 M.default_provider = "claude"
 M.default_agent_file = nil
+-- default_effort: reasoning effort sent on every turn unless a pick variant
+-- overrides it. claude → high (deterministic; overrides the CLI's implicit
+-- default). opencode has none → its own default stands until set per-machine.
 M.config = {
   providers = {
-    claude = { default_model = "opus" },
+    claude = { default_model = "opus", default_effort = "high" },
     opencode = { default_model = "opencode/kimi-k2.7-code" },
   },
 }
@@ -91,7 +94,7 @@ end
 -- Returns nil when unknown → caller falls back to the provider's default_model.
 -- opencode ids left unset until confirmed on an opencode machine.
 M.verb_model_default = {
-  claude = { search = "haiku", explain = "sonnet", command = "opus" },
+  claude = { search = "haiku", explain = "sonnet", command = "sonnet" },
   opencode = {},
 }
 
@@ -225,6 +228,13 @@ function M.resolve_model(provider, verb, override)
   return M.model_for(provider, verb) or (M.config.providers[provider] or {}).default_model
 end
 
+-- Resolve reasoning effort: explicit override (from a pick variant) → the
+-- provider's default_effort → nil (provider's own CLI default stands).
+function M.resolve_effort(provider, override)
+  if override and override ~= "" then return override end
+  return (M.config.providers[provider] or {}).default_effort
+end
+
 -- ── dispatch (shell — validated live) ────────────────────────────────────────
 
 -- Reload buffers whose files an agent changed on disk, so approved edits show
@@ -245,13 +255,15 @@ local function next_id(verb)
 end
 
 -- Dispatch a read verb (explain/search) — no worktree, cwd = repo top, read-only.
--- opts: verb, prompt, provider, model (override), agent, on_text(chunk),
--- on_done(full_text, code). Returns the agent record. Parallel-safe.
+-- opts: verb, prompt, provider, model (override), effort (reasoning-effort
+-- override, from the pick variants), agent, on_text(chunk), on_done(full_text,
+-- code). Returns the agent record. Parallel-safe.
 function M.dispatch(opts)
   local provider = opts.provider or M.current_default_provider()
   local model = M.resolve_model(provider, opts.verb, opts.model)
   local a = {
     id = next_id(opts.verb), verb = opts.verb, provider = provider, model = model,
+    effort = M.resolve_effort(provider, opts.effort), -- override → provider default → nil
     agent_type = opts.agent, status = "running", chunks = {}, transcript = {},
     permit = opts.permit, -- route this agent's tool permissions back to nvim
     cwd = opts.cwd,       -- run here (an isolated worktree) instead of the repo root
@@ -391,9 +403,13 @@ local function finish_turn(a, code, stderr, opts)
 end
 
 -- Route an opencode ACP permission request through the shared async bridge.
+-- Pass the agent's cwd so bash path-scoping applies here too (ACP carries no cwd
+-- of its own; without it, path-scoping silently disables for opencode).
 local function on_acp_permission(entry)
   local perm = require("code-agents.permission")
-  if perm.resolve_auto(entry.tool, entry.input) then entry.respond("once") else perm.add_pending(entry) end
+  local a = entry.session and M.find_by_session(entry.session)
+  local cwd = a and (a.cwd or M.repo_top()) or nil
+  if perm.resolve_auto(entry.tool, entry.input, cwd) then entry.respond("once") else perm.add_pending(entry) end
 end
 
 -- Run/resume one turn for agent `a`. claude → llm-run (+PreToolUse hook bridge);
@@ -434,7 +450,7 @@ function M._launch(a, prompt, opts)
   end
 
   local ok, proc = pcall(transport.run, {
-    provider = a.provider, model = a.model, agent = a.agent_type, prompt = prompt,
+    provider = a.provider, model = a.model, effort = a.effort, agent = a.agent_type, prompt = prompt,
     session = a.session, resume = opts.resume, permit = a.permit, cwd = a.cwd or M.repo_top(),
     on_event = function(ev) ingest_event(a, ev, opts) end,
     on_exit = function(code, stderr) finish_turn(a, code, stderr, opts) end,
@@ -484,6 +500,16 @@ function M.remove(id)
     pcall(function() require("code-agents.worktree").discard(a.repo or M.repo_top(), a.worktree) end)
   end
   state.agents[id] = nil
+end
+
+-- After merging an accepted agent's diff into the live tree, keep the session
+-- alive instead of discarding it: reseed its worktree to the new (post-merge)
+-- live state, so future diffs show only new work and the agent stays steerable
+-- for testing/feedback/continuation.
+function M.reseed_after_accept(id, repo)
+  local a = state.agents[id]
+  if not a or not a.worktree then return end
+  a.seed = require("code-agents.worktree").reseed(repo, a.worktree)
 end
 
 function M.remove_all()
@@ -551,6 +577,57 @@ function M.models(provider)
     return M._opencode_models
   end
   return { "opus", "sonnet", "haiku", "fable" }
+end
+
+-- Canonical effort/variant ordering — `high` leads (the sensible default we
+-- surface first in the picker); unknown levels sort last but stay stable.
+local EFFORT_ORDER = { high = 1, medium = 2, low = 3, xhigh = 4, max = 5, minimal = 6 }
+local function sort_efforts(list)
+  table.sort(list, function(a, b)
+    local ra, rb = EFFORT_ORDER[a] or 99, EFFORT_ORDER[b] or 99
+    if ra == rb then return a < b end
+    return ra < rb
+  end)
+  return list
+end
+
+-- Parse `opencode models --verbose` (repeated `provider/id` header + pretty JSON
+-- block) → { ["providerID/id"] = {variant keys, high first} }. Pure. A brace-depth
+-- scan isolates each top-level object; blocks that fail to decode are skipped.
+function M.parse_opencode_variants(output)
+  local map, buf, depth = {}, nil, 0
+  for line in ((output or "") .. "\n"):gmatch("(.-)\n") do
+    local delta = select(2, line:gsub("{", "")) - select(2, line:gsub("}", ""))
+    if not buf then
+      if line:match("^%s*{") then buf, depth = line, delta end
+    else
+      buf, depth = buf .. "\n" .. line, depth + delta
+    end
+    if buf and depth <= 0 then
+      local ok, d = pcall(vim.json.decode, buf)
+      if ok and type(d) == "table" and d.id then
+        local keys = {}
+        for k in pairs(d.variants or {}) do keys[#keys + 1] = k end
+        map[(d.providerID or "opencode") .. "/" .. d.id] = sort_efforts(keys)
+      end
+      buf, depth = nil, 0
+    end
+  end
+  return map
+end
+
+-- Selectable reasoning-effort levels for the shift-variant picker, `high` first.
+-- claude = static CLI levels; opencode = the chosen model's variant set, queried
+-- live (cached) from `opencode models --verbose`. Empty → picker skips the step.
+function M.efforts(provider, model)
+  if provider == "opencode" then
+    if not M._opencode_variants then
+      local res = vim.system({ "opencode", "models", "--verbose" }, { text = true }):wait()
+      M._opencode_variants = (res.code == 0 and M.parse_opencode_variants(res.stdout)) or {}
+    end
+    return M._opencode_variants[model] or {}
+  end
+  return { "high", "medium", "low", "xhigh", "max" }
 end
 
 -- Rebuild agents from existing worktrees after an nvim restart. Each worktree
