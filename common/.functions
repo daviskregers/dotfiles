@@ -85,7 +85,7 @@ alias tl='tmux list-sessions'
 alias ts='~/.local/bin/tmux-sessionizer'
 alias np='~/.local/bin/tmux-new-project'
 
-alias wezcfg='nvim ~/.config/wezterm/wezterm.lua'
+alias ghosttycfg='nvim ~/.config/ghostty/config'
 
 alias ans='tmuxp load -s ansible ~/.tmuxp/ansible.yaml'
 if [[ -f ~/.tmuxp/alias ]]; then

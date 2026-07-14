@@ -1,5 +1,8 @@
 # eval "$(direnv hook zsh)"
 
+# Ensure nix profile binaries take precedence
+export PATH="$HOME/.nix-profile/bin:$PATH"
+
 if [[ -d "/usr/share/oh-my-zsh" ]]; then
     export ZSH="/usr/share/oh-my-zsh"
 elif [[ -d "$HOME/.nix-profile/share/oh-my-zsh" ]]; then
