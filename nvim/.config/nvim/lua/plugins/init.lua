@@ -22,6 +22,7 @@ require("plugins.diffview")
 require("plugins.neogit")
 require("plugins.gitsigns")
 require("plugins.colorscheme")
+require("plugins.http")
 
 -- LEGACY / slop — to rewrite. Each is independent; delete the line + its lua/ folder to drop.
 require("agents")
