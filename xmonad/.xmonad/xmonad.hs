@@ -81,7 +81,7 @@ myModMask :: KeyMask
 myModMask = mod4Mask        -- Sets modkey to super/windows key
 
 myTerminal :: String
-myTerminal = "wezterm"    -- Sets default terminal
+myTerminal = "ghostty"    -- Sets default terminal
 
 myFileExplorer :: String
 myFileExplorer = "nautilus"    -- Sets default file explorer
@@ -159,13 +159,13 @@ scratchpads :: [NamedScratchpad]
 scratchpads = [
                     NS "authy" "authy" (className =? "Authy Desktop") (customFloating $ center 0.3 0.3),
                     NS "blueberry" "blueberry" (className =? "Blueberry.py") (customFloating $ center 0.6 0.6),
-                    NS "btop" "wezterm start --class btop -- btop" (className =? "btop") (customFloating $ center 0.6 0.6),
-                    NS "ctop" "wezterm start --class ctop -- ctop" (className =? "ctop") (customFloating $ center 0.6 0.6),
+                    NS "btop" "ghostty -c btop btop" (className =? "btop") (customFloating $ center 0.6 0.6),
+                    NS "ctop" "ghostty -c ctop ctop" (className =? "ctop") (customFloating $ center 0.6 0.6),
                     NS "mailspring" "mailspring" (className =? "Mailspring") (customFloating $ center 0.9 0.9),
                     NS "notion" "notion-app" (className =? "notion-app") (customFloating $ center 0.9 0.9),
                     NS "slack" "slack" (className =? "Slack") (customFloating $ center 0.9 0.9),
                     NS "spotify" "spotify" (className =? "Spotify") (customFloating $ center 0.6 0.6),
-                    NS "terminal" "wezterm start --class terminal" (className =? "terminal") (customFloating $ center 0.6 0.6),
+                    NS "terminal" "ghostty -c terminal" (className =? "terminal") (customFloating $ center 0.6 0.6),
                     NS "todo" "todoist" (className =? "Todoist") (customFloating $ center 0.6 0.9),
                     NS "1password" "1password" (className =? "1Password") (customFloating $ center 0.6 0.9)
                 ]
