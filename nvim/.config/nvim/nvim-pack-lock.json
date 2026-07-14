@@ -29,6 +29,10 @@
       "rev": "d28a3f70721c79e3c5f6693057ae929f3d9c0a03",
       "src": "https://github.com/lukas-reineke/indent-blankline.nvim"
     },
+    "kulala.nvim": {
+      "rev": "a9e17ae0236e886371671a7a9f01f070201a9cc1",
+      "src": "https://github.com/mistweaverco/kulala.nvim"
+    },
     "mason.nvim": {
       "rev": "2a6940af80375532e5e9e7c1f2fc6319a1b7a69d",
       "src": "https://github.com/mason-org/mason.nvim"
