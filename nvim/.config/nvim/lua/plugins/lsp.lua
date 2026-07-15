@@ -56,7 +56,14 @@ vim.lsp.config("lua_ls", {
     root_markers = { ".luarc.json", ".luarc.jsonc", ".git" },
     settings = {
         Lua = {
-            diagnostics = { globals = { "vim" } },
+            -- Real Neovim runtime types → defines `vim` AND gives vim.* completion/
+            -- signatures everywhere. Do NOT also list `vim` in diagnostics.globals:
+            -- that stubs it as `any` and kills autocomplete.
+            runtime = { version = "LuaJIT" },
+            workspace = {
+                library = vim.api.nvim_get_runtime_file("lua", true),
+                checkThirdParty = false,
+            },
         },
     },
 })
