@@ -18,6 +18,32 @@ CLAUDE_PROJECTS = Path.home() / ".claude" / "projects"
 OPENCODE_STORAGE = Path.home() / ".local" / "share" / "opencode" / "storage"
 POINTER = Path.home() / ".config" / "capture-dir"
 
+USER_HEAD = "## 👤 User"
+SYS_HEAD = "## ⚙️ System / Automated"     # harness/automation prose — NOT typed by the human
+ASSISTANT_HEAD = "## 🤖 Assistant"
+
+# Prose that lands in a role=user record but is emitted by the harness/orchestration,
+# not typed by the human. Matched case-insensitively as a prefix of the record text.
+AUTOMATION_PREFIXES = (
+    "make the following change to this repository",
+    "your changes no longer apply cleanly",
+    "session focus (applies to this task)",
+    "continue from where you left off",
+    "summarize the task tool output above",
+    "this session is being continued from a previous",
+    "caveat: the messages below",
+    "[request interrupted by user",
+)
+
+
+def is_automated_prose(text):
+    """True if this user-record prose came from the harness/automation, not a human."""
+    t = text.lstrip()
+    if "<command-name>" in t or "<local-command-stdout>" in t:
+        return True
+    low = t.lower()
+    return any(low.startswith(p) for p in AUTOMATION_PREFIXES)
+
 
 def die(msg):
     print(f"convo-sync: {msg}", file=sys.stderr)
@@ -81,7 +107,6 @@ def render_claude(jsonl, full):
         if t not in ("user", "assistant"):
             continue
         content = d.get("message", {}).get("content")
-        head = "## 👤 User" if t == "user" else "## 🤖 Assistant"
         parts = []
         if isinstance(content, str):
             parts.append(content)
@@ -104,8 +129,16 @@ def render_claude(jsonl, full):
                         body = " ".join(x.get("text", "") for x in body if isinstance(x, dict))
                     parts.append("> ↳ _result_\n" + blockquote(body if full else trunc(str(body), 200)))
         text = "\n\n".join(p for p in parts if p and p.strip())
-        if text.strip():
-            out.append(f"{head}\n\n{text}\n")
+        if not text.strip():
+            continue
+        if t == "assistant":
+            head = ASSISTANT_HEAD
+        else:  # role=user carries human turns, tool results, meta/summary, and automation prose
+            has_result = isinstance(content, list) and any(
+                isinstance(b, dict) and b.get("type") == "tool_result" for b in content)
+            flagged = d.get("isMeta") or d.get("isCompactSummary") or d.get("isSidechain")
+            head = SYS_HEAD if (flagged or has_result or is_automated_prose(text)) else USER_HEAD
+        out.append(f"{head}\n\n{text}\n")
 
     return doc(project or "unknown", date or "0000-00-00", title,
                jsonl.stem, jsonl.stem[:8], "claude", out)
@@ -134,7 +167,6 @@ def render_oc(sfile, full, subagents):
 
     out = []
     for m in msgs:
-        head = "## 👤 User" if m.get("role") == "user" else "## 🤖 Assistant"
         pdir = OPENCODE_STORAGE / "part" / m.get("id", "")
         parts = []
         if pdir.is_dir():
@@ -158,8 +190,13 @@ def render_oc(sfile, full, subagents):
                         parts.append("> ↳ _result_\n" + blockquote(
                             st["output"] if full else trunc(str(st["output"]), 200)))
         text = "\n\n".join(x for x in parts if x and x.strip())
-        if text.strip():
-            out.append(f"{head}\n\n{text}\n")
+        if not text.strip():
+            continue
+        if m.get("role") == "user":
+            head = SYS_HEAD if is_automated_prose(text) else USER_HEAD
+        else:
+            head = ASSISTANT_HEAD
+        out.append(f"{head}\n\n{text}\n")
 
     return doc(project, date, s.get("title"), sid, sid.replace("ses_", "")[:8], "opencode", out)
 
@@ -175,8 +212,9 @@ def trunc(s, n):
 
 def first_words(out, n=6):
     for chunk in out:
-        clean = re.sub(r"<[^>]+>", " ", chunk)          # drop <command-*> wrappers
-        words = re.sub(r"[#>`*_]", "", clean).split()[2:]  # skip "👤 User"
+        body = chunk.split("\n\n", 1)[1] if "\n\n" in chunk else chunk  # drop the heading line
+        clean = re.sub(r"<[^>]+>", " ", body)           # drop <command-*> wrappers
+        words = re.sub(r"[#>`*_]", "", clean).split()
         if words:
             return " ".join(words[:n])
     return "untitled"
