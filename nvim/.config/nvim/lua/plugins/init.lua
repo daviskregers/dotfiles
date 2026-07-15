@@ -24,12 +24,12 @@ require("plugins.gitsigns")
 require("plugins.colorscheme")
 require("plugins.http")
 
--- LEGACY / slop — to rewrite. Each is independent; delete the line + its lua/ folder to drop.
+-- Kept (in use): agents = C-/ terminal hub · review-notes = <leader>r*.
 require("agents")
 require("review-notes")
-require("worktree-agents")
 
--- code-agents: editor-anchored parallel LLM agents (Step 1 = read verbs).
-require("code-agents")
+-- code-agents / worktree-agents / llm-agent superseded by clank.nvim
+-- (~/projects/productivity/clank.nvim), loaded below. Folders now orphaned — safe to delete.
+require("plugins.clank")
 
 vim.api.nvim_create_user_command("PackUpdate", ":lua vim.pack.update()<CR>", {})
