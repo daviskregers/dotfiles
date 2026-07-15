@@ -35,12 +35,25 @@ AUTOMATION_PREFIXES = (
     "[request interrupted by user",
 )
 
+# Harness-injected blocks that arrive as role=user but aren't typed prose: background-task
+# completion notifications, and `!`-prefix bash commands + their output. Tag as automated ONLY
+# when the record is PURELY these blocks — if the user typed alongside one (rare), keep it human.
+# NOTE: match the specific tag, never a bare "<" — genuine turns can start with e.g. "<leader>".
+HARNESS_BLOCKS = ("task-notification", "bash-input", "bash-stdout", "bash-stderr")
+
 
 def is_automated_prose(text):
     """True if this user-record prose came from the harness/automation, not a human."""
     t = text.lstrip()
     if "<command-name>" in t or "<local-command-stdout>" in t:
         return True
+    if any(t.startswith(f"<{tag}>") for tag in HARNESS_BLOCKS):
+        stripped = t
+        for tag in HARNESS_BLOCKS:
+            stripped = re.sub(rf"<{tag}>.*?</{tag}>", "", stripped, flags=re.S)
+        stripped = re.sub(r"##\s*👤\s*User", "", stripped).strip()  # drop a stray injected heading
+        if not stripped:                                            # nothing human left → automated
+            return True
     low = t.lower()
     return any(low.startswith(p) for p in AUTOMATION_PREFIXES)
 
