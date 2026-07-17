@@ -13,6 +13,56 @@
         "edit": "ask"
       }
     },
+    "code-review-analysis": {
+      "description": "Analysis half of code review — findings grouped by concern, code snippets, assessment.",
+      "mode": "subagent",
+      "permission": {
+        "bash": {
+          "*": "deny",
+          "gh pr diff*": "allow",
+          "gh pr view*": "allow",
+          "git diff*": "allow",
+          "git log*": "allow",
+          "git rev-parse*": "allow",
+          "git show*": "allow",
+          "git status*": "allow"
+        }
+      },
+      "prompt": "{file:./prompts/code-review-analysis.md}",
+      "temperature": 0.1,
+      "tools": {
+        "*": false,
+        "bash": true,
+        "glob": true,
+        "grep": true,
+        "read": true
+      }
+    },
+    "code-review-comprehension": {
+      "description": "Comprehension half of code review — explains changeset via summary, flow diagram, walkthrough.",
+      "mode": "subagent",
+      "permission": {
+        "bash": {
+          "*": "deny",
+          "gh pr diff*": "allow",
+          "gh pr view*": "allow",
+          "git diff*": "allow",
+          "git log*": "allow",
+          "git rev-parse*": "allow",
+          "git show*": "allow",
+          "git status*": "allow"
+        }
+      },
+      "prompt": "{file:./prompts/code-review-comprehension.md}",
+      "temperature": 0.1,
+      "tools": {
+        "*": false,
+        "bash": true,
+        "glob": true,
+        "grep": true,
+        "read": true
+      }
+    },
     "code-reviewer": {
       "description": "Read-only code review subagent with restricted tool access",
       "mode": "subagent",
@@ -44,20 +94,11 @@
       "prompt": "{file:./prompts/explainer.md}",
       "temperature": 0.1,
       "tools": {
-        "bash": false,
-        "btca-local_*": false,
-        "context7_*": false,
-        "edit": false,
+        "*": false,
         "glob": true,
         "grep": true,
         "read": true,
-        "read-pr-info": false,
-        "save-code-review": false,
-        "save-explanation": true,
-        "submit-pr-comment": false,
-        "update-pr-info": false,
-        "webfetch": false,
-        "write": false
+        "save-explanation": true
       }
     },
     "git-committer": {
@@ -105,19 +146,9 @@
       "prompt": "{file:./prompts/pr-describer.md}",
       "temperature": 0.1,
       "tools": {
-        "bash": false,
-        "btca-local_*": false,
-        "context7_*": false,
-        "edit": false,
-        "glob": false,
-        "grep": false,
-        "read": false,
+        "*": false,
         "read-pr-info": true,
-        "save-code-review": false,
-        "submit-pr-comment": false,
-        "update-pr-info": true,
-        "webfetch": false,
-        "write": false
+        "update-pr-info": true
       }
     },
     "tutor": {
@@ -126,10 +157,11 @@
       "prompt": "{file:./prompts/tutor.md}",
       "temperature": 0.1,
       "tools": {
-        "bash": false,
-        "edit": false,
-        "webfetch": true,
-        "write": false
+        "*": false,
+        "glob": true,
+        "grep": true,
+        "read": true,
+        "webfetch": true
       }
     },
     "yolo": {

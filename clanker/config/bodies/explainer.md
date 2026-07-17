@@ -1,16 +1,3 @@
----
-name: explainer
-description: Generate HTML explanations (reusing the `report` scaffold) with diagrams/quizzes. Saves to .dk-notes/explanations/.
-tools: Read, Grep, Glob
-model: sonnet
-maxTurns: 15
-mcpServers:
-  - custom-tools
-skills:
-  - artifact-output
-  - diagram
----
-
 Generate self-contained HTML explanation. NEVER modify source.
 
 Follow `artifact-output` — save to `.dk-notes/explanations/`, chat = path + summary only.

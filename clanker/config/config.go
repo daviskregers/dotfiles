@@ -53,15 +53,83 @@ var (
 		}},
 	}
 
-	// Referenced by delegating commands but not yet ported (rendered). Fleshed out
-	// with full tool/skill config when the agent class extends to them.
+	explainer = spec.Agent{
+		Name:        "explainer",
+		Description: "Generate HTML explanations (reusing the `report` scaffold) with diagrams/quizzes. Saves to .dk-notes/explanations/.",
+		Body:        body("explainer.md"),
+		Model:       "sonnet",
+		MaxTurns:    15,
+		Read:        true,
+		MCP:         []string{"save-explanation"},
+		Skills:      []string{"artifact-output", "diagram"},
+		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
+			Description: "Subagent that generates visual HTML explanations with diagrams and quizzes",
+			Body:        body("explainer.opencode.md"),
+		}},
+	}
+
+	prDescriber = spec.Agent{
+		Name:        "pr-describer",
+		Description: "Write PR title/description from diff analysis. MCP tools only.",
+		Body:        body("pr-describer.md"),
+		Model:       "sonnet",
+		MaxTurns:    10,
+		Deny:        []string{"Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent"},
+		MCP:         []string{"read-pr-info", "update-pr-info"},
+		Skills:      []string{"caveman", "diagram"},
+		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
+			Description: "Subagent that reads PR changes and writes a title and description",
+			Body:        body("pr-describer.opencode.md"),
+		}},
+	}
+
+	tutor = spec.Agent{
+		Name:        "tutor",
+		Description: "Teaching agent. Read-only, question-based, no writes/bash.",
+		Body:        body("tutor.md"),
+		MaxTurns:    50,
+		Mode:        "primary",
+		Read:        true,
+		Webfetch:    true,
+		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
+			Description: "tutor based on https://www.theneuron.ai/explainer-articles/your-brain-on-ai-is-literally-shrinking-and-how-to-fix-it",
+		}},
+	}
+
+	codeReviewAnalysis = spec.Agent{
+		Name:        "code-review-analysis",
+		Description: "Analysis half of code review — findings grouped by concern, code snippets, assessment.",
+		Body:        body("code-review-analysis.md"),
+		Model:       "sonnet",
+		MaxTurns:    15,
+		Read:        true,
+		Bash:        []string{"git diff", "git log", "git status", "git rev-parse", "git show", "gh pr view", "gh pr diff"},
+		Skills:      []string{"code-review-rules", "caveman-review"},
+	}
+
+	codeReviewComprehension = spec.Agent{
+		Name:        "code-review-comprehension",
+		Description: "Comprehension half of code review — explains changeset via summary, flow diagram, walkthrough.",
+		Body:        body("code-review-comprehension.md"),
+		Model:       "sonnet",
+		MaxTurns:    15,
+		Read:        true,
+		Bash:        []string{"git diff", "git log", "git status", "git rev-parse", "git show", "gh pr view", "gh pr diff"},
+		Skills:      []string{"code-review-comprehension", "caveman-review"},
+	}
+
+	// Deferred: per-target tool divergences need a per-target override before porting.
+	// code-reviewer: claude has Write, opencode does not. pr-comment-submitter: claude
+	// allows Read but denies Grep/Glob (my Read flag grants all three). Referenced by
+	// the code-review command (name-only forward decl until then).
 	codeReviewer = spec.Agent{Name: "code-reviewer"}
-	explainer    = spec.Agent{Name: "explainer"}
 )
 
-// Agents is the set clanker generates. (codeReviewer/explainer are referenced-only
-// until ported — add them here when their full definitions land.)
-var Agents = []spec.Agent{gitCommitter, gitStasher}
+// Agents is the set clanker generates.
+var Agents = []spec.Agent{
+	gitCommitter, gitStasher, explainer, prDescriber, tutor,
+	codeReviewAnalysis, codeReviewComprehension,
+}
 
 var Commands = []spec.Command{
 	{
