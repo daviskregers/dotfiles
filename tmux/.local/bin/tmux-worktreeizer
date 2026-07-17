@@ -1,0 +1,104 @@
+#!/usr/bin/env bash
+# tmux-worktreeizer: fuzzy-pick or create a git worktree for the current repo,
+# then open it as a tmux window (default) or a tmux session.
+# Companion to tmux-sessionizer. Invoke from inside a git repo — the keybind
+# passes the pane's cwd via `display-popup -d`.
+#
+# Usage: tmux-worktreeizer [window|session]
+
+mode="${1:-window}"
+
+pause_close() {
+    read -n1 -r -p "Press any key to close..." _
+}
+
+# Resolve the MAIN worktree of this repo (stable regardless of which linked
+# worktree we're invoked from), so new worktrees always land beside it.
+if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    echo "Not inside a git repository."
+    pause_close
+    exit 1
+fi
+
+common_dir=$(git rev-parse --git-common-dir)
+main_root=$(cd "$(dirname "$common_dir")" && pwd)
+repo_name=$(basename "$main_root")
+parent=$(dirname "$main_root")
+
+# Shared source of truth for creating worktrees (branch + ../<repo>-<slug> path).
+gw_bin=$(command -v gw 2>/dev/null || printf '%s' "$HOME/.bin/gw")
+
+ADD_ENTRY="＋ new worktree"
+
+selected=$(
+    {
+        git worktree list --porcelain | awk '/^worktree /{print substr($0, 10)}'
+        echo "$ADD_ENTRY"
+    } | fzf --prompt="worktree ($mode) > " --height=100% --reverse
+)
+
+[[ -z "$selected" ]] && exit 0
+
+if [[ "$selected" == "$ADD_ENTRY" ]]; then
+    read -r -p "New branch name: " branch
+    [[ -z "$branch" ]] && exit 0
+
+    if git show-ref --verify --quiet "refs/heads/$branch"; then
+        # Existing local branch: attach a worktree beside the repo (gw only
+        # creates new branches, so handle this case directly — same convention).
+        dir_slug=$(printf '%s' "$branch" | tr '/' '-')
+        worktree_path="$parent/${repo_name}-${dir_slug}"
+        if [[ -d "$worktree_path" ]]; then
+            echo "Path already exists: $worktree_path"
+            echo "Pick it from the list (not ＋) to open it."
+            pause_close
+            exit 1
+        else
+            git worktree add "$worktree_path" "$branch" || { pause_close; exit 1; }
+        fi
+    else
+        # New branch: pick the base ref (local + remote branches; Esc = HEAD),
+        # then delegate creation to gw so path sanitizing lives in one place.
+        if [[ ! -x "$gw_bin" ]]; then
+            echo "gw not found ($gw_bin) — needed to create new worktrees."
+            pause_close
+            exit 1
+        fi
+        head_ref=$(git rev-parse --abbrev-ref HEAD)
+        base=$(
+            git for-each-ref --format='%(refname:short)' refs/heads refs/remotes \
+                | grep -v '^origin/HEAD$' \
+                | fzf --prompt="base for '$branch' > " --height=100% --reverse \
+                      --header="Esc = current HEAD ($head_ref)"
+        )
+        [[ -z "$base" ]] && base="$head_ref"
+        worktree_path=$("$gw_bin" add "$branch" "$base") || { pause_close; exit 1; }
+    fi
+    selected="$worktree_path"
+fi
+
+if [[ ! -d "$selected" ]]; then
+    echo "No such path: $selected"
+    pause_close
+    exit 1
+fi
+
+wt_name=$(basename "$selected" | tr '.: ' '___')
+
+if [[ "$mode" == "session" ]]; then
+    # If a session with this name already points at a DIFFERENT dir, disambiguate
+    # with a path-stable suffix so switch-client can't drop us on the wrong worktree.
+    if tmux has-session -t "=$wt_name" 2>/dev/null; then
+        existing=$(tmux list-sessions -F '#{session_path}' \
+            -f "#{==:#{session_name},$wt_name}" 2>/dev/null)
+        if [[ "$existing" != "$selected" ]]; then
+            wt_name="${wt_name}-$(printf '%s' "$selected" | cksum | cut -d' ' -f1)"
+        fi
+    fi
+    if ! tmux has-session -t "=$wt_name" 2>/dev/null; then
+        tmux new-session -ds "$wt_name" -c "$selected"
+    fi
+    tmux switch-client -t "=$wt_name"
+else
+    tmux neww -c "$selected" -n "$wt_name"
+fi
