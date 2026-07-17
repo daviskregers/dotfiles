@@ -1,9 +1,6 @@
 [submodule "tmux/.tmux/plugins/tpm"]
 	path = tmux/.tmux/plugins/tpm
 	url = https://github.com/tmux-plugins/tpm
-[submodule "opencode/.config/opencode/skills"]
-	path = opencode/.config/opencode/skills
-	url = git@github.com:daviskregers/skills.git
-[submodule "claude/.claude/skills"]
-	path = claude/.claude/skills
+[submodule "clanker/skills"]
+	path = clanker/skills
 	url = git@github.com:daviskregers/skills.git
