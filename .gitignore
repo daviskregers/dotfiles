@@ -4,10 +4,12 @@ gtk/.config/gtk-3.0/bookmarks
 tmux/.tmux/plugins/*
 !tmux/.tmux/plugins/tpm
 
-tmux/.local/bin
+tmux/.local/bin/*
 !tmux/.local/bin/tmux-cht.sh
+!tmux/.local/bin/tmux-new-project
 !tmux/.local/bin/tmux-sessionizer
 !tmux/.local/bin/tmux-windowizer
+!tmux/.local/bin/tmux-worktreeizer
 
 *.swp
 .code-review

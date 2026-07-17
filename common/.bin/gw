@@ -55,7 +55,8 @@ case "$cmd" in
         WORKTREE_PATH="${PARENT}/${BASENAME}-${SLUG}"
 
         BASE_BRANCH="${base:-$(_gw_default_branch)}"
-        git worktree add -b "$name" "$WORKTREE_PATH" "$BASE_BRANCH"
+        # Send git's chatter to stderr so stdout is only the path (scriptable).
+        git worktree add -b "$name" "$WORKTREE_PATH" "$BASE_BRANCH" 1>&2
         printf "%s\n" "$WORKTREE_PATH"
         ;;
 
