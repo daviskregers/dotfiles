@@ -10,9 +10,28 @@ require('gitsigns').setup({
 -- bg-only so treesitter keeps coloring the text; re-applied on ColorScheme because
 -- the colorscheme loads after this file and would otherwise wipe these overrides.
 local function set_hunk_hl()
-    vim.api.nvim_set_hl(0, 'GitSignsAddLn', { bg = '#1c3322' })
-    vim.api.nvim_set_hl(0, 'GitSignsChangeLn', { bg = '#33321c' })
-    vim.api.nvim_set_hl(0, 'GitSignsDeleteLn', { bg = '#3a1c1c' })
+    -- Reuse the theme's own diff-mode line backgrounds (bg-only, so treesitter
+    -- keeps the fg). They're palette-matched and already tuned to read on oled's
+    -- pure-black Normal without washing out the muted fg — the balance a hand-
+    -- picked hex kept missing: #0e1c13 was too dark to see on blank/sparse lines
+    -- (near-zero luminance delta from #000000), #1c3322 washed the fg. Deriving
+    -- from Diff* also auto-tracks a variant/colorscheme change.
+    local function diff_bg(name) return vim.api.nvim_get_hl(0, { name = name }).bg end
+    vim.api.nvim_set_hl(0, 'GitSignsAddLn', { bg = diff_bg('DiffAdd') })
+    vim.api.nvim_set_hl(0, 'GitSignsChangeLn', { bg = diff_bg('DiffChange') })
+    vim.api.nvim_set_hl(0, 'GitSignsDeleteLn', { bg = diff_bg('DiffDelete') })
+    -- Staged *Ln groups: gitsigns derives these from the *Ln above with a 0.5
+    -- fg_factor, but at setup() time GitSignsAddLn still links to DiffAdd (fg+bg),
+    -- so staged lines end up with dimmed-green *text* (treesitter lost). Pin them
+    -- bg-only too. Same bg as unstaged — the sign column still marks staged/unstaged.
+    vim.api.nvim_set_hl(0, 'GitSignsStagedAddLn', { bg = diff_bg('DiffAdd') })
+    vim.api.nvim_set_hl(0, 'GitSignsStagedChangeLn', { bg = diff_bg('DiffChange') })
+    vim.api.nvim_set_hl(0, 'GitSignsStagedDeleteLn', { bg = diff_bg('DiffDelete') })
+    -- inline word-diff (opt-in via <leader>hd): one step lighter than the line
+    -- bg so changed words stand out within a changed line; still bg-only.
+    vim.api.nvim_set_hl(0, 'GitSignsAddInline', { bg = '#17321f' })
+    vim.api.nvim_set_hl(0, 'GitSignsChangeInline', { bg = '#323016' })
+    vim.api.nvim_set_hl(0, 'GitSignsDeleteInline', { bg = '#3a1818' })
 end
 set_hunk_hl()
 vim.api.nvim_create_autocmd('ColorScheme', { callback = set_hunk_hl })
@@ -70,8 +89,9 @@ vim.keymap.set('n', '<leader>hq', function()
     end
 
     vim.fn.setqflist(items, 'r')
-    gs.toggle_deleted(true)  -- inline diff shows once buffers attach on open
-    gs.toggle_word_diff(true)
+    gs.toggle_deleted(true)  -- deleted lines show once buffers attach on open
+    -- NB: no toggle_word_diff here — near-useless on fully-added files and it
+    -- greens the whole buffer. Use <leader>hd to opt in per session.
     if vim.tbl_isempty(items) then
         vim.notify('No changes', vim.log.levels.INFO)
     else

@@ -10,12 +10,20 @@ func (Opencode) CommandDir() string { return "opencode/.config/opencode/command"
 
 func (Opencode) RenderCommand(c spec.Command) []OutputFile {
 	o := c.Overlay.Opencode
+	agent := ""
+	if c.Delegates != nil {
+		agent = c.Delegates.Agent.Name
+	}
+	body := pick(o.Body, c.Body)
+	if generatesBody(c) {
+		body = capFirst(c.Delegates.Task) + ".\n\n{{args}}\n"
+	}
 	content := renderFile(
 		[]fmField{
 			{"description", pick(o.Description, c.Description)},
-			{"agent", o.Agent},
+			{"agent", agent},
 		},
-		pick(o.Body, c.Body),
+		body,
 		opencodeArgForm(c.Args),
 	)
 	return []OutputFile{{

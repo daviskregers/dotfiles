@@ -18,7 +18,7 @@ import (
 // touching files clanker never managed.
 const ManifestPath = "clanker/generated-commands.json"
 
-func Run(outRoot string, cmds []spec.Command, targets []target.Target) error {
+func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, targets []target.Target) error {
 	if err := validateRoot(outRoot, targets); err != nil {
 		return err
 	}
@@ -41,7 +41,69 @@ func Run(outRoot string, cmds []spec.Command, targets []target.Target) error {
 			}
 		}
 	}
+	var merges []target.ConfigMerge
+	for _, a := range agents {
+		for _, tg := range targets {
+			out := tg.RenderAgent(a)
+			for _, f := range out.Files {
+				if err := writeFile(outRoot, f); err != nil {
+					return err
+				}
+			}
+			if out.Config != nil {
+				merges = append(merges, *out.Config)
+			}
+		}
+	}
+	if err := applyConfigMerges(outRoot, merges); err != nil {
+		return err
+	}
 	return writeManifest(outRoot, current)
+}
+
+// applyConfigMerges sets each merge's value into its shared JSON file, one
+// read/write per file, preserving every key clanker does not manage.
+func applyConfigMerges(outRoot string, merges []target.ConfigMerge) error {
+	byFile := map[string][]target.ConfigMerge{}
+	for _, m := range merges {
+		byFile[m.File] = append(byFile[m.File], m)
+	}
+	for file, ms := range byFile {
+		path := filepath.Join(outRoot, file)
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		var root map[string]any
+		if err := json.Unmarshal(b, &root); err != nil {
+			return fmt.Errorf("gen: parse %s: %w", file, err)
+		}
+		for _, m := range ms {
+			setPath(root, m.Path, m.Value)
+		}
+		out, err := json.MarshalIndent(root, "", "  ")
+		if err != nil {
+			return err
+		}
+		if err := os.WriteFile(path, append(out, '\n'), 0o644); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// setPath sets val at the nested key path in root, creating intermediate maps.
+func setPath(root map[string]any, path []string, val any) {
+	m := root
+	for _, k := range path[:len(path)-1] {
+		sub, ok := m[k].(map[string]any)
+		if !ok {
+			sub = map[string]any{}
+			m[k] = sub
+		}
+		m = sub
+	}
+	m[path[len(path)-1]] = val
 }
 
 // validateRoot guards against running from the wrong cwd: every target's command
