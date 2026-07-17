@@ -1,6 +1,24 @@
 package target
 
-import "strings"
+import (
+	"strings"
+
+	"clanker/src/spec"
+)
+
+// generatesBody reports whether a command's bodies are generated from its
+// delegation (Task set) rather than authored.
+func generatesBody(c spec.Command) bool {
+	return c.Delegates != nil && c.Delegates.Task != ""
+}
+
+// capFirst upper-cases the first byte (tasks are ASCII verb phrases).
+func capFirst(s string) string {
+	if s == "" {
+		return s
+	}
+	return strings.ToUpper(s[:1]) + s[1:]
+}
 
 // argsToken is the neutral placeholder each target rewrites to its own form
 // ($ARGUMENTS for claude, $1 for opencode).

@@ -22,7 +22,6 @@ type ClaudeOverlay struct {
 type OpencodeOverlay struct {
 	Description string
 	Body        string
-	Agent       string // frontmatter `agent:` — subagent a command delegates to
 }
 
 // Overlays groups per-target overrides as fields, not map keys, so a mistyped
@@ -32,10 +31,20 @@ type Overlays struct {
 	Opencode OpencodeOverlay
 }
 
+// Delegation says a command hands off to a subagent. Agent alone sets opencode's
+// `agent:` frontmatter (bodies stay authored). Task additionally GENERATES both
+// bodies — claude "Use <name> agent to <task>", opencode the task as a prompt —
+// so a simple delegator needs no authored body at all.
+type Delegation struct {
+	Agent *Agent
+	Task  string
+}
+
 type Command struct {
 	Name        string
 	Description string
 	Body        string // {{args}} marks where invocation args go
 	Args        ArgStyle
+	Delegates   *Delegation // nil = self-contained command
 	Overlay     Overlays
 }

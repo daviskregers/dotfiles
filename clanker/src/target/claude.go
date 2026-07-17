@@ -10,13 +10,17 @@ func (Claude) CommandDir() string { return "claude/.claude/commands" }
 
 func (Claude) RenderCommand(c spec.Command) []OutputFile {
 	o := c.Overlay.Claude
+	body := pick(o.Body, c.Body)
+	if generatesBody(c) {
+		body = "Use " + c.Delegates.Agent.Name + " agent to " + c.Delegates.Task + ".\n\n{{args}}\n"
+	}
 	content := renderFile(
 		[]fmField{
 			{"description", pick(o.Description, c.Description)},
 			{"argument-hint", o.ArgumentHint},
 			{"allowed-tools", o.AllowedTools},
 		},
-		pick(o.Body, c.Body),
+		body,
 		"$ARGUMENTS",
 	)
 	return []OutputFile{{

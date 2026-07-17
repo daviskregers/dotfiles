@@ -1,6 +1,7 @@
 package gen_test
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"testing"
@@ -27,7 +28,7 @@ func TestRun_WritesEachTargetFile(t *testing.T) {
 	root := dotfilesRoot(t)
 	cmds := []spec.Command{{Name: "demo", Description: "Do", Body: "b\n"}}
 
-	if err := gen.Run(root, cmds, target.Registry()); err != nil {
+	if err := gen.Run(root, cmds, nil, target.Registry()); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 
@@ -49,7 +50,7 @@ func TestRun_PrunesDroppedCommands(t *testing.T) {
 	}
 
 	cmds := []spec.Command{{Name: "commit", Description: "Commit", Body: "go\n"}}
-	if err := gen.Run(root, cmds, target.Registry()); err != nil {
+	if err := gen.Run(root, cmds, nil, target.Registry()); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 
@@ -62,10 +63,43 @@ func TestRun_PrunesDroppedCommands(t *testing.T) {
 	assertFileContent(t, filepath.Join(root, gen.ManifestPath), `["commit"]`+"\n")
 }
 
+// An agent's opencode.json fragment is merged in without clobbering keys clanker
+// doesn't manage (provider, other agents).
+func TestRun_MergesAgentIntoOpencodeJSON(t *testing.T) {
+	root := dotfilesRoot(t)
+	seed(t, root, "opencode/.config/opencode", "opencode.json",
+		`{"provider":{"x":1},"agent":{"plan":{"disable":false},"git-committer":{"old":true}}}`)
+
+	agents := []spec.Agent{{Name: "git-committer", Description: "d", Body: "b\n", Bash: []string{"git diff"}}}
+	if err := gen.Run(root, nil, agents, target.Registry()); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	raw, _ := os.ReadFile(filepath.Join(root, "opencode/.config/opencode/opencode.json"))
+	var m map[string]any
+	if err := json.Unmarshal(raw, &m); err != nil {
+		t.Fatalf("parse result: %v", err)
+	}
+	if _, ok := m["provider"]; !ok {
+		t.Error("provider (unmanaged) was clobbered")
+	}
+	agent := m["agent"].(map[string]any)
+	if _, ok := agent["plan"]; !ok {
+		t.Error("plan agent (unmanaged) was clobbered")
+	}
+	gc := agent["git-committer"].(map[string]any)
+	if gc["mode"] != "subagent" {
+		t.Errorf("git-committer not regenerated: %v", gc)
+	}
+	if _, ok := gc["old"]; ok {
+		t.Error("managed agent should be replaced wholesale, not deep-merged")
+	}
+}
+
 func TestRun_ErrorsWhenNotDotfilesRoot(t *testing.T) {
 	root := t.TempDir() // no target command dirs
 
-	err := gen.Run(root, []spec.Command{{Name: "x"}}, target.Registry())
+	err := gen.Run(root, []spec.Command{{Name: "x"}}, nil, target.Registry())
 	if err == nil {
 		t.Fatal("expected error when target dirs are absent, got nil")
 	}
@@ -77,7 +111,7 @@ func TestRun_ErrorsWhenNotDotfilesRoot(t *testing.T) {
 func TestRun_FirstRunWithoutManifest(t *testing.T) {
 	root := dotfilesRoot(t)
 
-	if err := gen.Run(root, []spec.Command{{Name: "demo", Description: "D", Body: "b\n"}}, target.Registry()); err != nil {
+	if err := gen.Run(root, []spec.Command{{Name: "demo", Description: "D", Body: "b\n"}}, nil, target.Registry()); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 	assertPresent(t, filepath.Join(root, "claude/.claude/commands/demo.md"))

@@ -1,83 +1,41 @@
 {
   "$schema": "https://opencode.ai/config.json",
-  "model": "github-copilot/claude-sonnet",
-  "provider": {
-    "lmstudio": {
-      "npm": "@ai-sdk/openai-compatible",
-      "name": "LM Studio (local)",
-      "options": {
-        "baseURL": "http://127.0.0.1:1234/v1"
-      },
-      "models": {
-        "google/gemma-4-26b-a4b": {
-          "name": "Gemma 4 26B A4B",
-          "limit": {
-            "context": 124300,
-            "output": 8192
-          }
-        }
-      }
-    }
-  },
   "agent": {
-    "plan": {
-      "disable": false
-    },
     "build": {
       "disable": false,
       "permission": {
-        "edit": "ask",
         "bash": {
           "*": "ask",
-          "git status*": "allow",
+          "git diff*": "allow",
           "git log*": "allow",
-          "git diff*": "allow"
-        }
-      }
-    },
-    "yolo": {
-      "description": "Agent that auto-accepts all edits and bash",
-      "mode": "primary",
-      "permission": {
-        "edit": "allow",
-        "bash": "allow"
-      }
-    },
-    "tutor": {
-      "mode": "primary",
-      "description": "tutor based on https://www.theneuron.ai/explainer-articles/your-brain-on-ai-is-literally-shrinking-and-how-to-fix-it",
-      "prompt": "{file:./prompts/tutor.md}",
-      "temperature": 0.1,
-      "tools": {
-        "write": false,
-        "edit": false,
-        "bash": false,
-        "webfetch": true
+          "git status*": "allow"
+        },
+        "edit": "ask"
       }
     },
     "code-reviewer": {
       "description": "Read-only code review subagent with restricted tool access",
       "mode": "subagent",
-      "prompt": "{file:./prompts/code-reviewer.md}",
-      "temperature": 0.1,
-      "tools": {
-        "write": false,
-        "edit": false,
-        "webfetch": false,
-        "context7_*": false,
-        "btca-local_*": false
-      },
       "permission": {
         "bash": {
           "*": "deny",
+          "gh pr diff*": "allow",
+          "gh pr view*": "allow",
           "git diff*": "allow",
           "git log*": "allow",
-          "git status*": "allow",
           "git rev-parse*": "allow",
           "git show*": "allow",
-          "gh pr view*": "allow",
-          "gh pr diff*": "allow"
+          "git status*": "allow"
         }
+      },
+      "prompt": "{file:./prompts/code-reviewer.md}",
+      "temperature": 0.1,
+      "tools": {
+        "btca-local_*": false,
+        "context7_*": false,
+        "edit": false,
+        "webfetch": false,
+        "write": false
       }
     },
     "explainer": {
@@ -86,49 +44,60 @@
       "prompt": "{file:./prompts/explainer.md}",
       "temperature": 0.1,
       "tools": {
-        "read": true,
+        "bash": false,
+        "btca-local_*": false,
+        "context7_*": false,
+        "edit": false,
         "glob": true,
         "grep": true,
-        "write": false,
-        "edit": false,
-        "bash": false,
-        "webfetch": false,
-        "context7_*": false,
-        "btca-local_*": false,
-        "save-code-review": false,
-        "submit-pr-comment": false,
+        "read": true,
         "read-pr-info": false,
+        "save-code-review": false,
+        "save-explanation": true,
+        "submit-pr-comment": false,
         "update-pr-info": false,
-        "save-explanation": true
+        "webfetch": false,
+        "write": false
+      }
+    },
+    "git-committer": {
+      "description": "Subagent that commits staged changes with a conventional commit message",
+      "mode": "subagent",
+      "permission": {
+        "bash": {
+          "*": "deny",
+          "git commit*": "allow",
+          "git diff*": "allow",
+          "git status*": "allow"
+        }
+      },
+      "prompt": "{file:./prompts/git-committer.md}",
+      "temperature": 0.1,
+      "tools": {
+        "*": false,
+        "bash": true
       }
     },
     "git-stasher": {
       "description": "Subagent that stashes changes with a meaningful name",
       "mode": "subagent",
-      "temperature": 0.1,
-      "tools": {
-        "read": false,
-        "write": false,
-        "edit": false,
-        "glob": false,
-        "grep": false,
-        "webfetch": false,
-        "context7_*": false,
-        "btca-local_*": false,
-        "save-code-review": false,
-        "submit-pr-comment": false,
-        "save-explanation": false,
-        "read-pr-info": false,
-        "update-pr-info": false
-      },
       "permission": {
         "bash": {
           "*": "deny",
-          "git stash*": "allow",
           "git diff*": "allow",
+          "git stash*": "allow",
           "git status*": "allow"
         }
+      },
+      "prompt": "{file:./prompts/git-stasher.md}",
+      "temperature": 0.1,
+      "tools": {
+        "*": false,
+        "bash": true
       }
+    },
+    "plan": {
+      "disable": false
     },
     "pr-describer": {
       "description": "Subagent that reads PR changes and writes a title and description",
@@ -136,73 +105,84 @@
       "prompt": "{file:./prompts/pr-describer.md}",
       "temperature": 0.1,
       "tools": {
-        "read": false,
-        "write": false,
+        "bash": false,
+        "btca-local_*": false,
+        "context7_*": false,
         "edit": false,
         "glob": false,
         "grep": false,
-        "bash": false,
-        "webfetch": false,
-        "context7_*": false,
-        "btca-local_*": false,
+        "read": false,
+        "read-pr-info": true,
         "save-code-review": false,
         "submit-pr-comment": false,
-        "read-pr-info": true,
-        "update-pr-info": true
+        "update-pr-info": true,
+        "webfetch": false,
+        "write": false
       }
     },
-    "git-committer": {
-      "description": "Subagent that commits staged changes with a conventional commit message",
-      "mode": "subagent",
-      "prompt": "{file:./prompts/git-committer.md}",
+    "tutor": {
+      "description": "tutor based on https://www.theneuron.ai/explainer-articles/your-brain-on-ai-is-literally-shrinking-and-how-to-fix-it",
+      "mode": "primary",
+      "prompt": "{file:./prompts/tutor.md}",
       "temperature": 0.1,
       "tools": {
-        "read": false,
-        "write": false,
+        "bash": false,
         "edit": false,
-        "glob": false,
-        "grep": false,
-        "webfetch": false,
-        "context7_*": false,
-        "btca-local_*": false,
-        "save-code-review": false,
-        "submit-pr-comment": false,
-        "save-explanation": false,
-        "read-pr-info": false,
-        "update-pr-info": false
-      },
-      "permission": {
-        "bash": {
-          "*": "deny",
-          "git diff*": "allow",
-          "git commit*": "allow",
-          "git status*": "allow"
-        }
+        "webfetch": true,
+        "write": false
       }
-    }  },
-  "mcp": {
-    "context7": {
-      "type": "local",
-      "command": [
-        "npx",
-        "-y",
-        "@upstash/context7-mcp"
-      ],
-      "enabled": true
     },
+    "yolo": {
+      "description": "Agent that auto-accepts all edits and bash",
+      "mode": "primary",
+      "permission": {
+        "bash": "allow",
+        "edit": "allow"
+      }
+    }
+  },
+  "mcp": {
     "btca-local": {
-      "type": "local",
       "command": [
         "bunx",
         "btca",
         "mcp"
       ],
-      "enabled": true
+      "enabled": true,
+      "type": "local"
+    },
+    "context7": {
+      "command": [
+        "npx",
+        "-y",
+        "@upstash/context7-mcp"
+      ],
+      "enabled": true,
+      "type": "local"
     }
   },
+  "model": "github-copilot/claude-sonnet",
   "plugin": [
     "@plannotator/opencode@latest",
     "opencode-claude-bridge@latest",
     "@mohak34/opencode-notifier@0.2.1"
-  ]
+  ],
+  "provider": {
+    "lmstudio": {
+      "models": {
+        "google/gemma-4-26b-a4b": {
+          "limit": {
+            "context": 124300,
+            "output": 8192
+          },
+          "name": "Gemma 4 26B A4B"
+        }
+      },
+      "name": "LM Studio (local)",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "http://127.0.0.1:1234/v1"
+      }
+    }
+  }
 }

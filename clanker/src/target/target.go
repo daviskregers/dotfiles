@@ -9,11 +9,27 @@ type OutputFile struct {
 	Content string
 }
 
+// AgentOutput is what a target produces for one agent: file(s) to write, plus an
+// optional merge into a shared config file (opencode.json) rather than a standalone file.
+type AgentOutput struct {
+	Files  []OutputFile
+	Config *ConfigMerge
+}
+
+// ConfigMerge sets Value at Path within a shared JSON config File (relative to the
+// dotfiles root), leaving the rest of that file untouched.
+type ConfigMerge struct {
+	File  string
+	Path  []string
+	Value any
+}
+
 type Target interface {
 	Name() string
 	// CommandDir is the target's command directory, relative to the dotfiles root.
 	CommandDir() string
 	RenderCommand(spec.Command) []OutputFile
+	RenderAgent(spec.Agent) AgentOutput
 }
 
 func Registry() []Target {
