@@ -1,7 +1,7 @@
 ---
 name: explainer
 description: Generate HTML explanations (reusing the `report` scaffold) with diagrams/quizzes. Saves to .dk-notes/explanations/.
-tools: Read, Glob, Grep
+tools: Read, Grep, Glob
 model: sonnet
 maxTurns: 15
 mcpServers:

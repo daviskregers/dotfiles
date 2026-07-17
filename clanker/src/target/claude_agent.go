@@ -12,12 +12,19 @@ func (Claude) RenderAgent(a spec.Agent) AgentOutput {
 	b.WriteString("---\n")
 	b.WriteString("name: " + a.Name + "\n")
 	b.WriteString("description: " + a.Description + "\n")
-	b.WriteString("tools: " + claudeTools(a) + "\n")
+	if len(a.Deny) > 0 {
+		b.WriteString("disallowedTools: " + strings.Join(a.Deny, ", ") + "\n")
+	} else {
+		b.WriteString("tools: " + claudeTools(a) + "\n")
+	}
 	if a.Model != "" {
 		b.WriteString("model: " + a.Model + "\n")
 	}
 	if a.MaxTurns > 0 {
 		b.WriteString("maxTurns: " + strconv.Itoa(a.MaxTurns) + "\n")
+	}
+	if len(a.MCP) > 0 {
+		b.WriteString("mcpServers:\n  - custom-tools\n")
 	}
 	if len(a.Skills) > 0 {
 		b.WriteString("skills:\n")
@@ -37,14 +44,18 @@ func (Claude) RenderAgent(a spec.Agent) AgentOutput {
 	}}}
 }
 
-// claudeTools builds the `tools:` allowlist from the agent's semantic capabilities.
+// claudeTools builds the `tools:` allowlist from the agent's semantic capabilities,
+// in a canonical order.
 func claudeTools(a spec.Agent) string {
 	var tools []string
-	if a.ReadOnly {
+	if a.Read {
 		tools = append(tools, "Read", "Grep", "Glob")
 	}
 	if len(a.Bash) > 0 {
 		tools = append(tools, "Bash")
+	}
+	if a.Write {
+		tools = append(tools, "Write")
 	}
 	return strings.Join(tools, ", ")
 }

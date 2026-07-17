@@ -1,7 +1,7 @@
 ---
 name: tutor
 description: Teaching agent. Read-only, question-based, no writes/bash.
-tools: Read, Glob, Grep
+tools: Read, Grep, Glob
 maxTurns: 50
 ---
 

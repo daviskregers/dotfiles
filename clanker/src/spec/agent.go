@@ -9,9 +9,14 @@ type Agent struct {
 	Body        string   // shared system prompt
 	Model       string   // claude frontmatter model (per-target; opencode omits)
 	MaxTurns    int      // claude-only turn cap; 0 = omit
-	ReadOnly    bool     // no write/edit
+	Mode        string   // opencode agent mode: "" = subagent (default), or "primary"
+	Read        bool     // Read/Grep/Glob tools
+	Write       bool     // Write tool
+	Webfetch    bool     // opencode webfetch tool
 	Bash        []string // allowed bash prefixes ("git diff"); nil = no bash
-	Skills      []string // claude `skills:` frontmatter; opencode injects "Load X" in prompt
+	MCP         []string // custom-tools this agent may use; non-empty → claude mcpServers: [custom-tools]
+	Deny        []string // claude `disallowedTools:` denylist; when set, overrides the derived allowlist
+	Skills      []string // claude `skills:` frontmatter; opencode carries "Load X" in the prompt
 	Overlay     AgentOverlays
 }
 
