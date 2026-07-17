@@ -4,7 +4,7 @@
 
 ## Dual-setup sync
 
-Changes to commands/skills/agent-prompts sync between Claude Code (`~/.dotfiles/claude/.claude/`) and opencode (`~/.dotfiles/opencode/.config/opencode/`). Skills = shared submodule, **separate clones**: commit in one, `git fetch <path> main` into the other, checkout same commit, bump both parent pointers (verify they match before the parent commit). Commands/prompts: replicate manually.
+Changes to commands/agent-prompts sync between Claude Code (`~/.dotfiles/claude/.claude/`) and opencode (`~/.dotfiles/opencode/.config/opencode/`): replicate manually (until the `clanker` generator lands — see `.dk-notes/plans/config-builder.md`). Skills = **one** submodule at `clanker/skills`, symlinked into both trees — commit in the submodule, bump the single `clanker/skills` pointer. No more separate clones / dual pointer-bump.
 
 ## AI attribution
 
