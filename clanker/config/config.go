@@ -160,7 +160,14 @@ func ptr[T any](v T) *T { return &v }
 // Docs is the shared global rules document, rendered to CLAUDE.md / AGENTS.md.
 var Docs = []spec.Doc{{Body: body("global.md")}}
 
-// Tools are the custom tools (S3 tracer: resolve-pr-thread; opencode side only for now).
+// ToolUtils are the shared helper modules emitted into the tool dir and imported
+// by the generated tools: shared.ts (general) + pr-utils.ts (PR-specific).
+var ToolUtils = []spec.ToolUtil{
+	{Name: "shared.ts", Content: toolFile("shared.ts")},
+	{Name: "pr-utils.ts", Content: toolFile("pr-utils.ts")},
+}
+
+// Tools are the custom tools (opencode side; claude's monolithic index.ts is ported later).
 var Tools = []spec.Tool{
 	{
 		Name:        "resolve_pr_thread",
@@ -170,6 +177,74 @@ var Tools = []spec.Tool{
 			{Name: "replyBody", Type: "string", Optional: true, Describe: "Markdown reply to post before resolving (omit to resolve silently)"},
 		},
 		Core: toolFile("resolve-pr-thread.ts"),
+	},
+	{
+		Name:        "save_code_review",
+		Description: "Save a code review to .dk-notes/reviews/ with timestamped filename",
+		Args:        []spec.ToolArg{{Name: "content", Type: "string", Describe: "Full review markdown content"}},
+		Core:        toolFile("save-code-review.ts"),
+	},
+	{
+		Name:        "save_explanation",
+		Description: "Save an HTML explanation to .dk-notes/explanations/ and open in default browser",
+		Args: []spec.ToolArg{
+			{Name: "content", Type: "string", Describe: "Full HTML content"},
+			{Name: "title", Type: "string", Optional: true, Describe: "Short slug for filename (e.g. 'jwt-auth-flow')"},
+		},
+		Core: toolFile("save-explanation.ts"),
+	},
+	{
+		Name:        "read_pr_info",
+		Description: "Read a GitHub PR's metadata, diff, and commit history. Returns JSON.",
+		Args: []spec.ToolArg{
+			{Name: "prUrl", Type: "string", Describe: "Full GitHub PR URL (https://github.com/owner/repo/pull/N)"},
+			{Name: "lastCommitOnly", Type: "boolean", Optional: true, Describe: "Only include last commit's diff and message"},
+		},
+		Core: toolFile("read-pr-info.ts"),
+	},
+	{
+		Name:        "update_pr_info",
+		Description: "Update a GitHub PR's title and/or body (description)",
+		Args: []spec.ToolArg{
+			{Name: "prUrl", Type: "string", Describe: "Full GitHub PR URL"},
+			{Name: "title", Type: "string", Optional: true, Describe: "New PR title (omit to leave unchanged)"},
+			{Name: "body", Type: "string", Optional: true, Describe: "New PR body/description in markdown (omit to leave unchanged)"},
+		},
+		Core: toolFile("update-pr-info.ts"),
+	},
+	{
+		Name:        "submit_pr_comment",
+		Description: "Post a file as a comment on a GitHub PR (file sent directly, not read into conversation)",
+		Args: []spec.ToolArg{
+			{Name: "prUrl", Type: "string", Describe: "Full GitHub PR URL"},
+			{Name: "filePath", Type: "string", Describe: "Path to file to post as comment (relative to cwd or absolute)"},
+		},
+		Core: toolFile("submit-pr-comment.ts"),
+	},
+	{
+		Name:        "list_pr_comments",
+		Description: "List a GitHub PR's review-thread, review-summary, and conversation comments as a normalized JSON triage queue. Skips resolved threads and empty bodies by default. Inline items carry a threadId for resolve_pr_thread.",
+		Args: []spec.ToolArg{
+			{Name: "prUrl", Type: "string", Describe: "Full GitHub PR URL (https://github.com/owner/repo/pull/N)"},
+			{Name: "includeResolved", Type: "boolean", Optional: true, Describe: "Include already-resolved review threads (default false)"},
+		},
+		Core: toolFile("list-pr-comments.ts"),
+	},
+	{
+		Name:        "request_copilot_review",
+		Description: "Request a GitHub Copilot code review on a PR. Tries the native `gh pr edit --add-reviewer @copilot` and verifies it stuck; falls back to the requestReviews GraphQL mutation with the resolved Copilot bot id.",
+		Args:        []spec.ToolArg{{Name: "prUrl", Type: "string", Describe: "Full GitHub PR URL (https://github.com/owner/repo/pull/N)"}},
+		Core:        toolFile("request-copilot-review.ts"),
+	},
+	{
+		Name:        "wait_for_copilot_review",
+		Description: "Poll a PR until GitHub Copilot has posted its review (it submits a COMMENTED review, usually within ~30s–2min), then return. Use after request_copilot_review, before triaging comments.",
+		Args: []spec.ToolArg{
+			{Name: "prUrl", Type: "string", Describe: "Full GitHub PR URL"},
+			{Name: "timeoutSec", Type: "number", Optional: true, Describe: "Max seconds to wait (default 180)"},
+			{Name: "pollSec", Type: "number", Optional: true, Describe: "Seconds between polls (default 10)"},
+		},
+		Core: toolFile("wait-for-copilot-review.ts"),
 	},
 }
 

@@ -1,9 +1,8 @@
-import { tool } from "@opencode-ai/plugin"
 import path from "path"
 import fs from "fs"
 import { ensureNotesDir, timestamp } from "./shared"
 
-async function execute(args: { content: string }, ctx: { directory: string }): Promise<string> {
+export async function execute(args: { content: string }, ctx: { directory: string }): Promise<string> {
     const dir = await ensureNotesDir(ctx.directory, "reviews")
 
     const suffix = Math.random().toString(36).slice(2, 6)
@@ -14,11 +13,3 @@ async function execute(args: { content: string }, ctx: { directory: string }): P
     const relativePath = path.relative(ctx.directory, filePath)
     return `Review saved to ${relativePath}`
 }
-
-export default tool({
-    description: "Save a code review to .dk-notes/reviews/ with timestamped filename",
-    args: {
-        content: tool.schema.string().describe("Full review markdown content"),
-    },
-    execute,
-})

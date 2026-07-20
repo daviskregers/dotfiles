@@ -33,18 +33,7 @@ export async function fetchAllPrNodes(
     const nodes: any[] = []
     let after: string | undefined
     for (;;) {
-        const a = [
-            "api",
-            "graphql",
-            "-f",
-            `query=${query}`,
-            "-f",
-            `owner=${owner}`,
-            "-f",
-            `repo=${repo}`,
-            "-F",
-            `num=${num}`,
-        ]
+        const a = ["api", "graphql", "-f", `query=${query}`, "-f", `owner=${owner}`, "-f", `repo=${repo}`, "-F", `num=${num}`]
         if (after) a.push("-f", `after=${after}`)
         const { stdout } = await execFileAsync("gh", a, { encoding: "utf8", maxBuffer: MAX_BUFFER })
         const pr = JSON.parse(stdout)?.data?.repository?.pullRequest
@@ -62,16 +51,19 @@ export async function fetchAllPrNodes(
 // requestReviews with the repo-specific Copilot bot node id resolved from
 // assignableUsers. `--add-reviewer Copilot` (no @) and the REST endpoint both
 // fail/no-op, so don't use them.
-export const COPILOT_LOOKUP = `query($owner:String!,$repo:String!){repository(owner:$owner,name:$repo){assignableUsers(first:100,query:"copilot"){nodes{login id}}}}`
-export const REQUEST_REVIEW_MUT = `mutation($prId:ID!,$uid:ID!){requestReviews(input:{pullRequestId:$prId,userIds:[$uid],union:true}){pullRequest{number}}}`
+export const COPILOT_LOOKUP =
+    `query($owner:String!,$repo:String!){repository(owner:$owner,name:$repo){assignableUsers(first:100,query:"copilot"){nodes{login id}}}}`
+export const REQUEST_REVIEW_MUT =
+    `mutation($prId:ID!,$uid:ID!){requestReviews(input:{pullRequestId:$prId,userIds:[$uid],union:true}){pullRequest{number}}}`
 
 // Throws on gh/parse failure so the caller can distinguish "not requested"
 // (false) from "couldn't check" (auth/network error) instead of masking it.
 export async function copilotIsRequested(prUrl: string): Promise<boolean> {
-    const { stdout } = await execFileAsync("gh", ["pr", "view", prUrl, "--json", "reviewRequests"], {
-        encoding: "utf8",
-        maxBuffer: MAX_BUFFER,
-    })
+    const { stdout } = await execFileAsync(
+        "gh",
+        ["pr", "view", prUrl, "--json", "reviewRequests"],
+        { encoding: "utf8", maxBuffer: MAX_BUFFER },
+    )
     const reqs = JSON.parse(stdout)?.reviewRequests ?? []
     return reqs.some((r: any) => /copilot/i.test(r.login ?? r.name ?? r.slug ?? ""))
 }

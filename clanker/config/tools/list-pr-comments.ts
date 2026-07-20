@@ -1,9 +1,8 @@
-import { tool } from "@opencode-ai/plugin"
 import { fetchAllPrNodes, THREADS_Q, REVIEWS_Q, CONV_Q } from "./pr-utils"
 
 const PR_URL_RE = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)\/?$/
 
-async function execute(
+export async function execute(
     args: { prUrl: string; includeResolved?: boolean },
     ctx: { directory: string },
 ): Promise<string> {
@@ -48,14 +47,7 @@ async function execute(
     }
     for (const r of pr.reviews?.nodes ?? []) {
         if (!r.body?.trim()) continue
-        items.push({
-            kind: "review",
-            threadId: null,
-            author: r.author?.login,
-            body: r.body,
-            state: r.state,
-            url: r.url,
-        })
+        items.push({ kind: "review", threadId: null, author: r.author?.login, body: r.body, state: r.state, url: r.url })
     }
     for (const c of pr.comments?.nodes ?? []) {
         if (!c.body?.trim()) continue
@@ -73,16 +65,3 @@ async function execute(
         2,
     )
 }
-
-export default tool({
-    description:
-        "List a GitHub PR's review-thread, review-summary, and conversation comments as a normalized JSON triage queue. Skips resolved threads and empty bodies by default. Inline items carry a threadId for resolve_pr_thread.",
-    args: {
-        prUrl: tool.schema.string().describe("Full GitHub PR URL (https://github.com/owner/repo/pull/N)"),
-        includeResolved: tool.schema
-            .boolean()
-            .optional()
-            .describe("Include already-resolved review threads (default false)"),
-    },
-    execute,
-})

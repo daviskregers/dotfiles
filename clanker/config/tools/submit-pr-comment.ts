@@ -1,4 +1,3 @@
-import { tool } from "@opencode-ai/plugin"
 import path from "path"
 import os from "os"
 import fs from "fs"
@@ -6,12 +5,17 @@ import { execFileAsync, withAttribution, MAX_COMMENT_BYTES } from "./shared"
 
 const PR_URL_RE = /^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+\/?$/
 
-async function execute(args: { prUrl: string; filePath: string }, ctx: { directory: string }): Promise<string> {
+export async function execute(
+    args: { prUrl: string; filePath: string },
+    ctx: { directory: string },
+): Promise<string> {
     if (!PR_URL_RE.test(args.prUrl)) {
         return `Error: Invalid PR URL format. Expected https://github.com/<owner>/<repo>/pull/<number>`
     }
 
-    const resolved = path.isAbsolute(args.filePath) ? args.filePath : path.join(ctx.directory, args.filePath)
+    const resolved = path.isAbsolute(args.filePath)
+        ? args.filePath
+        : path.join(ctx.directory, args.filePath)
 
     let stat: fs.Stats
     try {
@@ -38,9 +42,11 @@ async function execute(args: { prUrl: string; filePath: string }, ctx: { directo
     const tmp = path.join(os.tmpdir(), `pr-comment-${Date.now()}.md`)
     try {
         await fs.promises.writeFile(tmp, body, "utf-8")
-        const { stdout } = await execFileAsync("gh", ["pr", "comment", args.prUrl, "--body-file", tmp], {
-            encoding: "utf8",
-        })
+        const { stdout } = await execFileAsync(
+            "gh",
+            ["pr", "comment", args.prUrl, "--body-file", tmp],
+            { encoding: "utf8" },
+        )
         return `Comment posted to ${args.prUrl}\n${stdout}`.trim()
     } catch (err: any) {
         return `Error posting comment: ${err.message}`
@@ -48,12 +54,3 @@ async function execute(args: { prUrl: string; filePath: string }, ctx: { directo
         fs.promises.unlink(tmp).catch(() => {})
     }
 }
-
-export default tool({
-    description: "Post a file as a comment on a GitHub PR (file sent directly, not read into conversation)",
-    args: {
-        prUrl: tool.schema.string().describe("Full GitHub PR URL"),
-        filePath: tool.schema.string().describe("Path to file to post as comment (relative to cwd or absolute)"),
-    },
-    execute,
-})

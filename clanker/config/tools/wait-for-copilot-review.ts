@@ -1,9 +1,8 @@
-import { tool } from "@opencode-ai/plugin"
 import { execFileAsync, MAX_BUFFER, sleep } from "./shared"
 
 const PR_URL_RE = /^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+\/?$/
 
-async function execute(
+export async function execute(
     args: { prUrl: string; timeoutSec?: number; pollSec?: number },
     ctx: { directory: string },
 ): Promise<string> {
@@ -15,10 +14,11 @@ async function execute(
 
     while (Date.now() - start < timeout) {
         try {
-            const { stdout } = await execFileAsync("gh", ["pr", "view", args.prUrl, "--json", "reviews"], {
-                encoding: "utf8",
-                maxBuffer: MAX_BUFFER,
-            })
+            const { stdout } = await execFileAsync(
+                "gh",
+                ["pr", "view", args.prUrl, "--json", "reviews"],
+                { encoding: "utf8", maxBuffer: MAX_BUFFER },
+            )
             const reviews = JSON.parse(stdout)?.reviews ?? []
             const copilot = reviews.filter((r: any) => /copilot/i.test(r.author?.login ?? ""))
             if (copilot.length > 0) {
@@ -33,14 +33,3 @@ async function execute(
     }
     return `Timed out after ${args.timeoutSec ?? 180}s — Copilot review not yet posted. Re-run or triage what's there.`
 }
-
-export default tool({
-    description:
-        "Poll a PR until GitHub Copilot has posted its review (it submits a COMMENTED review, usually within ~30s–2min), then return. Use after request_copilot_review, before triaging comments.",
-    args: {
-        prUrl: tool.schema.string().describe("Full GitHub PR URL"),
-        timeoutSec: tool.schema.number().optional().describe("Max seconds to wait (default 180)"),
-        pollSec: tool.schema.number().optional().describe("Seconds between polls (default 10)"),
-    },
-    execute,
-})

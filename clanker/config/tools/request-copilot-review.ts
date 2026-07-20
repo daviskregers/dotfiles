@@ -1,10 +1,12 @@
-import { tool } from "@opencode-ai/plugin"
 import { execFileAsync, MAX_BUFFER } from "./shared"
 import { copilotIsRequested, COPILOT_LOOKUP, REQUEST_REVIEW_MUT } from "./pr-utils"
 
 const PR_URL_RE = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)\/?$/
 
-async function execute(args: { prUrl: string }, ctx: { directory: string }): Promise<string> {
+export async function execute(
+    args: { prUrl: string },
+    ctx: { directory: string },
+): Promise<string> {
     const m = args.prUrl.match(PR_URL_RE)
     if (!m) {
         return `Error: Invalid PR URL format. Expected https://github.com/<owner>/<repo>/pull/<number>`
@@ -54,10 +56,11 @@ async function execute(args: { prUrl: string }, ctx: { directory: string }): Pro
     // 3. Resolve PR node id + requestReviews
     let prId: string
     try {
-        const { stdout } = await execFileAsync("gh", ["pr", "view", args.prUrl, "--json", "id", "--jq", ".id"], {
-            encoding: "utf8",
-            maxBuffer: MAX_BUFFER,
-        })
+        const { stdout } = await execFileAsync(
+            "gh",
+            ["pr", "view", args.prUrl, "--json", "id", "--jq", ".id"],
+            { encoding: "utf8", maxBuffer: MAX_BUFFER },
+        )
         prId = stdout.trim()
     } catch (err: any) {
         return `Error resolving PR node id: ${err.message}`
@@ -76,12 +79,3 @@ async function execute(args: { prUrl: string }, ctx: { directory: string }): Pro
         return `Error requesting Copilot review: ${err.message}`
     }
 }
-
-export default tool({
-    description:
-        "Request a GitHub Copilot code review on a PR. Tries the native `gh pr edit --add-reviewer @copilot` and verifies it stuck; falls back to the requestReviews GraphQL mutation with the resolved Copilot bot id.",
-    args: {
-        prUrl: tool.schema.string().describe("Full GitHub PR URL (https://github.com/owner/repo/pull/N)"),
-    },
-    execute,
-})

@@ -1,8 +1,7 @@
-import { tool } from "@opencode-ai/plugin"
 import { execFileAsync } from "./shared"
 import { parsePrUrl } from "./pr-utils"
 
-async function execute(
+export async function execute(
     args: { prUrl: string; title?: string; body?: string },
     ctx: { directory: string },
 ): Promise<string> {
@@ -28,19 +27,14 @@ async function execute(
         const { stdout } = await execFileAsync("gh", ghArgs, {
             encoding: "utf8",
         })
-        const updated = [args.title ? "title" : null, args.body ? "body" : null].filter(Boolean).join(" and ")
+        const updated = [
+            args.title ? "title" : null,
+            args.body ? "body" : null,
+        ]
+            .filter(Boolean)
+            .join(" and ")
         return `Successfully updated ${updated} for ${args.prUrl}\n${stdout}`.trim()
     } catch (err: any) {
         return `Error updating PR: ${err.message}`
     }
 }
-
-export default tool({
-    description: "Update a GitHub PR's title and/or body (description)",
-    args: {
-        prUrl: tool.schema.string().describe("Full GitHub PR URL"),
-        title: tool.schema.string().optional().describe("New PR title (omit to leave unchanged)"),
-        body: tool.schema.string().optional().describe("New PR body/description in markdown (omit to leave unchanged)"),
-    },
-    execute,
-})

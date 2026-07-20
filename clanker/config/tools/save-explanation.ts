@@ -1,4 +1,3 @@
-import { tool } from "@opencode-ai/plugin"
 import path from "path"
 import fs from "fs"
 import { exec } from "child_process"
@@ -7,7 +6,7 @@ import { ensureNotesDir, execFileAsync, timestamp } from "./shared"
 
 const execAsync = promisify(exec)
 
-async function execute(args: { content: string; title?: string }, ctx: { directory: string }): Promise<string> {
+export async function execute(args: { content: string; title?: string }, ctx: { directory: string }): Promise<string> {
     const dir = await ensureNotesDir(ctx.directory, "explanations")
 
     const slug =
@@ -40,12 +39,3 @@ async function execute(args: { content: string; title?: string }, ctx: { directo
         ? `Explanation saved to ${relativePath} and opened in browser`
         : `Explanation saved to ${relativePath} (could not open browser automatically)`
 }
-
-export default tool({
-    description: "Save an HTML explanation to .dk-notes/explanations/ and open in default browser",
-    args: {
-        content: tool.schema.string().describe("Full HTML content"),
-        title: tool.schema.string().optional().describe("Short slug for filename (e.g. 'jwt-auth-flow')"),
-    },
-    execute,
-})
