@@ -68,29 +68,29 @@ func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, docs []spec.D
 		}
 	}
 
-	// Custom tools: opencode side only for now (claude's monolithic index.ts is a
-	// separate emit, ported all-at-once later). Generated TS is prettier-formatted
-	// so it matches the project's canonical style byte-for-byte.
-	toolDir := target.Opencode{}.ToolDir()
-	for _, u := range toolUtils {
-		f := target.OutputFile{RelPath: toolDir + "/" + u.Name, Content: u.Content}
-		if err := writeFile(outRoot, f); err != nil {
-			return err
-		}
-		if err := formatTS(filepath.Join(outRoot, f.RelPath)); err != nil {
-			return err
-		}
-	}
-	for _, tl := range tools {
-		f := target.RenderToolOpencode(tl)
-		if err := writeFile(outRoot, f); err != nil {
-			return err
-		}
-		if err := formatTS(filepath.Join(outRoot, f.RelPath)); err != nil {
+	// Custom tools: generated for both targets from the same neutral cores. opencode
+	// gets per-tool tool() wrappers; claude vendors the cores + a generated index.ts
+	// registering them. Generated TS is prettier-formatted to the project's style.
+	if len(tools) > 0 {
+		toolFiles := append(target.OpencodeToolFiles(tools, toolUtils), target.ClaudeToolFiles(tools, toolUtils)...)
+		if err := writeTS(outRoot, toolFiles); err != nil {
 			return err
 		}
 	}
 	return writeManifest(outRoot, current)
+}
+
+// writeTS writes each TypeScript file then prettier-formats it in place.
+func writeTS(outRoot string, files []target.OutputFile) error {
+	for _, f := range files {
+		if err := writeFile(outRoot, f); err != nil {
+			return err
+		}
+		if err := formatTS(filepath.Join(outRoot, f.RelPath)); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // applyConfigMerges sets each merge's value into its shared JSON file, one

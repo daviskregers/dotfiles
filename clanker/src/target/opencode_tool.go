@@ -10,6 +10,20 @@ import (
 // ToolDir is opencode's custom-tools directory, relative to the dotfiles root.
 func (Opencode) ToolDir() string { return "opencode/.config/opencode/tools" }
 
+// OpencodeToolFiles is everything opencode's tools dir needs: the shared util
+// modules (vendored verbatim) + each tool wrapped as a tool() export.
+func OpencodeToolFiles(tools []spec.Tool, utils []spec.ToolUtil) []OutputFile {
+	dir := Opencode{}.ToolDir()
+	var files []OutputFile
+	for _, u := range utils {
+		files = append(files, OutputFile{RelPath: dir + "/" + u.Name, Content: u.Content})
+	}
+	for _, t := range tools {
+		files = append(files, RenderToolOpencode(t))
+	}
+	return files
+}
+
 // RenderToolOpencode emits an opencode custom-tool file: the shared preamble
 // (imports + helper consts) followed by a `tool()` export wrapping the neutral
 // execute body. The execute return (a string) passes through unchanged.
