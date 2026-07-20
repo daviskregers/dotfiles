@@ -37,9 +37,10 @@ func hookFile(name string) string {
 // HookUtils is the shared hook types module, inlined into each generated hook.
 var HookUtils = hookFile("hook-utils.ts")
 
-// Hooks are single-sourced hooks. ai-attribution lands last (its own slice —
-// compliance-critical, cross-target tool-name mapping). comprehension-nudge is
-// claude-only: it blocks the Stop event, which opencode has no equivalent for.
+// Hooks are single-sourced hooks, all dual-target. Per-target event mapping absorbs
+// capability gaps (e.g. comprehension-nudge blocks claude's Stop but injects via the
+// client on opencode's session.idle). ai-attribution lands last (its own slice —
+// compliance-critical, cross-target tool-name mapping).
 var Hooks = []spec.Hook{
 	{
 		Name:          "dangerous-command-guard",
@@ -79,10 +80,12 @@ var Hooks = []spec.Hook{
 		Core:          hookFile("approval-scope.ts"),
 	},
 	{
+		// claude blocks the Stop event; opencode can't block a turn end, so on
+		// session.idle it injects the checkpoint as a prompt via the SDK client.
 		Name:          "comprehension-nudge",
 		Event:         spec.Stop,
 		Matcher:       "",
-		OpencodeEvent: spec.NoOpencodeEvent,
+		OpencodeEvent: spec.SessionIdle,
 		Core:          hookFile("comprehension-nudge.ts"),
 	},
 }

@@ -9,22 +9,43 @@ import (
 // PluginDir is opencode's plugin directory, relative to the dotfiles root.
 func (Opencode) PluginDir() string { return "opencode/.config/opencode/plugins" }
 
-// RenderOpencodeHook emits a self-contained opencode plugin for a dual-targetable
-// hook: shared types + neutral core (types inlined) + a plugin factory wiring the
-// core to the mapped event and translating HookResult (deny→throw, allow→mutate
-// args, context→append). Returns ok=false for a claude-only hook (no plugin).
-func RenderOpencodeHook(hookUtils string, h spec.Hook) (OutputFile, bool) {
+// HookLibRel is the shared runtime module, emitted OUTSIDE plugins/ so opencode's
+// loader (which treats every named export in plugins/*.ts as a plugin candidate)
+// can't mistake the runtime's helpers for plugins. Plugins import it by relative path.
+func (Opencode) HookLibRel() string { return "opencode/.config/opencode/hook-lib/hook-utils.ts" }
+
+// RenderOpencodeHook emits an opencode plugin for a dual-targetable hook: an import
+// of the shared runtime + the neutral core (de-exported, inlined) + a plugin factory
+// wiring the core to the mapped event and translating HookResult (deny→throw,
+// allow→mutate args, context→append, idle→client inject). ok=false → claude-only.
+func RenderOpencodeHook(h spec.Hook) (OutputFile, bool) {
 	body, ok := opencodeHookHandler(h.OpencodeEvent)
 	if !ok {
 		return OutputFile{}, false
 	}
 	var b strings.Builder
-	b.WriteString(inlineHookRuntime(hookUtils))
+	b.WriteString(`import { ` + opencodeAdapterImports(h.OpencodeEvent) + `, type HookResult, type HookCtx, type HookInput } from "../hook-lib/hook-utils"` + "\n\n")
 	b.WriteString(inlineCore(h.Core))
-	b.WriteString("\nexport const " + camel(strings.ReplaceAll(h.Name, "-", "_")) + " = async ({ directory }: { directory: string }) => ({\n")
+	b.WriteString("\nexport const " + camel(strings.ReplaceAll(h.Name, "-", "_")) + " = async (" + opencodeFactoryParams(h.OpencodeEvent) + ") => ({\n")
 	b.WriteString(body)
 	b.WriteString("})\n")
 	return OutputFile{RelPath: Opencode{}.PluginDir() + "/" + h.Name + ".ts", Content: b.String()}, true
+}
+
+// opencodeAdapterImports is the runtime adapters a given event's handler references.
+func opencodeAdapterImports(ev spec.OpencodeEvent) string {
+	switch ev {
+	case spec.ToolExecuteBefore:
+		return "extractOpencodeBefore, applyOpencodeBefore"
+	case spec.ToolExecuteAfter:
+		return "extractOpencodeAfter, applyOpencodeAfter"
+	case spec.ChatMessage:
+		return "extractOpencodeMessage, applyOpencodeMessage"
+	case spec.SessionIdle:
+		return "injectOnIdle"
+	default:
+		return ""
+	}
 }
 
 // opencodeHookHandler is the event-handler body: thin plumbing delegating extraction
@@ -43,7 +64,24 @@ func opencodeHookHandler(ev spec.OpencodeEvent) (string, bool) {
 		return `    "chat.message": async (input: any, output: any) =>
         applyOpencodeMessage(output, await run(extractOpencodeMessage(input, output), { directory })),
 `, true
+	case spec.SessionIdle:
+		// The `event` hook can't block or mutate — so on session.idle we run the core
+		// and inject any block/context result as a prompt via the client.
+		return `    event: async (input: any) => {
+        if (input.event?.type !== "session.idle") return
+        await injectOnIdle(client, input.event.properties.sessionID, await run({}, { directory }))
+    },
+`, true
 	default: // NoOpencodeEvent → claude-only
 		return "", false
 	}
+}
+
+// opencodeFactoryParams is the plugin factory's destructured PluginInput — session.idle
+// hooks need the SDK `client` to inject; the rest need only `directory`.
+func opencodeFactoryParams(ev spec.OpencodeEvent) string {
+	if ev == spec.SessionIdle {
+		return "{ directory, client }: { directory: string; client: any }"
+	}
+	return "{ directory }: { directory: string }"
 }

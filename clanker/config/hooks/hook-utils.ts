@@ -103,3 +103,13 @@ export function applyOpencodeAfter(output: any, r: HookResult): void {
 export function applyOpencodeMessage(output: any, r: HookResult): void {
     if (r.kind === "context") output.parts.push({ type: "text", text: r.text })
 }
+
+// session.idle: opencode can't block the turn end, so a block/context result is
+// delivered by injecting a prompt via the SDK client — which re-activates the turn
+// so the agent addresses it. Returns whether it injected (for testing).
+export async function injectOnIdle(client: any, sessionID: string, r: HookResult): Promise<boolean> {
+    const text = r.kind === "block" ? r.reason : r.kind === "context" ? r.text : ""
+    if (!text) return false
+    await client.session.prompt({ path: { id: sessionID }, body: { parts: [{ type: "text", text }] } })
+    return true
+}
