@@ -1,0 +1,1 @@
+{ "name": "clanker-hook-cores", "private": true, "devDependencies": { "@types/node": "^22" } }
