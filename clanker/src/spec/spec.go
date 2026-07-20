@@ -10,18 +10,18 @@ const (
 	ArgsFirstPositional                 // the first positional arg (opencode $1)
 )
 
-// ClaudeOverlay holds claude-only values. Zero-valued fields inherit the shared spec.
+// ClaudeOverlay holds claude-only frontmatter values. Body divergence lives inline
+// in the shared template ({{if .Claude}}), not here.
 type ClaudeOverlay struct {
 	Description  string
-	Body         string
 	ArgumentHint string // frontmatter `argument-hint:`
 	AllowedTools string // frontmatter `allowed-tools:` (raw value, verbatim)
 }
 
-// OpencodeOverlay holds opencode-only values. Zero-valued fields inherit the shared spec.
+// OpencodeOverlay holds opencode-only frontmatter values. Body divergence lives
+// inline in the shared template ({{if .Opencode}}), not here.
 type OpencodeOverlay struct {
 	Description string
-	Body        string
 }
 
 // Overlays groups per-target overrides as fields, not map keys, so a mistyped

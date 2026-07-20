@@ -11,7 +11,7 @@ func TestClaudeRenderCommand_HappyPath(t *testing.T) {
 	cmd := spec.Command{
 		Name:        "demo",
 		Description: "Do a thing",
-		Body:        "Run it.\n\n{{args}}\n",
+		Body:        "Run it.\n\n{{.Args}}\n",
 	}
 
 	got := target.Claude{}.RenderCommand(cmd)
@@ -63,7 +63,7 @@ func TestClaudeRenderCommand_ExtraFrontmatter(t *testing.T) {
 
 // ArgsFirstPositional still renders $ARGUMENTS on claude (claude has no positional form).
 func TestClaudeRenderCommand_ArgStyleIgnored(t *testing.T) {
-	cmd := spec.Command{Name: "demo", Description: "d", Body: "{{args}}\n", Args: spec.ArgsFirstPositional}
+	cmd := spec.Command{Name: "demo", Description: "d", Body: "{{.Args}}\n", Args: spec.ArgsFirstPositional}
 
 	got := target.Claude{}.RenderCommand(cmd)
 

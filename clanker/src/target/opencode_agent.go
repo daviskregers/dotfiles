@@ -5,9 +5,9 @@ import "clanker/src/spec"
 const opencodeJSON = "opencode/.config/opencode/opencode.json"
 
 func (Opencode) RenderAgent(a spec.Agent) AgentOutput {
-	// opencode prompts announce skills in prose, but inconsistently across agents,
-	// so the divergence is carried as an authored overlay body, not auto-injected.
-	promptBody := pick(a.Overlay.Opencode.Body, a.Body)
+	// The prompt body is a template; per-target prose divergence (e.g. skill
+	// announcements) lives inline via {{if .Opencode}} spans, not a separate body.
+	promptBody := execBody(a.Body, renderCtx{Opencode: true})
 
 	// Deny-all, then enable exactly what the agent's capabilities grant.
 	tools := map[string]any{"*": false}

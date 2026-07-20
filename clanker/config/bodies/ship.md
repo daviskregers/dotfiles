@@ -3,7 +3,7 @@ Pipeline: local review → verify → pause → commit → push → draft PR →
 
 ## Input
 
-Target base branch (+ optional `--ready`, `--no-review`, title/context): {{args}} — no base given? Ask.
+Target base branch (+ optional `--ready`, `--no-review`, title/context): {{.Args}} — no base given? Ask.
 Load `git-commit` (commit message) + `driver-gate` (triage loop, Phases A & D) + `probe` (Phase A2 verify).
 
 ## Phase A — Local review (pre-commit; skip if `--no-review`)

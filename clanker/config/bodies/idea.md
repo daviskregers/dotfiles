@@ -1,6 +1,6 @@
 Capture a random idea — a spark for something to build/try/explore later. **Capture only**: do NOT build it, plan it, evaluate feasibility, or start a task.
 
-Idea = {{args}}
+Idea = {{.Args}}
 
 1. From the current session + cwd, compose:
    - **title**: ≤6 words, specific.

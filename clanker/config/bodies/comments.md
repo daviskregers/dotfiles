@@ -4,11 +4,11 @@ Load `driver-gate` (triage-loop pattern), `tdd` (fix phases), `git-commit` (per-
 
 ## Input
 
-PR URL/number: {{args}} — none? Resolve current branch's PR via `gh pr view --json url,number`. No PR? Ask.
+PR URL/number: {{.Args}} — none? Resolve current branch's PR via `gh pr view --json url,number`. No PR? Ask.
 
 ## Phase 0: Bulk read
 
-1. Resolve PR URL: `{{args}}`, else `gh pr view --json url`.
+1. Resolve PR URL: `{{.Args}}`, else `gh pr view --json url`.
 2. Call `list_pr_comments` (MCP) → normalized JSON queue: `items[]` with `index, kind (inline|review|conversation), threadId, path, line, author, body, url`, plus `total` + `skippedResolved`. Resolved threads + empty bodies already filtered.
 
 ## Phase 1: Present queue

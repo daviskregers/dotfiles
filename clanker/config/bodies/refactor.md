@@ -3,7 +3,7 @@ Load `tdd` skill — tests are contract.
 
 ## Input
 
-Scope: {{args}} — none? Ask user.
+Scope: {{.Args}} — none? Ask user.
 
 ### Phase 1: Validate coverage
 

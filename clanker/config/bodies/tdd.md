@@ -2,7 +2,7 @@ TDD workflow. Load `tdd` skill — red-green-refactor cycle + rollback protocol.
 
 ## Input
 
-Task: {{args}} — none? Ask user.
+Task: {{.Args}} — none? Ask user.
 
 ## Steps
 

@@ -2,7 +2,7 @@ Investigate one review finding via the `driver-gate` **triage loop** (single ite
 
 ## Input
 
-Comment: {{args}} — none? Ask user to paste.
+Comment: {{.Args}} — none? Ask user to paste.
 
 ## Phase 1: Triage
 

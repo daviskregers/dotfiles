@@ -9,7 +9,7 @@ import (
 	"clanker/src/spec"
 )
 
-//go:embed bodies/*.md bodies/*.tmpl
+//go:embed bodies/*.md
 var bodies embed.FS
 
 // body returns an embedded markdown body, panicking if absent — the body set is
@@ -35,8 +35,6 @@ var (
 		Skills:      []string{"caveman", "caveman-commit"},
 		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
 			Description: "Subagent that commits staged changes with a conventional commit message",
-			// opencode announces skills in the prompt; claude uses the skills frontmatter.
-			Body: body("git-committer.opencode.md"),
 		}},
 	}
 
@@ -64,7 +62,6 @@ var (
 		Skills:      []string{"artifact-output", "diagram"},
 		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
 			Description: "Subagent that generates visual HTML explanations with diagrams and quizzes",
-			Body:        body("explainer.opencode.md"),
 		}},
 	}
 
@@ -79,7 +76,6 @@ var (
 		Skills:      []string{"caveman", "diagram"},
 		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
 			Description: "Subagent that reads PR changes and writes a title and description",
-			Body:        body("pr-describer.opencode.md"),
 		}},
 	}
 
@@ -131,7 +127,6 @@ var (
 		Skills:      []string{"code-review-rules", "caveman-review", "artifact-output"},
 		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
 			Description: "Read-only code review subagent with restricted tool access",
-			Body:        body("code-reviewer.opencode.md"),
 			Write:       ptr(false), // ...but opencode saves via the save-code-review tool, no write
 		}},
 	}
@@ -145,9 +140,6 @@ var (
 		Read:        true, // opencode also grants grep/glob; claude's denylist forbids them (accepted)
 		Deny:        []string{"Write", "Edit", "Bash", "Glob", "Grep", "Agent"},
 		MCP:         []string{"submit-pr-comment"},
-		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
-			Body: body("pr-comment-submitter.opencode.md"),
-		}},
 	}
 )
 
@@ -155,11 +147,7 @@ var (
 func ptr[T any](v T) *T { return &v }
 
 // Docs is the shared global rules document, rendered to CLAUDE.md / AGENTS.md.
-var Docs = []spec.Doc{{
-	Shared:       body("global.shared.tmpl"),
-	ClaudeTail:   body("global.claude.md"),
-	OpencodeTail: body("global.opencode.md"),
-}}
+var Docs = []spec.Doc{{Body: body("global.md")}}
 
 // Agents is the set clanker generates.
 var Agents = []spec.Agent{
@@ -183,7 +171,6 @@ var Commands = []spec.Command{
 		Delegates:   &spec.Delegation{Agent: &codeReviewer},
 		Overlay: spec.Overlays{Opencode: spec.OpencodeOverlay{
 			Description: "Review current code changes and list any issues (read-only, no modifications)",
-			Body:        body("code-review.opencode.md"),
 		}},
 	},
 	{
@@ -214,7 +201,6 @@ var Commands = []spec.Command{
 		Delegates:   &spec.Delegation{Agent: &explainer},
 		Overlay: spec.Overlays{Opencode: spec.OpencodeOverlay{
 			Description: "Generate a visual HTML explanation with diagrams and quizzes for a topic from the current conversation",
-			Body:        body("explain.opencode.md"),
 		}},
 	},
 	{
@@ -247,13 +233,10 @@ var Commands = []spec.Command{
 		Name:        "reflect-tune",
 		Description: "Turn a reflection's root cause into proposed Claude-config guardrails — propose diffs, you approve, then dual-sync",
 		Body:        body("reflect-tune.md"),
-		Overlay: spec.Overlays{
-			Claude: spec.ClaudeOverlay{
-				ArgumentHint: "[path to a Reflections note — defaults to the latest]",
-				AllowedTools: "Read, Edit, Write, Bash, Glob, Grep, AskUserQuestion",
-			},
-			Opencode: spec.OpencodeOverlay{Body: body("reflect-tune.opencode.md")},
-		},
+		Overlay: spec.Overlays{Claude: spec.ClaudeOverlay{
+			ArgumentHint: "[path to a Reflections note — defaults to the latest]",
+			AllowedTools: "Read, Edit, Write, Bash, Glob, Grep, AskUserQuestion",
+		}},
 	},
 	{
 		Name:        "ship",

@@ -2,7 +2,7 @@ TDD bug fix. Load `tdd` skill — red-green cycle + rollback protocol.
 
 ## Input
 
-Bug: {{args}} — none? Ask user.
+Bug: {{.Args}} — none? Ask user.
 
 ## Steps
 

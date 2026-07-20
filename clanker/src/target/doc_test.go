@@ -10,9 +10,8 @@ import (
 
 func TestRenderDoc_ConditionalsAndTail(t *testing.T) {
 	d := spec.Doc{
-		Shared:       "Rule.{{if .Claude}} (hook.){{end}}\n\n",
-		ClaudeTail:   "## Claude tail\n",
-		OpencodeTail: "## Opencode tail\n",
+		Body: "Rule.{{if .Claude}} (hook.){{end}}\n\n" +
+			"{{if .Claude}}## Claude tail\n{{end}}{{if .Opencode}}## Opencode tail\n{{end}}",
 	}
 
 	cl := target.Claude{}.RenderDoc(d)

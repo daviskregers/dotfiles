@@ -1,4 +1,4 @@
-Commit staged changes. NEVER modify files.
+Commit staged changes. NEVER modify files.{{if .Opencode}} Load `caveman` + `caveman-commit` skills.{{end}}
 
 ## Steps
 

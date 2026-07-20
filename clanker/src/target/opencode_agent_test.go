@@ -11,22 +11,21 @@ func TestOpencodeRenderAgent_BashAgent(t *testing.T) {
 	a := spec.Agent{
 		Name:        "demo",
 		Description: "Shared desc",
-		Body:        "shared body\n",
+		Body:        "shared body.{{if .Opencode}} Load `caveman` skills.{{end}}\n",
 		Bash:        []string{"git diff", "git commit"},
 		Skills:      []string{"caveman", "caveman-commit"},
 		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
 			Description: "Subagent that does it",
-			Body:        "opencode body. Load `caveman` skills.\n",
 		}},
 	}
 
 	out := target.Opencode{}.RenderAgent(a)
 
-	// Prompt file uses the opencode overlay body verbatim (no auto-injection).
+	// Prompt body renders the template — the {{if .Opencode}} span is included.
 	if out.Files[0].RelPath != "opencode/.config/opencode/prompts/demo.md" {
 		t.Errorf("prompt path: %q", out.Files[0].RelPath)
 	}
-	if out.Files[0].Content != "opencode body. Load `caveman` skills.\n" {
+	if out.Files[0].Content != "shared body. Load `caveman` skills.\n" {
 		t.Errorf("prompt: got %q", out.Files[0].Content)
 	}
 

@@ -14,9 +14,9 @@ func (Opencode) RenderCommand(c spec.Command) []OutputFile {
 	if c.Delegates != nil {
 		agent = c.Delegates.Agent.Name
 	}
-	body := pick(o.Body, c.Body)
+	body := c.Body
 	if generatesBody(c) {
-		body = capFirst(c.Delegates.Task) + ".\n\n{{args}}\n"
+		body = capFirst(c.Delegates.Task) + ".\n\n{{.Args}}\n"
 	}
 	content := renderFile(
 		[]fmField{
@@ -24,7 +24,7 @@ func (Opencode) RenderCommand(c spec.Command) []OutputFile {
 			{"agent", agent},
 		},
 		body,
-		opencodeArgForm(c.Args),
+		renderCtx{Opencode: true, Args: opencodeArgForm(c.Args)},
 	)
 	return []OutputFile{{
 		RelPath: Opencode{}.CommandDir() + "/" + c.Name + ".md",

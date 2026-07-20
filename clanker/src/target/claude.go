@@ -10,9 +10,9 @@ func (Claude) CommandDir() string { return "claude/.claude/commands" }
 
 func (Claude) RenderCommand(c spec.Command) []OutputFile {
 	o := c.Overlay.Claude
-	body := pick(o.Body, c.Body)
+	body := c.Body
 	if generatesBody(c) {
-		body = "Use " + c.Delegates.Agent.Name + " agent to " + c.Delegates.Task + ".\n\n{{args}}\n"
+		body = "Use " + c.Delegates.Agent.Name + " agent to " + c.Delegates.Task + ".\n\n{{.Args}}\n"
 	}
 	content := renderFile(
 		[]fmField{
@@ -21,7 +21,7 @@ func (Claude) RenderCommand(c spec.Command) []OutputFile {
 			{"allowed-tools", o.AllowedTools},
 		},
 		body,
-		"$ARGUMENTS",
+		renderCtx{Claude: true, Args: "$ARGUMENTS"},
 	)
 	return []OutputFile{{
 		RelPath: Claude{}.CommandDir() + "/" + c.Name + ".md",
