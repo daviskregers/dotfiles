@@ -7,12 +7,12 @@ import (
 	"clanker/src/target"
 )
 
-// Default ArgStyle (ArgsAll) renders {{args}} as $ARGUMENTS on opencode.
+// Default ArgStyle (ArgsAll) renders {{.Args}} as $ARGUMENTS on opencode.
 func TestOpencodeRenderCommand_ArgsAll(t *testing.T) {
 	cmd := spec.Command{
 		Name:        "demo",
 		Description: "Do a thing",
-		Body:        "Run it.\n\n{{args}}\n",
+		Body:        "Run it.\n\n{{.Args}}\n",
 	}
 
 	got := target.Opencode{}.RenderCommand(cmd)
@@ -24,12 +24,12 @@ func TestOpencodeRenderCommand_ArgsAll(t *testing.T) {
 	assertFiles(t, got, want)
 }
 
-// ArgsFirstPositional renders {{args}} as $1 on opencode.
+// ArgsFirstPositional renders {{.Args}} as $1 on opencode.
 func TestOpencodeRenderCommand_ArgsFirstPositional(t *testing.T) {
 	cmd := spec.Command{
 		Name:        "ship",
 		Description: "Ship",
-		Body:        "base: {{args}}\n",
+		Body:        "base: {{.Args}}\n",
 		Args:        spec.ArgsFirstPositional,
 	}
 
@@ -78,18 +78,16 @@ func TestRenderCommand_DelegationGeneratesBodies(t *testing.T) {
 	}
 }
 
-func TestOpencodeRenderCommand_BodyOverlay(t *testing.T) {
-	cmd := spec.Command{
-		Name:        "commit",
-		Description: "Commit",
-		Body:        "shared body\n",
-		Overlay:     spec.Overlays{Opencode: spec.OpencodeOverlay{Body: "opencode-only body\n"}},
+// Body divergence is expressed inline via {{if}} spans, not a whole-body overlay.
+func TestRenderCommand_InlineConditionalBody(t *testing.T) {
+	cmd := spec.Command{Name: "x", Description: "X", Body: "base{{if .Opencode}} oc-only{{end}}\n"}
+
+	oc := target.Opencode{}.RenderCommand(cmd)[0].Content
+	if oc != "---\ndescription: X\n---\n\nbase oc-only\n" {
+		t.Errorf("opencode: %q", oc)
 	}
-
-	got := target.Opencode{}.RenderCommand(cmd)
-
-	want := "---\ndescription: Commit\n---\n\nopencode-only body\n"
-	if len(got) != 1 || got[0].Content != want {
-		t.Fatalf("overlay body not applied:\n got %q\nwant %q", contentOf(got), want)
+	cl := target.Claude{}.RenderCommand(cmd)[0].Content
+	if cl != "---\ndescription: X\n---\n\nbase\n" {
+		t.Errorf("claude: %q", cl)
 	}
 }

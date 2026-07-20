@@ -2,9 +2,9 @@ Generate HTML effectiveness report — review + coaching + quizzes using real pr
 
 ## Step 1: Gather data
 
-Run: `python3 ~/.claude/scripts/usage-stats.py {{args}}`
+Run: `python3 ~/.claude/scripts/usage-stats.py {{.Args}}`
 
-{{args}} = optional number of days (e.g. `7`, `30`). Empty = all history.
+{{.Args}} = optional number of days (e.g. `7`, `30`). Empty = all history.
 
 ## Step 2: Check previous reports
 

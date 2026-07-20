@@ -97,3 +97,91 @@ Default terse — ALL output (responses, configs, subagent findings). This binds
 
 All rules/skills/prompts/commands/agents MUST be written compressed — drop articles/filler/hedging, use fragments, abbreviate; preserve substance/code/structure. Example: ✅ `Synced. Both clones at b94b8b9; parent d08bf7a. Nothing pushed.` vs ❌ a 4-sentence restatement of each step the diff already shows.
 
+{{if .Claude}}## Environment & docs
+
+- Tooling: user works in neovim + tmux, finds GUIs tedious — prefer terminal/TUI/CLI when suggesting or building tooling.
+- Discover an undocumented pattern/convention/gotcha → propose documenting it in the most specific file (service CLAUDE.md → CLAUDE.md for cross-cutting) so it's reused, not re-researched.
+
+<!-- personal, private rules (gitignored, not committed) -->
+@~/.claude/CLAUDE.personal.md
+{{end}}{{if .Opencode}}## Environment
+
+Tooling: user works in neovim + tmux, finds GUIs tedious — prefer terminal/TUI/CLI when suggesting or building tooling.
+
+## Custom commands
+
+Every command in `command/` **must** have dedicated subagent in `opencode.json` via `agent:` frontmatter. Never run under default agent.
+
+### Adding new command
+
+1. **Define subagent** in `opencode.json` under `agent`:
+   - `"mode": "subagent"`.
+   - Disable unneeded tools (`"write": false`, `"edit": false`, etc.).
+   - `permission.bash`: default-deny (`"*": "deny"`), allowlist only needed patterns.
+2. **Create command file** `command/<name>.md`:
+   - `agent: <subagent-name>` in YAML frontmatter.
+   - Write instruction prompt.
+3. **Verify** command can't act outside intended scope (no file writes, no push, no arbitrary shell).
+
+### Existing examples
+
+| Command | Agent | Allowed bash |
+|---------|-------|-----------------------|
+| `commit` | `git-committer` | `git diff*`, `git commit*`, `git status*` |
+| `code-review` | `code-reviewer` | `git diff*`, `git log*`, `git status*`, `git rev-parse*`, `git show*`, `gh pr view*`, `gh pr diff*` |
+| `stash` | `git-stasher` | `git stash*`, `git diff*`, `git status*` |
+| `describe-pr` | `pr-describer` | *(bash disabled)* |
+| `explain` | `explainer` | *(bash disabled)* |
+
+### CRITICAL: Document research findings
+
+After research, BEFORE plan steps:
+
+1. **List all discovered patterns** not in CLAUDE.md/AGENTS.md/skills/context docs.
+2. **For each**, state target doc file.
+3. **Include plan step** to add documentation.
+
+No findings? State "No undocumented patterns discovered". Never skip.
+
+## Plan mode
+
+- Small focused steps — single logical change, independently verifiable.
+- Concrete code samples each step, not abstract descriptions.
+- Each step reviewable in isolation.
+- Incremental steps over sweeping changes.
+- Show before/after when modifying existing code.
+
+### CRITICAL: Test-first ordering
+
+**NEVER plan impl before tests.** Testable steps = two adjacent steps:
+
+1. Write test, verify it fails for expected reason. Confirm failure message matches behavior about to implement.
+2. Write minimum impl to pass.
+
+Never separate test/impl with unrelated work. Missing module? Create minimal stub so test fails at assertion, not import.
+
+### CRITICAL: Integration verification
+
+Unit tests not sufficient. Plans adding/modifying endpoints/services/external behavior **must** include integration verification:
+
+- Project has e2e (SAM, Playwright)? Add e2e cases, run them.
+- No e2e infra? Manual verification step (CDK synth, curl, smoke test) proving full wiring works.
+- Must come after all unit TDD cycles.
+
+### CRITICAL: Plan submission checklist
+
+Verify EVERY item before `submit_plan`:
+
+- [ ] Every testable step: test-first (test → stub → impl)
+- [ ] Integration/E2E addressed:
+  - E2E infra exists? Include E2E tests
+  - No E2E infra? Ask user whether to set up or skip
+- [ ] Undocumented patterns have documentation step
+- [ ] No impl step without verification step
+
+## Build mode
+
+- Implement minimum code for test — no more than required.
+- After unit TDD done, write/run e2e/integration tests if project supports. Never declare done on unit tests alone when integration available.
+- After code review, do NOT auto-fix findings. Present to user, wait for instructions.
+{{end}}

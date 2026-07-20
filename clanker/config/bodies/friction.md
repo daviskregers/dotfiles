@@ -1,6 +1,6 @@
 Capture a workflow friction — something about *how I work* that annoys me but that I'm not fixing now. **Capture only**: do NOT solve, propose fixes, diagnose, or start a task.
 
-Gripe = {{args}}
+Gripe = {{.Args}}
 
 1. From the current session + cwd, compose:
    - **title**: ≤6 words, specific.

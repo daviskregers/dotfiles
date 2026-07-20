@@ -36,7 +36,7 @@ func (Claude) RenderAgent(a spec.Agent) AgentOutput {
 		b.WriteString(claudeBashHook(a.Bash))
 	}
 	b.WriteString("---\n\n")
-	b.WriteString(a.Body)
+	b.WriteString(execBody(a.Body, renderCtx{Claude: true}))
 
 	return AgentOutput{Files: []OutputFile{{
 		RelPath: "claude/.claude/agents/" + a.Name + ".md",
