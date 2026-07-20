@@ -169,8 +169,7 @@ var Tools = []spec.Tool{
 			{Name: "threadId", Type: "string", Describe: "Review thread node ID from list-pr-comments"},
 			{Name: "replyBody", Type: "string", Optional: true, Describe: "Markdown reply to post before resolving (omit to resolve silently)"},
 		},
-		Preamble:    toolFile("resolve-pr-thread.preamble.ts"),
-		ExecuteBody: toolFile("resolve-pr-thread.execute.ts"),
+		Core: toolFile("resolve-pr-thread.ts"),
 	},
 }
 

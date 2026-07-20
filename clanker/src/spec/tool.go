@@ -9,8 +9,7 @@ type Tool struct {
 	Name        string    // snake_case logical name (claude tool name); opencode file is kebab-case
 	Description string    // LLM-facing description
 	Args        []ToolArg // primitives only (string/boolean/number), optional + describe
-	Preamble    string    // TS imports + helper consts this tool needs (node builtins only)
-	ExecuteBody string    // TS body of the execute function over `args`, returning a string
+	Core        string    // a valid standalone TS module: imports + helpers + `export async function execute(args): Promise<string>`
 }
 
 // ToolArg is one tool argument.

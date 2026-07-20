@@ -1,0 +1,5 @@
+{
+  "name": "clanker-tool-cores",
+  "private": true,
+  "devDependencies": { "@types/node": "^22" }
+}
