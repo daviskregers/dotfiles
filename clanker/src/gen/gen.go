@@ -78,14 +78,19 @@ func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, docs []spec.D
 		}
 	}
 
-	// Hooks: each emits a self-contained claude entrypoint; dual-targetable ones also
-	// emit an opencode plugin. settings.json registration is a separate step (see the
-	// hooks plan) so incremental porting can't drop still-unported claude hook entries.
+	// Hooks: the shared runtime (hook-utils) is emitted once per tree and imported by
+	// each generated hook (claude entrypoint / opencode plugin) — not inlined. opencode's
+	// copy lives outside plugins/ so its loader can't mistake the helpers for plugins.
+	// settings.json registration is a separate step (see the hooks plan) so incremental
+	// porting can't drop still-unported claude hook entries.
 	if len(hooks) > 0 {
-		var hookFiles []target.OutputFile
+		hookFiles := []target.OutputFile{
+			{RelPath: target.Claude{}.HookUtilsRel(), Content: hookUtils},
+			{RelPath: target.Opencode{}.HookLibRel(), Content: hookUtils},
+		}
 		for _, h := range hooks {
-			hookFiles = append(hookFiles, target.RenderClaudeHook(hookUtils, h))
-			if f, ok := target.RenderOpencodeHook(hookUtils, h); ok {
+			hookFiles = append(hookFiles, target.RenderClaudeHook(h))
+			if f, ok := target.RenderOpencodeHook(h); ok {
 				hookFiles = append(hookFiles, f)
 			}
 		}

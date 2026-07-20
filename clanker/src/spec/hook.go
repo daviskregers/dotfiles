@@ -20,6 +20,10 @@ const (
 	ToolExecuteBefore OpencodeEvent = "tool.execute.before"
 	ToolExecuteAfter  OpencodeEvent = "tool.execute.after"
 	ChatMessage       OpencodeEvent = "chat.message"
+	// SessionIdle maps to the fire-and-forget `event` hook filtered to session.idle.
+	// It can't block (idle already fired) or mutate output — so a block/context result
+	// is delivered by injecting a prompt via the SDK client (re-activates the turn).
+	SessionIdle OpencodeEvent = "session.idle"
 )
 
 // Hook is the single source for one hook. Its logic (Core, TS: exports

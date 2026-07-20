@@ -8,6 +8,7 @@ import {
     applyOpencodeBefore,
     applyOpencodeAfter,
     applyOpencodeMessage,
+    injectOnIdle,
     type HookResult,
 } from "../hook-utils"
 
@@ -116,5 +117,29 @@ describe("applyOpencodeMessage", () => {
         const output: { parts: any[] } = { parts: [] }
         applyOpencodeMessage(output, { kind: "none" })
         expect(output.parts).toEqual([])
+    })
+})
+
+describe("injectOnIdle", () => {
+    const mkClient = () => {
+        const calls: any[] = []
+        return { calls, session: { prompt: async (opts: any) => calls.push(opts) } }
+    }
+    test("block injects the reason as a prompt to the session", async () => {
+        const c = mkClient()
+        expect(await injectOnIdle(c, "sess-1", { kind: "block", reason: "checkpoint" })).toBe(true)
+        expect(c.calls).toHaveLength(1)
+        expect(c.calls[0].path.id).toBe("sess-1")
+        expect(c.calls[0].body.parts).toEqual([{ type: "text", text: "checkpoint" }])
+    })
+    test("context injects its text", async () => {
+        const c = mkClient()
+        expect(await injectOnIdle(c, "s", { kind: "context", text: "note" })).toBe(true)
+        expect(c.calls[0].body.parts[0].text).toBe("note")
+    })
+    test("none injects nothing", async () => {
+        const c = mkClient()
+        expect(await injectOnIdle(c, "s", { kind: "none" })).toBe(false)
+        expect(c.calls).toHaveLength(0)
     })
 })

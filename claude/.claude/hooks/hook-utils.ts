@@ -51,7 +51,11 @@ export function serializeClaudeResult(event: string, r: HookResult): string {
     switch (r.kind) {
         case "deny":
             return JSON.stringify({
-                hookSpecificOutput: { hookEventName: event, permissionDecision: "deny", permissionDecisionReason: r.reason },
+                hookSpecificOutput: {
+                    hookEventName: event,
+                    permissionDecision: "deny",
+                    permissionDecisionReason: r.reason,
+                },
             })
         case "allow":
             return JSON.stringify({

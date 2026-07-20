@@ -1,4 +1,4 @@
-import { extractClaudeInput, serializeClaudeResult, type HookResult, type HookCtx, type HookInput } from "./hook-utils"
+import { injectOnIdle, type HookResult, type HookCtx, type HookInput } from "../hook-lib/hook-utils"
 
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
@@ -127,10 +127,9 @@ async function run(input: HookInput, ctx: HookCtx): Promise<HookResult> {
     return { kind: "block", reason: REASON }
 }
 
-async function main() {
-    const data = JSON.parse(await Bun.stdin.text())
-    const r = await run(extractClaudeInput("Stop", data), { directory: process.env.PROJECT_DIR || process.cwd() })
-    const out = serializeClaudeResult("Stop", r)
-    if (out) process.stdout.write(out)
-}
-main().catch(() => {})
+export const comprehensionNudge = async ({ directory, client }: { directory: string; client: any }) => ({
+    event: async (input: any) => {
+        if (input.event?.type !== "session.idle") return
+        await injectOnIdle(client, input.event.properties.sessionID, await run({}, { directory }))
+    },
+})
