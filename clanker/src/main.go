@@ -17,7 +17,7 @@ func main() {
 	flag.Parse()
 
 	targets := target.Registry()
-	if err := gen.Run(*out, config.Commands, config.Agents, config.Docs, targets); err != nil {
+	if err := gen.Run(*out, config.Commands, config.Agents, config.Docs, config.Tools, targets); err != nil {
 		fmt.Fprintln(os.Stderr, "clanker:", err)
 		os.Exit(1)
 	}
