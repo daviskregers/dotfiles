@@ -37,8 +37,9 @@ func hookFile(name string) string {
 // HookUtils is the shared hook types module, inlined into each generated hook.
 var HookUtils = hookFile("hook-utils.ts")
 
-// Hooks are single-sourced hooks. Tracer: dangerous-command-guard (deny-only,
-// dual-target). Remaining 6 land next.
+// Hooks are single-sourced hooks. ai-attribution lands last (its own slice —
+// compliance-critical, cross-target tool-name mapping). comprehension-nudge is
+// claude-only: it blocks the Stop event, which opencode has no equivalent for.
 var Hooks = []spec.Hook{
 	{
 		Name:          "dangerous-command-guard",
@@ -46,6 +47,43 @@ var Hooks = []spec.Hook{
 		Matcher:       "Bash",
 		OpencodeEvent: spec.ToolExecuteBefore,
 		Core:          hookFile("dangerous-command-guard.ts"),
+	},
+	{
+		// claude nudges before the edit; opencode appends the reminder to the write's
+		// output after it (before-hooks can't inject non-blocking context).
+		Name:          "tdd-reminder",
+		Event:         spec.PreToolUse,
+		Matcher:       "Write|Edit",
+		OpencodeEvent: spec.ToolExecuteAfter,
+		Core:          hookFile("tdd-reminder.ts"),
+	},
+	{
+		Name:          "pr-refresh-reminder",
+		Event:         spec.PostToolUse,
+		Matcher:       "Bash",
+		OpencodeEvent: spec.ToolExecuteAfter,
+		Core:          hookFile("pr-refresh-reminder.ts"),
+	},
+	{
+		Name:          "offloading-nudge",
+		Event:         spec.UserPromptSubmit,
+		Matcher:       "",
+		OpencodeEvent: spec.ChatMessage,
+		Core:          hookFile("offloading-nudge.ts"),
+	},
+	{
+		Name:          "approval-scope",
+		Event:         spec.UserPromptSubmit,
+		Matcher:       "",
+		OpencodeEvent: spec.ChatMessage,
+		Core:          hookFile("approval-scope.ts"),
+	},
+	{
+		Name:          "comprehension-nudge",
+		Event:         spec.Stop,
+		Matcher:       "",
+		OpencodeEvent: spec.NoOpencodeEvent,
+		Core:          hookFile("comprehension-nudge.ts"),
 	},
 }
 

@@ -12,9 +12,14 @@ import {
 } from "../hook-utils"
 
 describe("extractClaudeInput", () => {
-    test("PreToolUse pulls tool + command + toolInput", () => {
-        const d = { tool_name: "Bash", tool_input: { command: "ls" } }
-        expect(extractClaudeInput("PreToolUse", d)).toEqual({ tool: "Bash", command: "ls", toolInput: { command: "ls" } })
+    test("PreToolUse pulls tool + command + filePath + toolInput", () => {
+        const d = { tool_name: "Edit", tool_input: { file_path: "src/a.ts" } }
+        expect(extractClaudeInput("PreToolUse", d)).toEqual({
+            tool: "Edit",
+            command: undefined,
+            filePath: "src/a.ts",
+            toolInput: { file_path: "src/a.ts" },
+        })
     })
     test("PostToolUse pulls toolResponse", () => {
         const d = { tool_name: "Bash", tool_input: { command: "ls" }, tool_response: "out" }
@@ -58,7 +63,10 @@ describe("extractOpencode*", () => {
         expect(extractOpencodeBefore({ tool: "bash" }, { args: { command: "rm x" } })).toEqual({ tool: "bash", command: "rm x", toolInput: { command: "rm x" } })
     })
     test("after: command from input.args, response from output.output", () => {
-        expect(extractOpencodeAfter({ tool: "bash", args: { command: "ls" } }, { output: "res" })).toEqual({ tool: "bash", command: "ls", toolResponse: "res" })
+        expect(extractOpencodeAfter({ tool: "bash", args: { command: "ls" } }, { output: "res" })).toEqual({ tool: "bash", command: "ls", filePath: undefined, toolResponse: "res" })
+    })
+    test("after: filePath from opencode camelCase args", () => {
+        expect(extractOpencodeAfter({ tool: "edit", args: { filePath: "src/a.ts" } }, { output: "" }).filePath).toBe("src/a.ts")
     })
     test("message: concatenates text parts, ignores non-text", () => {
         const output = { parts: [{ type: "text", text: "a" }, { type: "file" }, { type: "text", text: "b" }] }

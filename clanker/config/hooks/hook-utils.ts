@@ -14,6 +14,7 @@ export type HookCtx = { directory: string }
 export type HookInput = {
     tool?: string
     command?: string
+    filePath?: string // normalized: claude tool_input.file_path / opencode args.filePath
     toolInput?: Record<string, unknown>
     toolResponse?: unknown
     prompt?: string
@@ -28,7 +29,12 @@ export type HookInput = {
 export function extractClaudeInput(event: string, data: any): HookInput {
     switch (event) {
         case "PreToolUse":
-            return { tool: data.tool_name, command: data.tool_input?.command, toolInput: data.tool_input }
+            return {
+                tool: data.tool_name,
+                command: data.tool_input?.command,
+                filePath: data.tool_input?.file_path,
+                toolInput: data.tool_input,
+            }
         case "PostToolUse":
             return { tool: data.tool_name, command: data.tool_input?.command, toolResponse: data.tool_response }
         case "UserPromptSubmit":
@@ -71,6 +77,7 @@ export const extractOpencodeBefore = (input: any, output: any): HookInput => ({
 export const extractOpencodeAfter = (input: any, output: any): HookInput => ({
     tool: input.tool,
     command: input.args?.command,
+    filePath: input.args?.filePath ?? input.args?.file_path,
     toolResponse: output.output,
 })
 
