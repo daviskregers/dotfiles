@@ -1,38 +1,24 @@
 import { tool } from "@opencode-ai/plugin"
 import path from "path"
 import fs from "fs"
+import { ensureNotesDir, timestamp } from "./shared"
 
-export default tool({
-  description:
-    "Save a code review to the .dk-notes/reviews directory with a timestamped filename",
-  args: {
-    content: tool.schema.string().describe("The full review content to save"),
-  },
-  async execute(args, context) {
-    const dir = path.join(context.directory, ".dk-notes/reviews")
-    await fs.promises.mkdir(dir, { recursive: true })
+async function execute(args: { content: string }, ctx: { directory: string }): Promise<string> {
+    const dir = await ensureNotesDir(ctx.directory, "reviews")
 
-    const now = new Date()
-    const pad = (n: number) => String(n).padStart(2, "0")
-    const timestamp = [
-      now.getUTCFullYear(),
-      "-",
-      pad(now.getUTCMonth() + 1),
-      "-",
-      pad(now.getUTCDate()),
-      "_",
-      pad(now.getUTCHours()),
-      "-",
-      pad(now.getUTCMinutes()),
-      "-",
-      pad(now.getUTCSeconds()),
-    ].join("")
     const suffix = Math.random().toString(36).slice(2, 6)
 
-    const filePath = path.join(dir, `review_${timestamp}_${suffix}.md`)
+    const filePath = path.join(dir, `review_${timestamp()}_${suffix}.md`)
     await fs.promises.writeFile(filePath, args.content, "utf-8")
 
-    const relativePath = path.relative(context.directory, filePath)
+    const relativePath = path.relative(ctx.directory, filePath)
     return `Review saved to ${relativePath}`
-  },
+}
+
+export default tool({
+    description: "Save a code review to .dk-notes/reviews/ with timestamped filename",
+    args: {
+        content: tool.schema.string().describe("Full review markdown content"),
+    },
+    execute,
 })

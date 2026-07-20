@@ -7,6 +7,9 @@ import (
 	"clanker/src/spec"
 )
 
+// ToolDir is opencode's custom-tools directory, relative to the dotfiles root.
+func (Opencode) ToolDir() string { return "opencode/.config/opencode/tools" }
+
 // RenderToolOpencode emits an opencode custom-tool file: the shared preamble
 // (imports + helper consts) followed by a `tool()` export wrapping the neutral
 // execute body. The execute return (a string) passes through unchanged.
@@ -33,7 +36,7 @@ func RenderToolOpencode(t spec.Tool) OutputFile {
 	b.WriteString("    execute,\n")
 	b.WriteString("})\n")
 	return OutputFile{
-		RelPath: "opencode/.config/opencode/tools/" + kebab(t.Name) + ".ts",
+		RelPath: Opencode{}.ToolDir() + "/" + kebab(t.Name) + ".ts",
 		Content: b.String(),
 	}
 }

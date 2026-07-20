@@ -2,71 +2,58 @@ import { tool } from "@opencode-ai/plugin"
 import path from "path"
 import os from "os"
 import fs from "fs"
-import { execFile } from "child_process"
-import { promisify } from "util"
-import { withAttribution } from "./pr-utils"
-
-const execFileAsync = promisify(execFile)
+import { execFileAsync, withAttribution, MAX_COMMENT_BYTES } from "./shared"
 
 const PR_URL_RE = /^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+\/?$/
 
+async function execute(args: { prUrl: string; filePath: string }, ctx: { directory: string }): Promise<string> {
+    if (!PR_URL_RE.test(args.prUrl)) {
+        return `Error: Invalid PR URL format. Expected https://github.com/<owner>/<repo>/pull/<number>`
+    }
+
+    const resolved = path.isAbsolute(args.filePath) ? args.filePath : path.join(ctx.directory, args.filePath)
+
+    let stat: fs.Stats
+    try {
+        stat = await fs.promises.stat(resolved)
+    } catch {
+        return `Error: File not found: ${args.filePath}`
+    }
+
+    if (stat.size === 0) {
+        return `Error: File is empty: ${args.filePath}`
+    }
+
+    if (stat.size > MAX_COMMENT_BYTES) {
+        return `Error: File is too large (${stat.size} bytes). GitHub comments are limited to ${MAX_COMMENT_BYTES} bytes.`
+    }
+
+    let body: string
+    try {
+        body = withAttribution(await fs.promises.readFile(resolved, "utf-8"))
+    } catch (err: any) {
+        return `Error reading file: ${err.message}`
+    }
+
+    const tmp = path.join(os.tmpdir(), `pr-comment-${Date.now()}.md`)
+    try {
+        await fs.promises.writeFile(tmp, body, "utf-8")
+        const { stdout } = await execFileAsync("gh", ["pr", "comment", args.prUrl, "--body-file", tmp], {
+            encoding: "utf8",
+        })
+        return `Comment posted to ${args.prUrl}\n${stdout}`.trim()
+    } catch (err: any) {
+        return `Error posting comment: ${err.message}`
+    } finally {
+        fs.promises.unlink(tmp).catch(() => {})
+    }
+}
+
 export default tool({
-    description:
-        "Post a file as a comment on a GitHub pull request. The file is sent directly to `gh pr comment` without being read into the conversation.",
+    description: "Post a file as a comment on a GitHub PR (file sent directly, not read into conversation)",
     args: {
-        prUrl: tool.schema
-            .string()
-            .describe("The full GitHub PR URL (e.g. https://github.com/org/repo/pull/123)"),
-        filePath: tool.schema
-            .string()
-            .describe("Path to the file to post as a comment (relative to cwd or absolute)"),
+        prUrl: tool.schema.string().describe("Full GitHub PR URL"),
+        filePath: tool.schema.string().describe("Path to file to post as comment (relative to cwd or absolute)"),
     },
-    async execute(args, context) {
-        if (!PR_URL_RE.test(args.prUrl)) {
-            return `Error: Invalid PR URL format. Expected https://github.com/<owner>/<repo>/pull/<number>`
-        }
-
-        const resolved = path.isAbsolute(args.filePath)
-            ? args.filePath
-            : path.join(context.directory, args.filePath)
-
-        const MAX_COMMENT_BYTES = 60_000
-
-        let stat: fs.Stats
-        try {
-            stat = await fs.promises.stat(resolved)
-        } catch {
-            return `Error: File not found: ${args.filePath}`
-        }
-
-        if (stat.size === 0) {
-            return `Error: File is empty: ${args.filePath}`
-        }
-
-        if (stat.size > MAX_COMMENT_BYTES) {
-            return `Error: File is too large (${stat.size} bytes). GitHub comments are limited to ${MAX_COMMENT_BYTES} bytes.`
-        }
-
-        let body: string
-        try {
-            body = withAttribution(await fs.promises.readFile(resolved, "utf-8"))
-        } catch (err: any) {
-            return `Error reading file: ${err.message}`
-        }
-
-        const tmp = path.join(os.tmpdir(), `pr-comment-${Date.now()}.md`)
-        try {
-            await fs.promises.writeFile(tmp, body, "utf-8")
-            const { stdout } = await execFileAsync(
-                "gh",
-                ["pr", "comment", args.prUrl, "--body-file", tmp],
-                { encoding: "utf8" },
-            )
-            return `Comment posted to ${args.prUrl}\n${stdout}`.trim()
-        } catch (err: any) {
-            return `Error posting comment: ${err.message}`
-        } finally {
-            fs.promises.unlink(tmp).catch(() => {})
-        }
-    },
+    execute,
 })

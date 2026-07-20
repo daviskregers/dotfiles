@@ -12,6 +12,13 @@ type Tool struct {
 	Core        string    // a valid standalone TS module: imports + helpers + `export async function execute(args): Promise<string>`
 }
 
+// ToolUtil is a shared helper module emitted alongside the tool files (e.g.
+// shared.ts, pr-utils.ts) and imported by the generated tools.
+type ToolUtil struct {
+	Name    string // filename within the target's tool dir, e.g. "shared.ts"
+	Content string
+}
+
 // ToolArg is one tool argument.
 type ToolArg struct {
 	Name     string
