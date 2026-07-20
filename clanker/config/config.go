@@ -12,6 +12,17 @@ import (
 //go:embed bodies/*.md
 var bodies embed.FS
 
+//go:embed tools/*.ts
+var toolFiles embed.FS
+
+func toolFile(name string) string {
+	b, err := toolFiles.ReadFile("tools/" + name)
+	if err != nil {
+		panic(fmt.Sprintf("config: missing tool file %q: %v", name, err))
+	}
+	return string(b)
+}
+
 // body returns an embedded markdown body, panicking if absent — the body set is
 // fixed at compile time, so a missing file is a bug to fix, not a runtime case.
 func body(name string) string {
@@ -148,6 +159,20 @@ func ptr[T any](v T) *T { return &v }
 
 // Docs is the shared global rules document, rendered to CLAUDE.md / AGENTS.md.
 var Docs = []spec.Doc{{Body: body("global.md")}}
+
+// Tools are the custom tools (S3 tracer: resolve-pr-thread; opencode side only for now).
+var Tools = []spec.Tool{
+	{
+		Name:        "resolve_pr_thread",
+		Description: "Optionally post a reply to a PR review thread, then mark it resolved. Use threadId from list-pr-comments (inline items only).",
+		Args: []spec.ToolArg{
+			{Name: "threadId", Type: "string", Describe: "Review thread node ID from list-pr-comments"},
+			{Name: "replyBody", Type: "string", Optional: true, Describe: "Markdown reply to post before resolving (omit to resolve silently)"},
+		},
+		Preamble:    toolFile("resolve-pr-thread.preamble.ts"),
+		ExecuteBody: toolFile("resolve-pr-thread.execute.ts"),
+	},
+}
 
 // Agents is the set clanker generates.
 var Agents = []spec.Agent{

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 
 	"clanker/src/spec"
@@ -18,7 +19,7 @@ import (
 // touching files clanker never managed.
 const ManifestPath = "clanker/generated-commands.json"
 
-func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, docs []spec.Doc, targets []target.Target) error {
+func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, docs []spec.Doc, tools []spec.Tool, targets []target.Target) error {
 	if err := validateRoot(outRoot, targets); err != nil {
 		return err
 	}
@@ -64,6 +65,19 @@ func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, docs []spec.D
 			if err := writeFile(outRoot, tg.RenderDoc(d)); err != nil {
 				return err
 			}
+		}
+	}
+
+	// Custom tools: opencode side only for now (claude's monolithic index.ts is a
+	// separate emit, ported all-at-once later). Generated TS is prettier-formatted
+	// so it matches the project's canonical style byte-for-byte.
+	for _, tl := range tools {
+		f := target.RenderToolOpencode(tl)
+		if err := writeFile(outRoot, f); err != nil {
+			return err
+		}
+		if err := formatTS(filepath.Join(outRoot, f.RelPath)); err != nil {
+			return err
 		}
 	}
 	return writeManifest(outRoot, current)
@@ -187,4 +201,15 @@ func writeFile(outRoot string, f target.OutputFile) error {
 		return err
 	}
 	return os.WriteFile(path, []byte(f.Content), 0o644)
+}
+
+// formatTS normalizes a generated TypeScript file to the project's canonical
+// style (prettier, printWidth 120, no semicolons) so generated == committed.
+func formatTS(path string) error {
+	cmd := exec.Command("bunx", "prettier", "--print-width", "120", "--no-semi", "--parser", "typescript", "--write", path)
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("gen: prettier %s: %w", path, err)
+	}
+	return nil
 }
