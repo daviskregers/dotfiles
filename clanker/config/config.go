@@ -9,7 +9,7 @@ import (
 	"clanker/src/spec"
 )
 
-//go:embed bodies/*.md
+//go:embed bodies/*.md bodies/*.tmpl
 var bodies embed.FS
 
 // body returns an embedded markdown body, panicking if absent — the body set is
@@ -153,6 +153,13 @@ var (
 
 // ptr returns a pointer to v — for per-target overrides like Write.
 func ptr[T any](v T) *T { return &v }
+
+// Docs is the shared global rules document, rendered to CLAUDE.md / AGENTS.md.
+var Docs = []spec.Doc{{
+	Shared:       body("global.shared.tmpl"),
+	ClaudeTail:   body("global.claude.md"),
+	OpencodeTail: body("global.opencode.md"),
+}}
 
 // Agents is the set clanker generates.
 var Agents = []spec.Agent{

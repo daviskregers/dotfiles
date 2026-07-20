@@ -30,6 +30,7 @@ type Target interface {
 	CommandDir() string
 	RenderCommand(spec.Command) []OutputFile
 	RenderAgent(spec.Agent) AgentOutput
+	RenderDoc(spec.Doc) OutputFile
 }
 
 func Registry() []Target {

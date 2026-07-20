@@ -18,7 +18,7 @@ import (
 // touching files clanker never managed.
 const ManifestPath = "clanker/generated-commands.json"
 
-func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, targets []target.Target) error {
+func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, docs []spec.Doc, targets []target.Target) error {
 	if err := validateRoot(outRoot, targets); err != nil {
 		return err
 	}
@@ -57,6 +57,14 @@ func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, targets []tar
 	}
 	if err := applyConfigMerges(outRoot, merges); err != nil {
 		return err
+	}
+
+	for _, d := range docs {
+		for _, tg := range targets {
+			if err := writeFile(outRoot, tg.RenderDoc(d)); err != nil {
+				return err
+			}
+		}
 	}
 	return writeManifest(outRoot, current)
 }
