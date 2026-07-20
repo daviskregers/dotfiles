@@ -17,10 +17,10 @@ func main() {
 	flag.Parse()
 
 	targets := target.Registry()
-	if err := gen.Run(*out, config.Commands, config.Agents, config.Docs, config.Tools, config.ToolUtils, targets); err != nil {
+	if err := gen.Run(*out, config.Commands, config.Agents, config.Docs, config.Tools, config.ToolUtils, config.Hooks, config.HookUtils, targets); err != nil {
 		fmt.Fprintln(os.Stderr, "clanker:", err)
 		os.Exit(1)
 	}
-	fmt.Printf("clanker: generated %d command(s) + %d agent(s) + %d doc(s) × %d target(s) under %s\n",
-		len(config.Commands), len(config.Agents), len(config.Docs), len(targets), *out)
+	fmt.Printf("clanker: generated %d command(s) + %d agent(s) + %d doc(s) + %d hook(s) × %d target(s) under %s\n",
+		len(config.Commands), len(config.Agents), len(config.Docs), len(config.Hooks), len(targets), *out)
 }

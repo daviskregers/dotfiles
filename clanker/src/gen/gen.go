@@ -19,7 +19,7 @@ import (
 // touching files clanker never managed.
 const ManifestPath = "clanker/generated-commands.json"
 
-func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, docs []spec.Doc, tools []spec.Tool, toolUtils []spec.ToolUtil, targets []target.Target) error {
+func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, docs []spec.Doc, tools []spec.Tool, toolUtils []spec.ToolUtil, hooks []spec.Hook, hookUtils string, targets []target.Target) error {
 	if err := validateRoot(outRoot, targets); err != nil {
 		return err
 	}
@@ -74,6 +74,22 @@ func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, docs []spec.D
 	if len(tools) > 0 {
 		toolFiles := append(target.OpencodeToolFiles(tools, toolUtils), target.ClaudeToolFiles(tools, toolUtils)...)
 		if err := writeTS(outRoot, toolFiles); err != nil {
+			return err
+		}
+	}
+
+	// Hooks: each emits a self-contained claude entrypoint; dual-targetable ones also
+	// emit an opencode plugin. settings.json registration is a separate step (see the
+	// hooks plan) so incremental porting can't drop still-unported claude hook entries.
+	if len(hooks) > 0 {
+		var hookFiles []target.OutputFile
+		for _, h := range hooks {
+			hookFiles = append(hookFiles, target.RenderClaudeHook(hookUtils, h))
+			if f, ok := target.RenderOpencodeHook(hookUtils, h); ok {
+				hookFiles = append(hookFiles, f)
+			}
+		}
+		if err := writeTS(outRoot, hookFiles); err != nil {
 			return err
 		}
 	}
