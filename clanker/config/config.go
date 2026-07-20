@@ -23,6 +23,32 @@ func toolFile(name string) string {
 	return string(b)
 }
 
+//go:embed hooks/*.ts
+var hookFiles embed.FS
+
+func hookFile(name string) string {
+	b, err := hookFiles.ReadFile("hooks/" + name)
+	if err != nil {
+		panic(fmt.Sprintf("config: missing hook file %q: %v", name, err))
+	}
+	return string(b)
+}
+
+// HookUtils is the shared hook types module, inlined into each generated hook.
+var HookUtils = hookFile("hook-utils.ts")
+
+// Hooks are single-sourced hooks. Tracer: dangerous-command-guard (deny-only,
+// dual-target). Remaining 6 land next.
+var Hooks = []spec.Hook{
+	{
+		Name:          "dangerous-command-guard",
+		Event:         spec.PreToolUse,
+		Matcher:       "Bash",
+		OpencodeEvent: spec.ToolExecuteBefore,
+		Core:          hookFile("dangerous-command-guard.ts"),
+	},
+}
+
 // body returns an embedded markdown body, panicking if absent — the body set is
 // fixed at compile time, so a missing file is a bug to fix, not a runtime case.
 func body(name string) string {

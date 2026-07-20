@@ -28,7 +28,7 @@ func TestRun_WritesEachTargetFile(t *testing.T) {
 	root := dotfilesRoot(t)
 	cmds := []spec.Command{{Name: "demo", Description: "Do", Body: "b\n"}}
 
-	if err := gen.Run(root, cmds, nil, nil, nil, nil, target.Registry()); err != nil {
+	if err := gen.Run(root, cmds, nil, nil, nil, nil, nil, "", target.Registry()); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 
@@ -50,7 +50,7 @@ func TestRun_PrunesDroppedCommands(t *testing.T) {
 	}
 
 	cmds := []spec.Command{{Name: "commit", Description: "Commit", Body: "go\n"}}
-	if err := gen.Run(root, cmds, nil, nil, nil, nil, target.Registry()); err != nil {
+	if err := gen.Run(root, cmds, nil, nil, nil, nil, nil, "", target.Registry()); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 
@@ -71,7 +71,7 @@ func TestRun_MergesAgentIntoOpencodeJSON(t *testing.T) {
 		`{"provider":{"x":1},"agent":{"plan":{"disable":false},"git-committer":{"old":true}}}`)
 
 	agents := []spec.Agent{{Name: "git-committer", Description: "d", Body: "b\n", Bash: []string{"git diff"}}}
-	if err := gen.Run(root, nil, agents, nil, nil, nil, target.Registry()); err != nil {
+	if err := gen.Run(root, nil, agents, nil, nil, nil, nil, "", target.Registry()); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 
@@ -99,7 +99,7 @@ func TestRun_MergesAgentIntoOpencodeJSON(t *testing.T) {
 func TestRun_ErrorsWhenNotDotfilesRoot(t *testing.T) {
 	root := t.TempDir() // no target command dirs
 
-	err := gen.Run(root, []spec.Command{{Name: "x"}}, nil, nil, nil, nil, target.Registry())
+	err := gen.Run(root, []spec.Command{{Name: "x"}}, nil, nil, nil, nil, nil, "", target.Registry())
 	if err == nil {
 		t.Fatal("expected error when target dirs are absent, got nil")
 	}
@@ -111,7 +111,7 @@ func TestRun_ErrorsWhenNotDotfilesRoot(t *testing.T) {
 func TestRun_FirstRunWithoutManifest(t *testing.T) {
 	root := dotfilesRoot(t)
 
-	if err := gen.Run(root, []spec.Command{{Name: "demo", Description: "D", Body: "b\n"}}, nil, nil, nil, nil, target.Registry()); err != nil {
+	if err := gen.Run(root, []spec.Command{{Name: "demo", Description: "D", Body: "b\n"}}, nil, nil, nil, nil, nil, "", target.Registry()); err != nil {
 		t.Fatalf("Run: %v", err)
 	}
 	assertPresent(t, filepath.Join(root, "claude/.claude/commands/demo.md"))

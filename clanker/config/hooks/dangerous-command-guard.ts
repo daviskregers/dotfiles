@@ -1,4 +1,4 @@
-import type { HookResult, HookCtx } from "./hook-utils"
+import type { HookResult, HookCtx, HookInput } from "./hook-utils"
 
 // git/gh global options tolerated before the subcommand (git -C path, -c k=v, --long).
 const GITX = String.raw`(?:-C\s+\S+\s+|-c\s+\S+\s+|--\S+\s+|-\w+\s+)*`
@@ -72,7 +72,7 @@ function scan(text: string): string | null {
     return null
 }
 
-export async function run(input: { command?: string }, _ctx: HookCtx): Promise<HookResult> {
+export async function run(input: HookInput, _ctx: HookCtx): Promise<HookResult> {
     const cmd = input.command
     if (typeof cmd !== "string" || !cmd.trim()) return { kind: "none" }
     for (const text of [stripMessageFlags(cmd), substitutions(cmd)]) {
