@@ -136,9 +136,19 @@ var (
 		}},
 	}
 
-	// Deferred agent: pr-comment-submitter is absent from opencode.json, so its opencode
-	// config would be pure invention (uncertain MCP tool set). No command delegates to it,
-	// so there is nothing to forward-declare — port it when its opencode tools are decided.
+	prCommentSubmitter = spec.Agent{
+		Name:        "pr-comment-submitter",
+		Description: "Post file as PR comment. MCP + Read only.",
+		Body:        body("pr-comment-submitter.md"),
+		Model:       "sonnet",
+		MaxTurns:    5,
+		Read:        true, // opencode also grants grep/glob; claude's denylist forbids them (accepted)
+		Deny:        []string{"Write", "Edit", "Bash", "Glob", "Grep", "Agent"},
+		MCP:         []string{"submit-pr-comment"},
+		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
+			Body: body("pr-comment-submitter.opencode.md"),
+		}},
+	}
 )
 
 // ptr returns a pointer to v — for per-target overrides like Write.
@@ -147,7 +157,7 @@ func ptr[T any](v T) *T { return &v }
 // Agents is the set clanker generates.
 var Agents = []spec.Agent{
 	gitCommitter, gitStasher, explainer, prDescriber, tutor,
-	codeReviewAnalysis, codeReviewComprehension, codeReviewer,
+	codeReviewAnalysis, codeReviewComprehension, codeReviewer, prCommentSubmitter,
 }
 
 var Commands = []spec.Command{
