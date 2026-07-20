@@ -142,6 +142,19 @@
     "plan": {
       "disable": false
     },
+    "pr-comment-submitter": {
+      "description": "Post file as PR comment. MCP + Read only.",
+      "mode": "subagent",
+      "prompt": "{file:./prompts/pr-comment-submitter.md}",
+      "temperature": 0.1,
+      "tools": {
+        "*": false,
+        "glob": true,
+        "grep": true,
+        "read": true,
+        "submit-pr-comment": true
+      }
+    },
     "pr-describer": {
       "description": "Subagent that reads PR changes and writes a title and description",
       "mode": "subagent",
