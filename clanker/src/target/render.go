@@ -12,6 +12,14 @@ func generatesBody(c spec.Command) bool {
 	return c.Delegates != nil && c.Delegates.Task != ""
 }
 
+// overrideBool returns *o when set, else base — for per-target capability overrides.
+func overrideBool(o *bool, base bool) bool {
+	if o != nil {
+		return *o
+	}
+	return base
+}
+
 // capFirst upper-cases the first byte (tasks are ASCII verb phrases).
 func capFirst(s string) string {
 	if s == "" {

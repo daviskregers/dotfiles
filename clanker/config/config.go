@@ -118,17 +118,36 @@ var (
 		Skills:      []string{"code-review-comprehension", "caveman-review"},
 	}
 
-	// Deferred: per-target tool divergences need a per-target override before porting.
-	// code-reviewer: claude has Write, opencode does not. pr-comment-submitter: claude
-	// allows Read but denies Grep/Glob (my Read flag grants all three). Referenced by
-	// the code-review command (name-only forward decl until then).
-	codeReviewer = spec.Agent{Name: "code-reviewer"}
+	codeReviewer = spec.Agent{
+		Name:        "code-reviewer",
+		Description: "Read-only code review. Saves to .dk-notes/reviews/. No source modifications.",
+		Body:        body("code-reviewer.md"),
+		Model:       "sonnet",
+		MaxTurns:    20,
+		Read:        true,
+		Write:       true, // claude writes the review file directly...
+		Bash:        []string{"git diff", "git log", "git status", "git rev-parse", "git show", "gh pr view", "gh pr diff", "mkdir -p .dk-notes/reviews"},
+		MCP:         []string{"save-code-review"},
+		Skills:      []string{"code-review-rules", "caveman-review", "artifact-output"},
+		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
+			Description: "Read-only code review subagent with restricted tool access",
+			Body:        body("code-reviewer.opencode.md"),
+			Write:       ptr(false), // ...but opencode saves via the save-code-review tool, no write
+		}},
+	}
+
+	// Deferred agent: pr-comment-submitter is absent from opencode.json, so its opencode
+	// config would be pure invention (uncertain MCP tool set). No command delegates to it,
+	// so there is nothing to forward-declare — port it when its opencode tools are decided.
 )
+
+// ptr returns a pointer to v — for per-target overrides like Write.
+func ptr[T any](v T) *T { return &v }
 
 // Agents is the set clanker generates.
 var Agents = []spec.Agent{
 	gitCommitter, gitStasher, explainer, prDescriber, tutor,
-	codeReviewAnalysis, codeReviewComprehension,
+	codeReviewAnalysis, codeReviewComprehension, codeReviewer,
 }
 
 var Commands = []spec.Command{

@@ -17,7 +17,7 @@ func (Opencode) RenderAgent(a spec.Agent) AgentOutput {
 	if len(a.Bash) > 0 {
 		tools["bash"] = true
 	}
-	if a.Write {
+	if overrideBool(a.Overlay.Opencode.Write, a.Write) {
 		tools["write"] = true
 	}
 	if a.Webfetch {
