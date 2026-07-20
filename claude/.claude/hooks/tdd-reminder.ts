@@ -108,97 +108,105 @@ function applyOpencodeMessage(output: any, r: HookResult): void {
     if (r.kind === "context") output.parts.push({ type: "text", text: r.text })
 }
 
-// git/gh global options tolerated before the subcommand (git -C path, -c k=v, --long).
-const GITX = String.raw`(?:-C\s+\S+\s+|-c\s+\S+\s+|--\S+\s+|-\w+\s+)*`
+import { execFile } from "node:child_process"
+import { promisify } from "node:util"
+import { statSync } from "node:fs"
+import { dirname, extname } from "node:path"
 
-const DANGER: [RegExp, string][] = [
-    [
-        new RegExp(String.raw`\bgit\s+${GITX}push\b[^|;&\n]*(?:--force(?!-with-lease\b|-if-includes\b)|\s-f\b)`, "i"),
-        "git force-push",
-    ],
-    [new RegExp(String.raw`\bgit\s+${GITX}reset\s+--hard\b`, "i"), "git reset --hard (discards work)"],
-    [new RegExp(String.raw`\bgit\s+${GITX}clean\s+-\S*f`, "i"), "git clean -f (deletes untracked)"],
-    [/\b(?:migrate:fresh|migrate:reset|db:wipe)\b/i, "destructive DB migration (drops all tables)"],
-    [/\b(?:rails\s+db:drop|prisma\s+migrate\s+reset|sequelize\s+db:drop)\b/i, "destructive DB reset"],
-    [/\bDROP\s+(?:TABLE|DATABASE|SCHEMA)\b|\bTRUNCATE\s+(?:TABLE\s+)?\w/i, "destructive SQL (DROP/TRUNCATE)"],
-    [/\bdd\b[^|;&\n]*\bof=/i, "dd (raw disk/file overwrite)"],
-    [/\bmkfs\b|>\s*\/dev\/(?:sd|nvme|disk)|\bof=\/dev\//i, "write to block device / format"],
-    [/\bfind\b[^|;&\n]*(?:-delete\b|-exec\s+rm\b)/i, "find with -delete / -exec rm"],
-    [/(?:curl|wget)\b[^|\n]*\|\s*(?:sudo\s+)?(?:sh|bash|zsh)\b/i, "pipe remote script into a shell"],
-    [/\bterraform\s+destroy\b/i, "terraform destroy"],
-    [/\bdocker\s+system\s+prune\b|\bdocker\s+volume\s+rm\b/i, "docker destructive prune / volume rm"],
-    [/(?:^|[\s;&|(\\`])(?:\S*\/)?aws(?=\s|$)/i, "the AWS CLI — disallowed for the agent (run it yourself if needed)"],
-    [/:\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:/, "fork bomb"],
-]
+const exec = promisify(execFile)
 
-const MSG_FLAG = /(?:-m|--message|--body)(?:=|\s+)(?:"(?:[^"\\]|\\.)*"|'[^']*'|\S+)/g
-const SUBST = /\$\(([^)]*)\)|`([^`]*)`|\$\{([^}]*)\}/g
+// Soft TDD nudge: editing a source file (code ext, not a test) in a git repo where
+// NO test file is currently modified/staged → remind to follow red-green-refactor.
+// NUDGES, never blocks. FAIL-OPEN: any error → none.
 
-const stripMessageFlags = (cmd: string) => cmd.replace(MSG_FLAG, " ")
+const SRC_EXT = new Set([
+    ".py",
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".vue",
+    ".go",
+    ".rb",
+    ".php",
+    ".rs",
+    ".java",
+    ".kt",
+    ".swift",
+    ".c",
+    ".cc",
+    ".cpp",
+    ".h",
+    ".hpp",
+    ".cs",
+    ".scala",
+    ".ex",
+    ".exs",
+    ".m",
+    ".mm",
+    ".lua",
+])
+// Match test/spec as path SEGMENTS, not substrings (latest.py isn't a test).
+const TEST_RE = /(^|[/_.\-])(tests?|specs?|__tests__)([/_.\-]|$)/i
 
-function substitutions(cmd: string): string {
-    const out: string[] = []
-    for (const m of cmd.matchAll(SUBST)) for (const g of [m[1], m[2], m[3]]) if (g) out.push(g)
-    return out.join(" ")
+const REMINDER =
+    "TDD is default (global rule): before changing this source, there should be " +
+    "a failing test that exercises the new/changed behavior — no test file is " +
+    "currently modified in this repo. Red-green-refactor + rollback + contract-" +
+    "migration mechanics live in the `tdd` skill; load it before proceeding, or " +
+    "confirm this change is genuinely exempt (pure rename, generated code, config)."
+
+function isTestPath(p: string): boolean {
+    return TEST_RE.test(p)
 }
 
-const base = (t: string) => t.split("/").pop() ?? t
+function isSourceExt(p: string): boolean {
+    return SRC_EXT.has(extname(p).toLowerCase())
+}
 
-// An `rm` whose flags include BOTH recursive and force, any order (not `git rm`).
-function rmRecursiveForce(text: string): boolean {
-    const toks = text.split(/\s+/).filter(Boolean)
-    for (let i = 0; i < toks.length; i++) {
-        if (base(toks[i]) !== "rm") continue
-        if (i > 0 && base(toks[i - 1]) === "git") continue
-        let short = ""
-        const longs: string[] = []
-        for (const t of toks.slice(i + 1)) {
-            if (t.startsWith("--")) longs.push(t)
-            else if (t.startsWith("-") && t.length > 1) short += t.slice(1)
-            else break
-        }
-        const hasR = short.toLowerCase().includes("r") || longs.includes("--recursive")
-        const hasF = short.toLowerCase().includes("f") || longs.includes("--force")
-        if (hasR && hasF) return true
+// A test file appears among the porcelain-status paths (strip the XY status prefix).
+function hasTestInStatus(porcelain: string): boolean {
+    for (const line of porcelain.split("\n")) {
+        const path = line.slice(3).trim()
+        if (path && isTestPath(path)) return true
     }
     return false
 }
 
-function chmod777Recursive(text: string): boolean {
-    const toks = text.split(/\s+/).filter(Boolean)
-    for (let i = 0; i < toks.length; i++) {
-        if (base(toks[i]) !== "chmod") continue
-        const rest = toks.slice(i + 1)
-        const recursive = rest.some(
-            (x) => x === "--recursive" || (x.startsWith("-") && !x.startsWith("--") && x.includes("R")),
-        )
-        const mode = rest.some((x) => x === "777" || x === "0777" || x === "a+rwx")
-        if (recursive && mode) return true
+function isDir(p: string): boolean {
+    try {
+        return statSync(p).isDirectory()
+    } catch {
+        return false
     }
-    return false
 }
 
-function scan(text: string): string | null {
-    if (rmRecursiveForce(text)) return "recursive force delete (rm -rf)"
-    if (chmod777Recursive(text)) return "chmod -R 777"
-    for (const [rx, label] of DANGER) if (rx.test(text)) return label
-    return null
+async function repoRoot(path: string): Promise<string | null> {
+    const d = isDir(path) ? path : dirname(path) || "."
+    try {
+        const { stdout } = await exec("git", ["-C", d, "rev-parse", "--show-toplevel"], { timeout: 5000 })
+        return stdout.trim() || null
+    } catch {
+        return null // not a git repo → no nudge
+    }
+}
+
+async function hasModifiedTests(root: string): Promise<boolean> {
+    try {
+        const { stdout } = await exec("git", ["-C", root, "status", "--porcelain"], { timeout: 5000 })
+        return hasTestInStatus(stdout)
+    } catch {
+        return true // can't tell → assume yes, stay quiet (fail-open)
+    }
 }
 
 async function run(input: HookInput, _ctx: HookCtx): Promise<HookResult> {
-    const cmd = input.command
-    if (typeof cmd !== "string" || !cmd.trim()) return { kind: "none" }
-    for (const text of [stripMessageFlags(cmd), substitutions(cmd)]) {
-        if (!text.trim()) continue
-        const label = scan(text)
-        if (label) {
-            return {
-                kind: "deny",
-                reason: `Blocked by the command guard — ${label}. Denied so it can't run on a reflexive approval. If you genuinely intend it, run it yourself via the \`!\` prefix, or restate it explicitly and I'll explain exactly what it does first.`,
-            }
-        }
-    }
-    return { kind: "none" }
+    const path = input.filePath
+    if (typeof path !== "string" || !path) return { kind: "none" }
+    if (!isSourceExt(path) || isTestPath(path)) return { kind: "none" }
+    const root = await repoRoot(path)
+    if (!root || (await hasModifiedTests(root))) return { kind: "none" }
+    return { kind: "context", text: REMINDER }
 }
 
 async function main() {
