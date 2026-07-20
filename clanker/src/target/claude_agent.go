@@ -54,7 +54,7 @@ func claudeTools(a spec.Agent) string {
 	if len(a.Bash) > 0 {
 		tools = append(tools, "Bash")
 	}
-	if a.Write {
+	if overrideBool(a.Overlay.Claude.Write, a.Write) {
 		tools = append(tools, "Write")
 	}
 	return strings.Join(tools, ", ")

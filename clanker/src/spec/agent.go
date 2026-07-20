@@ -23,6 +23,7 @@ type Agent struct {
 type AgentOverlay struct {
 	Description string
 	Body        string
+	Write       *bool // per-target override of Agent.Write (nil = inherit)
 }
 
 type AgentOverlays struct {

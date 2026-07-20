@@ -75,17 +75,19 @@
           "git log*": "allow",
           "git rev-parse*": "allow",
           "git show*": "allow",
-          "git status*": "allow"
+          "git status*": "allow",
+          "mkdir -p .dk-notes/reviews*": "allow"
         }
       },
       "prompt": "{file:./prompts/code-reviewer.md}",
       "temperature": 0.1,
       "tools": {
-        "btca-local_*": false,
-        "context7_*": false,
-        "edit": false,
-        "webfetch": false,
-        "write": false
+        "*": false,
+        "bash": true,
+        "glob": true,
+        "grep": true,
+        "read": true,
+        "save-code-review": true
       }
     },
     "explainer": {
