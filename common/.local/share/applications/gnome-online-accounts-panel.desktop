@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Online Accounts
+Comment=Connect to your online accounts and decide what to use them for
+Exec=sh -c 'XDG_CURRENT_DESKTOP=GNOME LD_PRELOAD=/nix/store/mjbagckscp63amqjwrr5mhvrzdmvxp66-jansson-2.15.0/lib/libjansson.so.4 gnome-control-center online-accounts'
+Icon=org.gnome.Settings-online-accounts-symbolic
+Terminal=false
+StartupNotify=true
+Categories=GNOME;GTK;Settings;DesktopSettings;X-GNOME-Settings-Panel;X-GNOME-AccountSettings;
+Keywords=Google;Facebook;Twitter;Yahoo;Web;Online;Chat;Calendar;Mail;Contact;ownCloud;Kerberos;IMAP;SMTP;Pocket;ReadItLater;
