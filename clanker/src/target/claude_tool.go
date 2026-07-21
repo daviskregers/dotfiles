@@ -32,7 +32,25 @@ func ClaudeToolFiles(tools []spec.Tool, utils []spec.ToolUtil) []OutputFile {
 	for _, t := range tools {
 		files = append(files, OutputFile{RelPath: dir + "/" + kebab(t.Name) + ".ts", Content: t.Core})
 	}
-	return append(files, RenderClaudeIndex(tools))
+	return append(files, RenderClaudeIndex(tools), renderMCPRegistration())
+}
+
+// renderMCPRegistration emits the single-sourced mcpServers fragment that registers
+// the generated server. claude has no committed-global MCP config (settings.json can't
+// hold servers; ~/.claude.json is machine-local), so `make install-mcp` merges this
+// into ~/.claude.json, expanding $HOME to an absolute path (MCP args aren't shell-
+// expanded at spawn). One server bundles every tool, so no per-server spec is needed.
+func renderMCPRegistration() OutputFile {
+	frag := `{
+  "custom-tools": {
+    "type": "stdio",
+    "command": "bun",
+    "args": ["run", "$HOME/.claude/mcp-tools/index.ts"],
+    "env": {}
+  }
+}
+`
+	return OutputFile{RelPath: Claude{}.ToolDir() + "/mcp-registration.json", Content: frag}
 }
 
 // RenderClaudeIndex generates the MCP server entrypoint: it imports each tool
