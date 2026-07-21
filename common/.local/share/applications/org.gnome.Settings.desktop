@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Settings
+Icon=org.gnome.Settings
+Exec=gnome-control-center
+DBusActivatable=true
+Terminal=false
+Type=Application
+StartupNotify=true
+Categories=GNOME;GTK;Settings;
+NoDisplay=true
+Keywords=Preferences;Settings;
+X-Purism-FormFactor=Workstation;Mobile;
