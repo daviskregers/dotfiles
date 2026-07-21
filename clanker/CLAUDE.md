@@ -20,6 +20,15 @@ Config generator: define each command/agent/tool ONCE (type-safe Go), emit per-t
 
 New file in `src/target` implementing `Target` + one line in `Registry()`. Targets are struct FIELDS in `spec.Overlays` (not map keys) — so adding one is a compile error until every consumer handles it. That's the pluggable seam; keep it.
 
+## Hooks (`config/hooks/`)
+
+One `spec.Hook` per hook; typed `HookEvent`/`OpencodeEvent` (mistyped event = compile error). Each hook = neutral **core** (`<name>.ts`, exports `run(input: HookInput, ctx): HookResult`) + a thin per-target wrapper the generator builds.
+
+- **Shared runtime** (`hook-utils.ts` = types + adapters that extract input / translate `HookResult`): emitted ONCE per tree and IMPORTED, not inlined. Claude hooks import `./hook-utils`; opencode plugins import `../hook-lib/hook-utils` — OUTSIDE `plugins/`, because opencode auto-discovers `plugins/*.ts` and treats every named export as a plugin candidate. Cores are per-hook → inlined + de-exported (a stray `export` in a plugin file looks like a second plugin to opencode).
+- **Per-target event mapping absorbs capability gaps** — `Event` (claude) and `OpencodeEvent` diverge freely. No hook is single-target: e.g. tdd-reminder = claude PreToolUse (before) / opencode `tool.execute.after` (append — before-hooks can't inject non-blocking context); comprehension-nudge = claude `Stop` block / opencode `session.idle` → `client.session.prompt` inject (opencode can't block a turn end).
+- **Test the logic, not the wiring.** Extract each core's real logic into pure exported helpers (`isBareDump`, `rewriteCommand`, `parseNumstat`…) + unit-test them (`tests/*.ts`, bun); the generated wrapper stays too thin to test. Adapters covered in `hook-utils.test.ts`. FAIL-OPEN always — a hook bug never blocks/breaks a tool.
+- **Registration:** claude via `RenderClaudeHookSettings` → surgical `settings.json` merge (preserves unmanaged events like Notification); command = `bun "$HOME/.claude/hooks/<name>.ts"` (shell-expanded). opencode plugins are auto-discovered — no registration.
+
 ## TDD (mandatory)
 
 Red→green→refactor, tests alongside. Renderers tested directly (pure: Command in → OutputFile out); `gen` via temp dir. Keep renderers pure — no IO leaks into `src/target`.
