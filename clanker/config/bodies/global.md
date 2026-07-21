@@ -4,7 +4,7 @@
 
 ## Dual-setup sync
 
-Changes to commands/agent-prompts sync between Claude Code (`~/.dotfiles/claude/.claude/`) and opencode (`~/.dotfiles/opencode/.config/opencode/`): replicate manually (until the `clanker` generator lands — see `.dk-notes/plans/config-builder.md`). Skills = **one** submodule at `clanker/skills`, symlinked into both trees — commit in the submodule, bump the single `clanker/skills` pointer. No more separate clones / dual pointer-bump.
+Commands, agents, tools, hooks, and these docs are single-sourced in `~/.dotfiles/clanker/config/` (typed Go) and GENERATED per-target for Claude Code (`claude/.claude/`) and opencode (`opencode/.config/opencode/`). Edit the source under `clanker/config/`, run `make gen` (from `clanker/`), commit BOTH source and generated output. NEVER hand-edit a generated file or replicate a change across trees by hand — regenerate. Skills = **one** submodule at `clanker/skills`, symlinked into both trees — commit in the submodule, bump the single `clanker/skills` pointer. Full design: `.dk-notes/plans/config-builder.md`.
 
 ## AI attribution
 
