@@ -24,7 +24,7 @@ func (Claude) RenderAgent(a spec.Agent) AgentOutput {
 		b.WriteString("maxTurns: " + strconv.Itoa(a.MaxTurns) + "\n")
 	}
 	if len(a.MCP) > 0 {
-		b.WriteString("mcpServers:\n  - custom-tools\n")
+		b.WriteString("mcpServers:\n  - " + mcpServerName + "\n")
 	}
 	if len(a.Skills) > 0 {
 		b.WriteString("skills:\n")

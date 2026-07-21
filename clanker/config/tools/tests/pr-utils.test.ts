@@ -7,10 +7,10 @@ import { parsePrUrl, PR_URL_RE } from "../pr-utils"
 // across bun's global module registry, so they're intentionally integration-covered.
 describe("parsePrUrl", () => {
     test.each([
-        ["https://github.com/o/r/pull/42", "o/r", "42"],
-        ["https://github.com/my-org/my.repo/pull/7/", "my-org/my.repo", "7"],
-    ])("parses %s", (url, ownerRepo, number) => {
-        expect(parsePrUrl(url)).toEqual({ ownerRepo, number })
+        ["https://github.com/o/r/pull/42", "o", "r", "42"],
+        ["https://github.com/my-org/my.repo/pull/7/", "my-org", "my.repo", "7"],
+    ])("parses %s", (url, owner, repo, number) => {
+        expect(parsePrUrl(url)).toEqual({ owner, repo, number, ownerRepo: `${owner}/${repo}` })
     })
 
     test.each([

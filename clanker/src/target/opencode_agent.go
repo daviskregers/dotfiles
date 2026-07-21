@@ -28,13 +28,15 @@ func (Opencode) RenderAgent(a spec.Agent) AgentOutput {
 	}
 
 	mode := a.Mode
-	if mode == "" {
+	if mode == spec.ModeSubagent {
 		mode = "subagent"
 	}
 	frag := map[string]any{
 		"description": pick(a.Overlay.Opencode.Description, a.Description),
-		"mode":        mode,
+		"mode":        string(mode),
 		"prompt":      "{file:./prompts/" + a.Name + ".md}",
+		// Low temperature for consistent subagent behavior. opencode-only: claude
+		// agent frontmatter has no temperature field.
 		"temperature": 0.1,
 		"tools":       tools,
 	}

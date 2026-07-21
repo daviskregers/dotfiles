@@ -1,11 +1,17 @@
 package target
 
 import (
+	"encoding/json"
 	"strconv"
 	"strings"
 
 	"clanker/src/spec"
 )
+
+// mcpServerName is the registration key of claude's custom-tools MCP server. The
+// agent frontmatter reference and the registration entry must use the same name, so
+// it lives once here. (The matching opencode-side names are TS, in a separate tree.)
+const mcpServerName = "custom-tools"
 
 // ToolDir is claude's MCP-server directory, relative to the dotfiles root. Unlike
 // opencode's per-tool wrappers, claude vendors the neutral cores here verbatim and
@@ -41,16 +47,22 @@ func ClaudeToolFiles(tools []spec.Tool, utils []spec.ToolUtil) []OutputFile {
 // into ~/.claude.json, expanding $HOME to an absolute path (MCP args aren't shell-
 // expanded at spawn). One server bundles every tool, so no per-server spec is needed.
 func renderMCPRegistration() OutputFile {
-	frag := `{
-  "custom-tools": {
-    "type": "stdio",
-    "command": "bun",
-    "args": ["run", "$HOME/.claude/mcp-tools/index.ts"],
-    "env": {}
-  }
-}
-`
-	return OutputFile{RelPath: Claude{}.ToolDir() + "/mcp-registration.json", Content: frag}
+	type mcpServer struct {
+		Type    string            `json:"type"`
+		Command string            `json:"command"`
+		Args    []string          `json:"args"`
+		Env     map[string]string `json:"env"`
+	}
+	reg := map[string]mcpServer{
+		mcpServerName: {
+			Type:    "stdio",
+			Command: "bun",
+			Args:    []string{"run", "$HOME/.claude/mcp-tools/index.ts"},
+			Env:     map[string]string{},
+		},
+	}
+	b, _ := json.MarshalIndent(reg, "", "  ")
+	return OutputFile{RelPath: Claude{}.ToolDir() + "/mcp-registration.json", Content: string(b) + "\n"}
 }
 
 // RenderClaudeIndex generates the MCP server entrypoint: it imports each tool
@@ -74,7 +86,7 @@ func RenderClaudeIndex(tools []spec.Tool) OutputFile {
 		b.WriteString("\t" + strconv.Quote(t.Description) + ",\n")
 		b.WriteString("\t{\n")
 		for _, a := range t.Args {
-			b.WriteString("\t\t" + a.Name + ": z." + a.Type + "()")
+			b.WriteString("\t\t" + a.Name + ": z." + string(a.Type) + "()")
 			if a.Optional {
 				b.WriteString(".optional()")
 			}
@@ -90,12 +102,3 @@ func RenderClaudeIndex(tools []spec.Tool) OutputFile {
 }
 
 // camel converts a snake_case tool name to a camelCase import alias.
-func camel(name string) string {
-	parts := strings.Split(name, "_")
-	for i := 1; i < len(parts); i++ {
-		if parts[i] != "" {
-			parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
-		}
-	}
-	return strings.Join(parts, "")
-}

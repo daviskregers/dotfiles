@@ -1,12 +1,11 @@
 import { execFileAsync, MAX_BUFFER, sleep } from "./shared"
-
-const PR_URL_RE = /^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+\/?$/
+import { parsePrUrl, INVALID_PR_URL } from "./pr-utils"
 
 export async function execute(
     args: { prUrl: string; timeoutSec?: number; pollSec?: number },
     ctx: { directory: string },
 ): Promise<string> {
-    if (!PR_URL_RE.test(args.prUrl)) return `Error: Invalid PR URL format`
+    if (!parsePrUrl(args.prUrl)) return INVALID_PR_URL
     const timeout = (args.timeoutSec ?? 180) * 1000
     const poll = (args.pollSec ?? 10) * 1000
     const start = Date.now()

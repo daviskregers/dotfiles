@@ -2,7 +2,10 @@
   "custom-tools": {
     "type": "stdio",
     "command": "bun",
-    "args": ["run", "$HOME/.claude/mcp-tools/index.ts"],
+    "args": [
+      "run",
+      "$HOME/.claude/mcp-tools/index.ts"
+    ],
     "env": {}
   }
 }
