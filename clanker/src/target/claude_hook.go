@@ -14,6 +14,25 @@ func (Claude) HookDir() string { return "claude/.claude/hooks" }
 // a non-hook module sitting beside the hooks is inert.
 func (Claude) HookUtilsRel() string { return Claude{}.HookDir() + "/hook-utils.ts" }
 
+// RenderHooks emits claude's hook files: the shared runtime (vendored beside the
+// hooks — claude runs only settings.json paths, never scans the dir) + one entrypoint
+// per hook.
+func (Claude) RenderHooks(hooks []spec.Hook, hookUtils string) []OutputFile {
+	if len(hooks) == 0 {
+		return nil
+	}
+	files := []OutputFile{{RelPath: Claude{}.HookUtilsRel(), Content: hookUtils}}
+	for _, h := range hooks {
+		files = append(files, RenderClaudeHook(h))
+	}
+	return files
+}
+
+// RenderRegistrations registers the hooks in settings.json (surgical merge).
+func (Claude) RenderRegistrations(hooks []spec.Hook) []ConfigMerge {
+	return RenderClaudeHookSettings(hooks)
+}
+
 // RenderClaudeHook emits a `bun` hook: an import of the shared runtime + the neutral
 // core (de-exported, inlined) + a generated entrypoint that reads the stdin event,
 // runs the core, serializes HookResult to claude's stdout schema, exit 0 (fail-open).

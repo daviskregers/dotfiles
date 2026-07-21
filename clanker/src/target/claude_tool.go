@@ -12,6 +12,14 @@ import (
 // registers them all from a generated index.ts.
 func (Claude) ToolDir() string { return "claude/.claude/mcp-tools" }
 
+// RenderTools emits claude's custom-tool files (nil when there are none).
+func (Claude) RenderTools(tools []spec.Tool, utils []spec.ToolUtil) []OutputFile {
+	if len(tools) == 0 {
+		return nil
+	}
+	return ClaudeToolFiles(tools, utils)
+}
+
 // ClaudeToolFiles is everything claude's MCP server needs: the shared util
 // modules + each tool's neutral core (both vendored verbatim) + the generated
 // index.ts that registers them.

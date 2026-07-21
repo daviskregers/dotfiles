@@ -14,6 +14,24 @@ func (Opencode) PluginDir() string { return "opencode/.config/opencode/plugins" 
 // can't mistake the runtime's helpers for plugins. Plugins import it by relative path.
 func (Opencode) HookLibRel() string { return "opencode/.config/opencode/hook-lib/hook-utils.ts" }
 
+// RenderHooks emits opencode's hook files: the shared runtime (outside plugins/ so
+// the loader can't mistake it for a plugin) + one plugin per dual-targetable hook.
+func (Opencode) RenderHooks(hooks []spec.Hook, hookUtils string) []OutputFile {
+	if len(hooks) == 0 {
+		return nil
+	}
+	files := []OutputFile{{RelPath: Opencode{}.HookLibRel(), Content: hookUtils}}
+	for _, h := range hooks {
+		if f, ok := RenderOpencodeHook(h); ok {
+			files = append(files, f)
+		}
+	}
+	return files
+}
+
+// RenderRegistrations is empty for opencode — plugins are auto-discovered from plugins/.
+func (Opencode) RenderRegistrations([]spec.Hook) []ConfigMerge { return nil }
+
 // RenderOpencodeHook emits an opencode plugin for a dual-targetable hook: an import
 // of the shared runtime + the neutral core (de-exported, inlined) + a plugin factory
 // wiring the core to the mapped event and translating HookResult (deny→throw,
