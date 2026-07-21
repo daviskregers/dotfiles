@@ -1,0 +1,151 @@
+* {
+  bg: #1e1e2e;
+  bg-alt: #313244;
+  fg: #cdd6f4;
+  fg-alt: #a6adc8;
+
+  blue: #89b4fa;
+  lavender: #b4befe;
+  sapphire: #74c7ec;
+  sky: #89dceb;
+  teal: #94e2d5;
+  green: #a6e3a1;
+  yellow: #f9e2af;
+  peach: #fab387;
+  maroon: #eba0ac;
+  red: #f38ba8;
+  mauve: #cba6f7;
+  pink: #f5c2e7;
+  flamingo: #f2cdcd;
+  rosewater: #f5e0dc;
+
+  background-color: @bg;
+  text-color: @fg;
+  border-color: @bg-alt;
+  
+  margin: 0;
+  padding: 0;
+  spacing: 0;
+}
+
+window {
+  width: 800px;
+  height: 500px;
+  border: 3px;
+  border-color: @lavender;
+  border-radius: 12px;
+  background-color: @bg;
+  
+  location: center;
+  anchor: center;
+  x-offset: 0;
+  y-offset: 0;
+  
+  padding: 20px;
+}
+
+mainbox {
+  spacing: 15px;
+  children: [inputbar, listview];
+  background-color: transparent;
+}
+
+inputbar {
+  spacing: 10px;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: @bg-alt;
+  
+  children: [prompt, entry];
+}
+
+prompt {
+  font: "FiraCode Nerd Font 18";
+  text-color: @lavender;
+  background-color: transparent;
+}
+
+entry {
+  font: "FiraCode Nerd Font 18";
+  text-color: @fg;
+  background-color: transparent;
+  cursor: text;
+  placeholder: "Search...";
+  placeholder-color: @fg-alt;
+  
+  expand: true;
+  horizontal-align: 0;
+}
+
+listview {
+  columns: 1;
+  lines: 8;
+  fixed-columns: true;
+  fixed-height: true;
+  
+  spacing: 8px;
+  background-color: transparent;
+  
+  border: 0px;
+  border-radius: 0px;
+  padding: 0px;
+}
+
+element {
+  padding: 12px;
+  spacing: 12px;
+  border-radius: 8px;
+  background-color: transparent;
+  
+  children: [element-icon, element-text];
+}
+
+element-icon {
+  size: 32px;
+  border: 0px;
+  background-color: transparent;
+}
+
+element-text {
+  font: "FiraCode Nerd Font 16";
+  text-color: @fg;
+  background-color: transparent;
+  
+  expand: true;
+  horizontal-align: 0;
+  vertical-align: 0.5;
+}
+
+element selected {
+  background-color: @bg-alt;
+  border: 2px;
+  border-color: @lavender;
+}
+
+element selected.normal {
+  text-color: @fg;
+}
+
+element selected.active {
+  text-color: @green;
+}
+
+element selected.urgent {
+  text-color: @red;
+}
+
+element normal.active {
+  text-color: @green;
+}
+
+element normal.urgent {
+  text-color: @red;
+}
+
+mode-switcher {
+  enabled: false;
+}
+
+scrollbar {
+  enabled: false;
+}

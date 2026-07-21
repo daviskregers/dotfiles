@@ -1,0 +1,147 @@
+* {
+  /* oldworld.nvim — oled variant */
+  bg: #000000;
+  bg-alt: #161617;
+  fg: #c9c7cd;
+  fg-alt: #9f9ca6;
+
+  red: #ea83a5;
+  orange: #f5a191;
+  yellow: #e6b99d;
+  green: #90b99f;
+  cyan: #85b5ba;
+  blue: #92a2d5;
+  purple: #aca1cf;
+  magenta: #e29eca;
+
+  /* accent (prompt + selected border) */
+  lavender: @purple;
+
+  background-color: @bg;
+  text-color: @fg;
+  border-color: @bg-alt;
+
+  margin: 0;
+  padding: 0;
+  spacing: 0;
+}
+
+window {
+  width: 560px;
+  border: 0px;
+  border-radius: 4px;
+  background-color: @bg;
+
+  location: center;
+  anchor: center;
+  x-offset: 0;
+  y-offset: 0;
+
+  padding: 10px;
+}
+
+mainbox {
+  spacing: 8px;
+  children: [inputbar, listview];
+  background-color: transparent;
+}
+
+inputbar {
+  spacing: 8px;
+  padding: 8px 10px;
+  border-radius: 3px;
+  background-color: @bg-alt;
+
+  children: [prompt, entry];
+}
+
+prompt {
+  font: "FiraCode Nerd Font 14";
+  text-color: @lavender;
+  background-color: transparent;
+}
+
+entry {
+  font: "FiraCode Nerd Font 14";
+  text-color: @fg;
+  background-color: transparent;
+  cursor: text;
+  placeholder: "Search...";
+  placeholder-color: @fg-alt;
+
+  expand: true;
+  horizontal-align: 0;
+}
+
+listview {
+  columns: 1;
+  lines: 6;
+  fixed-columns: true;
+  fixed-height: true;
+
+  spacing: 2px;
+  background-color: transparent;
+
+  border: 0px;
+  border-radius: 0px;
+  padding: 0px;
+}
+
+element {
+  padding: 6px 8px;
+  spacing: 8px;
+  border-radius: 3px;
+  background-color: transparent;
+
+  children: [element-icon, element-text];
+}
+
+element-icon {
+  size: 20px;
+  border: 0px;
+  background-color: transparent;
+}
+
+element-text {
+  font: "FiraCode Nerd Font 13";
+  text-color: @fg;
+  background-color: transparent;
+
+  expand: true;
+  horizontal-align: 0;
+  vertical-align: 0.5;
+}
+
+element selected {
+  background-color: @bg-alt;
+  border: 1px;
+  border-color: @lavender;
+}
+
+element selected.normal {
+  text-color: @fg;
+}
+
+element selected.active {
+  text-color: @green;
+}
+
+element selected.urgent {
+  text-color: @red;
+}
+
+element normal.active {
+  text-color: @green;
+}
+
+element normal.urgent {
+  text-color: @red;
+}
+
+mode-switcher {
+  enabled: false;
+}
+
+scrollbar {
+  enabled: false;
+}

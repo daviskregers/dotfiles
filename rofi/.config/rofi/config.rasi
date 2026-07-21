@@ -1,0 +1,21 @@
+configuration {
+  modi: "combi,drun,calc";
+  font: "FiraCode Nerd Font 13";
+  show-icons: true;
+  icon-theme: "Papirus";
+  drun-display-format: "{name}";
+  location: 0;
+  yoffset: -200;
+  disable-history: false;
+  hide-scrollbar: true;
+  display-combi: "  All  ";
+  display-drun: "  Apps  ";
+  display-calc: "  Calc  ";
+  sidebar-mode: true;
+  combi-modes: "drun,calc";
+  
+  /* oldworld.nvim oled variant */
+  /* bg #000000 · fg #c9c7cd · bg-alt #161617 · accent #aca1cf */
+}
+
+@theme "oldworld-oled"
