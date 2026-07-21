@@ -15,10 +15,10 @@ import (
 	"clanker/src/target"
 )
 
-// ManifestPath records (relative to the output root) the commands clanker
-// generated last run, so a dropped command's stale files can be pruned without
-// touching files clanker never managed.
-const ManifestPath = "clanker/generated-commands.json"
+// ManifestPath records (relative to the output root) every file clanker generated
+// last run, so any dropped artifact's stale file can be pruned without touching files
+// clanker never managed.
+const ManifestPath = "clanker/generated-manifest.json"
 
 func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, docs []spec.Doc, tools []spec.Tool, toolUtils []spec.ToolUtil, hooks []spec.Hook, hookUtils string, targets []target.Target) error {
 	if err := validateRoot(outRoot, targets); err != nil {
@@ -28,98 +28,92 @@ func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, docs []spec.D
 		return err
 	}
 
+	// Render everything first, then prune → write → merge → manifest. Collecting all
+	// standalone files up front lets prune remove ANY dropped artifact (agent/tool/hook/
+	// doc), not just commands — critical for opencode, which auto-runs a stale tool or
+	// plugin file until it's deleted.
+	files, merges := render(cmds, agents, docs, tools, toolUtils, hooks, hookUtils, targets)
+
+	current := relPaths(files)
 	prev, err := readManifest(outRoot)
 	if err != nil {
 		return err
 	}
-	current := commandNames(cmds)
-	if err := prune(outRoot, targets, prev, current); err != nil {
+	if err := prune(outRoot, prev, current); err != nil {
 		return err
 	}
 
-	for _, c := range cmds {
-		for _, tg := range targets {
-			for _, f := range tg.RenderCommand(c) {
-				if err := writeFile(outRoot, f); err != nil {
-					return err
-				}
+	for _, f := range files {
+		if err := writeFile(outRoot, f); err != nil {
+			return err
+		}
+		if strings.HasSuffix(f.RelPath, ".ts") {
+			if err := formatTS(filepath.Join(outRoot, f.RelPath)); err != nil {
+				return err
 			}
 		}
 	}
+	if err := applyConfigMerges(outRoot, merges); err != nil {
+		return err
+	}
+	return writeManifest(outRoot, current)
+}
+
+// render produces every standalone generated file and every shared-config merge,
+// without touching the filesystem. Hook registration (claude settings.json) uses the
+// same merge mechanism as agents; opencode plugins/tools are auto-discovered so need none.
+func render(cmds []spec.Command, agents []spec.Agent, docs []spec.Doc, tools []spec.Tool, toolUtils []spec.ToolUtil, hooks []spec.Hook, hookUtils string, targets []target.Target) ([]target.OutputFile, []target.ConfigMerge) {
+	var files []target.OutputFile
 	var merges []target.ConfigMerge
+
+	for _, c := range cmds {
+		for _, tg := range targets {
+			files = append(files, tg.RenderCommand(c)...)
+		}
+	}
 	for _, a := range agents {
 		for _, tg := range targets {
 			out := tg.RenderAgent(a)
-			for _, f := range out.Files {
-				if err := writeFile(outRoot, f); err != nil {
-					return err
-				}
-			}
+			files = append(files, out.Files...)
 			if out.Config != nil {
 				merges = append(merges, *out.Config)
 			}
 		}
 	}
-	// Register hooks in claude's settings.json via the same surgical merge (preserves
-	// unmanaged events like Notification). opencode plugins are auto-discovered, so
-	// they need no registration.
-	merges = append(merges, target.RenderClaudeHookSettings(hooks)...)
-	if err := applyConfigMerges(outRoot, merges); err != nil {
-		return err
-	}
-
 	for _, d := range docs {
 		for _, tg := range targets {
-			if err := writeFile(outRoot, tg.RenderDoc(d)); err != nil {
-				return err
-			}
+			files = append(files, tg.RenderDoc(d))
 		}
 	}
-
-	// Custom tools: generated for both targets from the same neutral cores. opencode
-	// gets per-tool tool() wrappers; claude vendors the cores + a generated index.ts
-	// registering them. Generated TS is prettier-formatted to the project's style.
 	if len(tools) > 0 {
-		toolFiles := append(target.OpencodeToolFiles(tools, toolUtils), target.ClaudeToolFiles(tools, toolUtils)...)
-		if err := writeTS(outRoot, toolFiles); err != nil {
-			return err
-		}
+		files = append(files, target.OpencodeToolFiles(tools, toolUtils)...)
+		files = append(files, target.ClaudeToolFiles(tools, toolUtils)...)
 	}
-
-	// Hooks: the shared runtime (hook-utils) is emitted once per tree and imported by
-	// each generated hook (claude entrypoint / opencode plugin) — not inlined. opencode's
-	// copy lives outside plugins/ so its loader can't mistake the helpers for plugins.
-	// settings.json registration is a separate step (see the hooks plan) so incremental
-	// porting can't drop still-unported claude hook entries.
 	if len(hooks) > 0 {
-		hookFiles := []target.OutputFile{
-			{RelPath: target.Claude{}.HookUtilsRel(), Content: hookUtils},
-			{RelPath: target.Opencode{}.HookLibRel(), Content: hookUtils},
-		}
+		// The shared runtime is emitted once per tree and imported by each hook (not
+		// inlined); opencode's copy lives outside plugins/ so its loader can't mistake
+		// the helpers for a plugin.
+		files = append(files,
+			target.OutputFile{RelPath: target.Claude{}.HookUtilsRel(), Content: hookUtils},
+			target.OutputFile{RelPath: target.Opencode{}.HookLibRel(), Content: hookUtils},
+		)
 		for _, h := range hooks {
-			hookFiles = append(hookFiles, target.RenderClaudeHook(h))
+			files = append(files, target.RenderClaudeHook(h))
 			if f, ok := target.RenderOpencodeHook(h); ok {
-				hookFiles = append(hookFiles, f)
+				files = append(files, f)
 			}
 		}
-		if err := writeTS(outRoot, hookFiles); err != nil {
-			return err
-		}
 	}
-	return writeManifest(outRoot, current)
+	merges = append(merges, target.RenderClaudeHookSettings(hooks)...)
+	return files, merges
 }
 
-// writeTS writes each TypeScript file then prettier-formats it in place.
-func writeTS(outRoot string, files []target.OutputFile) error {
-	for _, f := range files {
-		if err := writeFile(outRoot, f); err != nil {
-			return err
-		}
-		if err := formatTS(filepath.Join(outRoot, f.RelPath)); err != nil {
-			return err
-		}
+func relPaths(files []target.OutputFile) []string {
+	paths := make([]string, len(files))
+	for i, f := range files {
+		paths[i] = f.RelPath
 	}
-	return nil
+	return paths
 }
 
 // applyConfigMerges sets each merge's value into its shared JSON file, one
@@ -219,32 +213,23 @@ func validateRoot(outRoot string, targets []target.Target) error {
 	return nil
 }
 
-// prune removes files for commands present last run but gone now.
-func prune(outRoot string, targets []target.Target, prev, current []string) error {
+// prune removes every file generated last run (by relative path) that isn't
+// generated this run — across all artifact classes, so a dropped agent/tool/hook/doc
+// leaves no orphan (an orphaned opencode tool/plugin would otherwise keep executing).
+func prune(outRoot string, prev, current []string) error {
 	live := make(map[string]bool, len(current))
-	for _, n := range current {
-		live[n] = true
+	for _, p := range current {
+		live[p] = true
 	}
-	for _, n := range prev {
-		if live[n] {
+	for _, p := range prev {
+		if live[p] {
 			continue
 		}
-		for _, tg := range targets {
-			path := filepath.Join(outRoot, tg.CommandDir(), n+".md")
-			if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
-				return err
-			}
+		if err := os.Remove(filepath.Join(outRoot, p)); err != nil && !os.IsNotExist(err) {
+			return err
 		}
 	}
 	return nil
-}
-
-func commandNames(cmds []spec.Command) []string {
-	names := make([]string, len(cmds))
-	for i, c := range cmds {
-		names[i] = c.Name
-	}
-	return names
 }
 
 func readManifest(outRoot string) ([]string, error) {
