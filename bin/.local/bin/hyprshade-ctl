@@ -1,0 +1,139 @@
+#!/usr/bin/env bash
+# hyprshade control — auto schedule + click toggle
+
+export PATH="$HOME/.nix-profile/bin:$PATH"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+
+STATE_FILE="${XDG_RUNTIME_DIR}/hyprshade-state"
+CONFIG_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprshade.toml"
+SUNCACHE="${XDG_RUNTIME_DIR}/hyprshade-suncache"
+LOCATION_FILE="${XDG_CONFIG_HOME:-$HOME/.config}/hyprshade-location"
+
+get_location() {
+    if [[ -f "$LOCATION_FILE" ]]; then
+        LAT=$(awk -F= '/^lat=/{print $2}' "$LOCATION_FILE")
+        LON=$(awk -F= '/^lon=/{print $2}' "$LOCATION_FILE")
+        PLACE=$(awk -F= '/^place=/{print $2}' "$LOCATION_FILE")
+    fi
+    LAT="${LAT:-56.95}"
+    LON="${LON:-24.11}"
+    PLACE="${PLACE:-Riga, Latvia}"
+}
+
+get_state() {
+    manual="0"
+    schedule="day"
+    if [[ -f "$STATE_FILE" ]]; then
+        while IFS='=' read -r key val; do
+            case "$key" in
+                manual)   manual="$val" ;;
+                schedule) schedule="$val" ;;
+            esac
+        done < "$STATE_FILE"
+    fi
+}
+
+save_state() {
+    mkdir -p "$(dirname "$STATE_FILE")"
+    echo "manual=$1" > "$STATE_FILE"
+    echo "schedule=$2" >> "$STATE_FILE"
+}
+
+is_active() {
+    [[ -n "$(hyprshade current 2>/dev/null)" ]]
+}
+
+compute_sun_times() {
+    get_location
+    python3 -c "
+from astral import LocationInfo
+from astral.sun import sun
+from datetime import datetime
+city = LocationInfo('c', 'c', 'c', ${LAT}, ${LON})
+s = sun(city.observer, date=datetime.now(), tzinfo=city.timezone)
+print(s['sunrise'].strftime('%H:%M'), s['sunset'].strftime('%H:%M'))
+" 2>/dev/null
+}
+
+update_schedule() {
+    local today=$(date +%Y-%m-%d)
+    [[ -f "$SUNCACHE" ]] && head -1 "$SUNCACHE" | grep -q "$today" && return 0
+
+    local times
+    times=$(compute_sun_times) || return 1
+    local sunrise sunset
+    read -r sunrise sunset <<< "$times"
+
+    mkdir -p "$(dirname "$SUNCACHE")"
+    echo "$today $sunrise $sunset" > "$SUNCACHE"
+
+    local real_file
+    real_file=$(readlink -f "$CONFIG_FILE")
+    if [[ -f "$real_file" ]]; then
+        sed -i "s/^start_time = .*/start_time = \"${sunset}:00\"/" "$real_file"
+        sed -i "s/^end_time = .*/end_time = \"${sunrise}:00\"/" "$real_file"
+    fi
+}
+
+detect_period() {
+    if [[ -f "$SUNCACHE" ]]; then
+        local sunrise sunset now
+        sunrise=$(awk '{print $2}' "$SUNCACHE")
+        sunset=$(awk '{print $3}' "$SUNCACHE")
+        now=$(date +%H:%M)
+        if [[ "$now" < "$sunrise" ]] || [[ "$now" > "$sunset" ]] || [[ "$now" == "$sunset" ]]; then
+            echo "night"
+        else
+            echo "day"
+        fi
+    else
+        echo "day"
+    fi
+}
+
+do_status() {
+    update_schedule
+    get_state
+    local period
+    period=$(detect_period)
+
+    if [[ "$period" != "$schedule" ]]; then
+        save_state 0 "$period"
+    fi
+
+    if [[ "$manual" != "1" ]]; then
+        hyprshade auto 2>/dev/null
+    fi
+
+    if is_active; then
+        printf '{"text":"󰃨 night","tooltip":"Night light: on\\nClick: turn off","class":"on"}\n'
+    else
+        printf '{"text":"󰃨 day","tooltip":"Night light: off\\nClick: turn on","class":"off"}\n'
+    fi
+}
+
+do_toggle() {
+    update_schedule
+    get_state
+    local period
+    period=$(detect_period)
+
+    if is_active; then
+        hyprshade off 2>/dev/null
+        save_state 1 "$period"
+    else
+        hyprshade on blue-light-filter 2>/dev/null
+        save_state 1 "$period"
+    fi
+}
+
+do_init() {
+    update_schedule
+}
+
+case "${1:-status}" in
+    status)  do_status ;;
+    toggle)  do_toggle ;;
+    init)    do_init ;;
+    *)       echo "Usage: $0 {status|toggle|init}" >&2; exit 1 ;;
+esac

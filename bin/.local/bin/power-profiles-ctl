@@ -1,0 +1,120 @@
+#!/usr/bin/env bash
+# power profiles control script for waybar custom module
+# Auto-switches on charger events; manual override persists until next event
+
+export PATH="/home/davis/.nix-profile/bin:$PATH"
+export HOME="/home/davis"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u davis)}"
+
+STATE_FILE="${XDG_RUNTIME_DIR}/power-profiles-state"
+
+PROFILES=("power-saver" "balanced" "performance")
+ICONS=("󰉄" "󰈀" "󰈿")
+DEFAULT_ON_AC="balanced"
+DEFAULT_ON_BAT="power-saver"
+
+get_state() {
+    if [[ -f "$STATE_FILE" ]]; then
+        manual=$(awk -F= '/^manual=/{print $2}' "$STATE_FILE")
+        profile=$(awk -F= '/^profile=/{print $2}' "$STATE_FILE")
+    fi
+    manual="${manual:-0}"
+    profile="${profile:-$DEFAULT_ON_AC}"
+}
+
+save_state() {
+    mkdir -p "$(dirname "$STATE_FILE")"
+    echo "manual=$1" > "$STATE_FILE"
+    echo "profile=$2" >> "$STATE_FILE"
+}
+
+is_ac() {
+    local online
+    for f in /sys/class/power_supply/*/online; do
+        local type_dir="${f%/online}"
+        if [[ -f "$type_dir/type" ]] && [[ "$(cat "$type_dir/type" 2>/dev/null)" == "Mains" ]]; then
+            online=$(cat "$f" 2>/dev/null)
+            [[ "$online" == "1" ]] && return 0
+        fi
+    done
+    return 1
+}
+
+current_profile() {
+    powerprofilesctl get 2>/dev/null | tr -d '[:space:]'
+}
+
+profile_index() {
+    local cur
+    cur=$(current_profile)
+    for i in "${!PROFILES[@]}"; do
+        [[ "${PROFILES[$i]}" == "$cur" ]] && echo "$i" && return
+    done
+    echo 1
+}
+
+set_profile() {
+    powerprofilesctl set "$1" 2>/dev/null
+}
+
+do_status() {
+    get_state
+    local cur
+    cur=$(current_profile)
+    local idx
+    idx=$(profile_index)
+    local icon="${ICONS[$idx]}"
+
+    local ac_text="battery"
+    is_ac && ac_text="AC"
+
+    printf '{"text":"%s %s","tooltip":"Power: %s (%s)\\nClick: cycle \u2022 Scroll: switch\\nProfiles: power-saver / balanced / performance","class":"%s"}\n' \
+        "$icon" "$cur" "$cur" "$ac_text" "$cur"
+}
+
+do_toggle() {
+    get_state
+    local idx
+    idx=$(profile_index)
+    local next=$(( (idx + 1) % ${#PROFILES[@]} ))
+    set_profile "${PROFILES[$next]}"
+    save_state 1 "${PROFILES[$next]}"
+}
+
+do_auto() {
+    local target
+    if is_ac; then
+        target="$DEFAULT_ON_AC"
+    else
+        target="$DEFAULT_ON_BAT"
+    fi
+    set_profile "$target"
+    save_state 0 "$target"
+}
+
+do_scroll_up() {
+    get_state
+    local idx
+    idx=$(profile_index)
+    local next=$(( (idx + 1) % ${#PROFILES[@]} ))
+    set_profile "${PROFILES[$next]}"
+    save_state 1 "${PROFILES[$next]}"
+}
+
+do_scroll_down() {
+    get_state
+    local idx
+    idx=$(profile_index)
+    local prev=$(( (idx - 1 + ${#PROFILES[@]}) % ${#PROFILES[@]} ))
+    set_profile "${PROFILES[$prev]}"
+    save_state 1 "${PROFILES[$prev]}"
+}
+
+case "${1:-status}" in
+    status)       do_status ;;
+    toggle)       do_toggle ;;
+    auto)         do_auto ;;
+    scroll-up)    do_scroll_up ;;
+    scroll-down)  do_scroll_down ;;
+    *)            echo "Usage: $0 {status|toggle|auto|scroll-up|scroll-down}" >&2; exit 1 ;;
+esac
