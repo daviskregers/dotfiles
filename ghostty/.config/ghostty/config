@@ -1,9 +1,9 @@
 # Mirrors the prior wezterm setup. Kitty graphics protocol (+ Unicode placeholders)
 # is enabled by default — that's what gives snacks.image true inline-in-buffer rendering.
 
-theme = Afterglow
-background = 282828
-background-opacity = 0.9
+theme = oldworld-oled
+background = 000000
+background-opacity = 0.92
 
 font-family = FiraCode Nerd Font Mono
 font-size = 12
