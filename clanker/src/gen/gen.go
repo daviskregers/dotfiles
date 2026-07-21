@@ -56,6 +56,10 @@ func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, docs []spec.D
 			}
 		}
 	}
+	// Register hooks in claude's settings.json via the same surgical merge (preserves
+	// unmanaged events like Notification). opencode plugins are auto-discovered, so
+	// they need no registration.
+	merges = append(merges, target.RenderClaudeHookSettings(hooks)...)
 	if err := applyConfigMerges(outRoot, merges); err != nil {
 		return err
 	}

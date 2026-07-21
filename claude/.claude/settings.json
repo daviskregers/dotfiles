@@ -1,9 +1,108 @@
 {
+  "enabledPlugins": {
+    "codex@openai-codex": true,
+    "edurio-core@edurio-plugins": true,
+    "plannotator@plannotator": true
+  },
   "env": {
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "DISABLE_AUTOUPDATER": "1"
   },
+  "extraKnownMarketplaces": {
+    "openai-codex": {
+      "source": {
+        "repo": "openai/codex-plugin-cc",
+        "source": "github"
+      }
+    },
+    "plannotator": {
+      "source": {
+        "repo": "backnotprop/plannotator",
+        "source": "github"
+      }
+    }
+  },
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "command": "afplay /System/Library/Sounds/Glass.aiff",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ],
+    "PostToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "bun \"$HOME/.claude/hooks/pr-refresh-reminder.ts\"",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "bun \"$HOME/.claude/hooks/dangerous-command-guard.ts\"",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      },
+      {
+        "hooks": [
+          {
+            "command": "bun \"$HOME/.claude/hooks/tdd-reminder.ts\"",
+            "type": "command"
+          }
+        ],
+        "matcher": "Write|Edit"
+      },
+      {
+        "hooks": [
+          {
+            "command": "bun \"$HOME/.claude/hooks/ai-attribution.ts\"",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash|mcp__claude_ai_Linear__save_comment|mcp__claude_ai_Linear__save_issue|mcp__custom-tools__update_pr_info|mcp__custom-tools__resolve_pr_thread"
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "command": "bun \"$HOME/.claude/hooks/comprehension-nudge.ts\"",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "command": "bun \"$HOME/.claude/hooks/offloading-nudge.ts\"",
+            "type": "command"
+          },
+          {
+            "command": "bun \"$HOME/.claude/hooks/approval-scope.ts\"",
+            "type": "command"
+          }
+        ],
+        "matcher": ""
+      }
+    ]
+  },
   "includeCoAuthoredBy": false,
+  "model": "opus[1m]",
   "permissions": {
     "allow": [
       "Bash(git status*)",
@@ -17,107 +116,8 @@
       "mcp__claude_ai_Linear__list_issues"
     ]
   },
-  "model": "opus[1m]",
-  "hooks": {
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "afplay /System/Library/Sounds/Glass.aiff"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash|mcp__claude_ai_Linear__save_comment|mcp__claude_ai_Linear__save_issue|mcp__custom-tools__update_pr_info|mcp__custom-tools__resolve_pr_thread",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"/Users/daviskregers/.claude/hooks/ai-attribution.py\""
-          }
-        ]
-      },
-      {
-        "matcher": "Write|Edit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"/Users/daviskregers/.claude/hooks/tdd-reminder.py\""
-          }
-        ]
-      },
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"/Users/daviskregers/.claude/hooks/dangerous-command-guard.py\""
-          }
-        ]
-      }
-    ],
-    "PostToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"/Users/daviskregers/.claude/hooks/pr-refresh-reminder.py\""
-          }
-        ]
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"/Users/daviskregers/.claude/hooks/offloading-nudge.py\""
-          },
-          {
-            "type": "command",
-            "command": "python3 \"/Users/daviskregers/.claude/hooks/approval-scope.py\""
-          }
-        ]
-      }
-    ],
-    "Stop": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 \"/Users/daviskregers/.claude/hooks/comprehension-nudge.py\""
-          }
-        ]
-      }
-    ]
-  },
   "statusLine": {
-    "type": "command",
-    "command": "bash \"/Users/daviskregers/.claude/statusline.sh\""
-  },
-  "enabledPlugins": {
-    "codex@openai-codex": true,
-    "edurio-core@edurio-plugins": true,
-    "plannotator@plannotator": true
-  },
-  "extraKnownMarketplaces": {
-    "openai-codex": {
-      "source": {
-        "source": "github",
-        "repo": "openai/codex-plugin-cc"
-      }
-    },
-    "plannotator": {
-      "source": {
-        "source": "github",
-        "repo": "backnotprop/plannotator"
-      }
-    }
+    "command": "bash \"/Users/daviskregers/.claude/statusline.sh\"",
+    "type": "command"
   }
 }
