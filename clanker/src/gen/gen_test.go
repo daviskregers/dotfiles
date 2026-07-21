@@ -39,16 +39,19 @@ func TestRun_WritesEachTargetFile(t *testing.T) {
 		"---\ndescription: Do\n---\n\nb\n")
 }
 
-// A command dropped from the config has its previously-generated files removed,
-// while files clanker never managed (not in the manifest) are left alone.
-func TestRun_PrunesDroppedCommands(t *testing.T) {
+// An artifact dropped from the config has its previously-generated file removed (by
+// the path recorded in the manifest), while files clanker never managed are left alone.
+func TestRun_PrunesDroppedArtifacts(t *testing.T) {
 	root := dotfilesRoot(t)
-	// Previously clanker managed "old" and "commit".
-	writeManifest(t, root, `["old","commit"]`)
+	// Previously clanker generated old.md in both trees (recorded by path).
+	var oldPaths []string
 	for _, tg := range target.Registry() {
+		oldPaths = append(oldPaths, tg.CommandDir()+"/old.md")
 		seed(t, root, tg.CommandDir(), "old.md", "stale\n")
 		seed(t, root, tg.CommandDir(), "keep.md", "hand-authored\n") // never managed
 	}
+	b, _ := json.Marshal(oldPaths)
+	writeManifest(t, root, string(b))
 
 	cmds := []spec.Command{{Name: "commit", Description: "Commit", Body: "go\n"}}
 	if err := gen.Run(root, cmds, nil, nil, nil, nil, nil, "", target.Registry()); err != nil {
@@ -61,7 +64,25 @@ func TestRun_PrunesDroppedCommands(t *testing.T) {
 		assertPresent(t, filepath.Join(dir, "keep.md"))
 		assertPresent(t, filepath.Join(dir, "commit.md"))
 	}
-	assertFileContent(t, filepath.Join(root, gen.ManifestPath), `["commit"]`+"\n")
+	m := readManifestPaths(t, root)
+	assertContains(t, m, "claude/.claude/commands/commit.md")
+	assertNotContains(t, m, "claude/.claude/commands/old.md")
+}
+
+// Non-command artifacts prune too: a dropped agent's generated file is removed.
+func TestRun_PrunesDroppedAgentFile(t *testing.T) {
+	root := dotfilesRoot(t)
+	stale := "claude/.claude/agents/gone.md"
+	mustMkdir(t, filepath.Join(root, "claude/.claude/agents"))
+	seed(t, root, "claude/.claude/agents", "gone.md", "stale agent\n")
+	b, _ := json.Marshal([]string{stale})
+	writeManifest(t, root, string(b))
+
+	// Run with no agents → the previously-managed agent file must be pruned.
+	if err := gen.Run(root, []spec.Command{{Name: "c", Body: "b\n"}}, nil, nil, nil, nil, nil, "", target.Registry()); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+	assertAbsent(t, filepath.Join(root, stale))
 }
 
 // An agent's opencode.json fragment is merged in without clobbering keys clanker
@@ -180,7 +201,7 @@ func TestRun_FirstRunWithoutManifest(t *testing.T) {
 		t.Fatalf("Run: %v", err)
 	}
 	assertPresent(t, filepath.Join(root, "claude/.claude/commands/demo.md"))
-	assertFileContent(t, filepath.Join(root, gen.ManifestPath), `["demo"]`+"\n")
+	assertContains(t, readManifestPaths(t, root), "claude/.claude/commands/demo.md")
 }
 
 // --- helpers ---
@@ -193,6 +214,38 @@ func writeManifest(t *testing.T, root, json string) {
 	}
 	if err := os.WriteFile(path, []byte(json+"\n"), 0o644); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func readManifestPaths(t *testing.T, root string) []string {
+	t.Helper()
+	raw, err := os.ReadFile(filepath.Join(root, gen.ManifestPath))
+	if err != nil {
+		t.Fatalf("read manifest: %v", err)
+	}
+	var paths []string
+	if err := json.Unmarshal(raw, &paths); err != nil {
+		t.Fatalf("parse manifest: %v", err)
+	}
+	return paths
+}
+
+func assertContains(t *testing.T, xs []string, want string) {
+	t.Helper()
+	for _, x := range xs {
+		if x == want {
+			return
+		}
+	}
+	t.Errorf("expected %q in %v", want, xs)
+}
+
+func assertNotContains(t *testing.T, xs []string, unwanted string) {
+	t.Helper()
+	for _, x := range xs {
+		if x == unwanted {
+			t.Errorf("did not expect %q in %v", unwanted, xs)
+		}
 	}
 }
 
