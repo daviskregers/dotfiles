@@ -31,6 +31,12 @@ type Target interface {
 	RenderCommand(spec.Command) []OutputFile
 	RenderAgent(spec.Agent) AgentOutput
 	RenderDoc(spec.Doc) OutputFile
+	// RenderTools/RenderHooks return this target's files for the whole set (incl. any
+	// shared runtime it vendors). RenderRegistrations returns merges into shared config
+	// (claude: settings.json hook entries; opencode: none — plugins auto-discover).
+	RenderTools(tools []spec.Tool, utils []spec.ToolUtil) []OutputFile
+	RenderHooks(hooks []spec.Hook, hookUtils string) []OutputFile
+	RenderRegistrations(hooks []spec.Hook) []ConfigMerge
 }
 
 func Registry() []Target {

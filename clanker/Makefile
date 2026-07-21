@@ -26,7 +26,7 @@ gen:
 # differs, then test. Guarantees "generated == committed" — the promise that clanker's
 # output works for people who don't run it. Run locally only on a clean tree.
 check: gen
-	@git -C .. diff --exit-code -- claude opencode clanker/generated-commands.json \
+	@git -C .. diff --exit-code -- claude opencode clanker/generated-manifest.json \
 		|| { echo "ERROR: generated output is stale — run 'make gen' and commit the result"; exit 1; }
 	$(MAKE) test
 

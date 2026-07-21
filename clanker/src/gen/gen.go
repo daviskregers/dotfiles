@@ -85,26 +85,13 @@ func render(cmds []spec.Command, agents []spec.Agent, docs []spec.Doc, tools []s
 			files = append(files, tg.RenderDoc(d))
 		}
 	}
-	if len(tools) > 0 {
-		files = append(files, target.OpencodeToolFiles(tools, toolUtils)...)
-		files = append(files, target.ClaudeToolFiles(tools, toolUtils)...)
+	// Tools, hooks (each target vendors its own shared runtime), and hook registrations
+	// are all per-target — loop uniformly rather than naming Claude/Opencode.
+	for _, tg := range targets {
+		files = append(files, tg.RenderTools(tools, toolUtils)...)
+		files = append(files, tg.RenderHooks(hooks, hookUtils)...)
+		merges = append(merges, tg.RenderRegistrations(hooks)...)
 	}
-	if len(hooks) > 0 {
-		// The shared runtime is emitted once per tree and imported by each hook (not
-		// inlined); opencode's copy lives outside plugins/ so its loader can't mistake
-		// the helpers for a plugin.
-		files = append(files,
-			target.OutputFile{RelPath: target.Claude{}.HookUtilsRel(), Content: hookUtils},
-			target.OutputFile{RelPath: target.Opencode{}.HookLibRel(), Content: hookUtils},
-		)
-		for _, h := range hooks {
-			files = append(files, target.RenderClaudeHook(h))
-			if f, ok := target.RenderOpencodeHook(h); ok {
-				files = append(files, f)
-			}
-		}
-	}
-	merges = append(merges, target.RenderClaudeHookSettings(hooks)...)
 	return files, merges
 }
 
