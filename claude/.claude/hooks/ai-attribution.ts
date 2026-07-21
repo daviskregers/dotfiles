@@ -1,0 +1,126 @@
+import { extractClaudeInput, serializeClaudeResult, type HookResult, type HookCtx, type HookInput } from "./hook-utils"
+
+// Enforce AI attribution on commits + externally-posted content (EU AI Act Art. 50
+// transparency). Appends `🤖 Generated with AI` to structured tool bodies and to
+// git commit -m / gh pr create|comment|edit --body; strips tool-branded forms
+// (Co-Authored-By, "Generated with Claude Code/opencode"). Denies only when the
+// body is file/heredoc-based (can't safely edit) or carries an unstrippable brand.
+// allow → target mutates the tool args; deny → blocks. FAIL-OPEN on any bug.
+
+const NOTICE = "🤖 Generated with AI"
+
+// Branded attribution lines stripped from bodies.
+const BRANDED_LINE = /^[ \t>]*(?:co-authored-by:.*|.*generated with (?:claude code|opencode).*)\s*$/gim
+// Branded text anywhere in a single-line command.
+const CMD_BRANDED = /co-authored-by:|generated with (?:claude code|opencode)/i
+// A notice line already present, in either the bare or "(model)" form.
+const NOTICE_PRESENT = new RegExp(`^[ \\t>]*${NOTICE}\\b`, "im")
+// --body "..." / -b '...' value capture (handles escaped dquotes).
+const BODY_RE = /(--body|-b)(\s+|=)("(?:[^"\\]|\\.)*"|'[^']*')/
+
+// Structured tool name → field holding the postable body. Merged across targets:
+// claude MCP names + opencode names. Names never collide, so each target matches
+// only its own — the other keys are inert. (opencode has no Linear tool wired, so
+// its Linear coverage matches the pre-existing plugin: none.)
+const FIELD_MAP: Record<string, string> = {
+    mcp__claude_ai_Linear__save_comment: "body",
+    mcp__claude_ai_Linear__save_issue: "description",
+    "mcp__custom-tools__update_pr_info": "body",
+    "mcp__custom-tools__resolve_pr_thread": "replyBody",
+    "update-pr-info": "body",
+    "resolve-pr-thread": "replyBody",
+}
+
+function stripBranded(t: string): string {
+    return t
+        .replace(BRANDED_LINE, "")
+        .replace(/\n{3,}/g, "\n\n")
+        .replace(/\s+$/, "")
+}
+
+function ensureNotice(t: string): string {
+    const s = stripBranded(t || "")
+    if (NOTICE_PRESENT.test(s)) return s // already attributed (bare or with model) — don't double
+    return s ? s + "\n\n" + NOTICE : NOTICE
+}
+
+const reEsc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+// Structure-only view for DETECTION: drop heredoc bodies + quoted strings so
+// `git commit` / `gh pr …` appearing as data (a message, heredoc, or another
+// command's args) isn't mistaken for the real command being invoked.
+function commandView(cmd: string): string {
+    let s = cmd
+    for (;;) {
+        const m = /<<-?\s*(['"]?)([A-Za-z_]\w*)\1/.exec(s)
+        if (!m) break
+        const pat = new RegExp(reEsc(m[0]) + "[\\s\\S]*?^\\s*" + reEsc(m[2]) + "\\s*$", "m")
+        const next = s.replace(pat, " ")
+        s = next === s ? s.slice(0, m.index) + " " : next // no terminator → drop to end
+    }
+    return s.replace(/'[^']*'/g, " ").replace(/"(?:[^"\\]|\\.)*"/g, " ")
+}
+
+type Rewrite = { action: "none" } | { action: "deny" } | { action: "change"; cmd: string }
+
+function rewriteCommand(cmd: string): Rewrite {
+    if (cmd.includes(NOTICE)) return { action: "none" }
+    const view = commandView(cmd)
+    const isCommit = /(?:^|[\n;&|(`])\s*git\s+commit\b/.test(view)
+    const isGhPost = /(?:^|[\n;&|(`])\s*gh\s+pr\s+(?:create|comment|edit)\b/.test(view)
+    if (!isCommit && !isGhPost) return { action: "none" }
+    if (CMD_BRANDED.test(view)) return { action: "deny" } // scan structural view — prose mentioning it isn't a trailer
+
+    if (isCommit) {
+        // scan `view` (not raw) so -F/--file in a message don't false-deny; bare -C dropped
+        // (collides with git's global `-C <dir>` flag; --reuse-message covers it).
+        if (/(?:^|\s)(?:-F|--file|--reuse-message|--reedit-message)\b/.test(view)) return { action: "deny" }
+        if (!/(?:^|\s)(?:-m|--message)\b/.test(cmd)) return { action: "none" }
+        return { action: "change", cmd: cmd.replace(/\s+$/, "") + ` -m "${NOTICE}"` }
+    }
+
+    if (/--body-file|(?:^|\s)-F\b|<</.test(view)) return { action: "deny" }
+    const m = BODY_RE.exec(cmd)
+    if (!m) return { action: "none" }
+    const raw = m[3]
+    const quote = raw[0]
+    const inner = raw.slice(1, -1)
+    const newInner = quote === '"' ? ensureNotice(inner.replace(/\\n/g, "\n")) : ensureNotice(inner)
+    const repl = `${m[1]}${m[2]}${quote}${newInner}${quote}`
+    return { action: "change", cmd: cmd.slice(0, m.index) + repl + cmd.slice(m.index + m[0].length) }
+}
+
+const DENY_MSG =
+    `AI attribution required: re-issue with an inline message/body ending in "${NOTICE}", ` +
+    `and drop any Co-Authored-By / "Generated with Claude Code/opencode" lines. ` +
+    `(Hook cannot safely edit file-based or heredoc bodies.)`
+
+async function run(input: HookInput, _ctx: HookCtx): Promise<HookResult> {
+    const tool = input.tool ?? ""
+    const ti = (input.toolInput ?? {}) as Record<string, any>
+
+    const field = FIELD_MAP[tool]
+    if (field) {
+        const body = ti[field]
+        if (typeof body !== "string" || !body.trim()) return { kind: "none" }
+        const nv = ensureNotice(body)
+        return nv === body ? { kind: "none" } : { kind: "allow", updatedInput: { ...ti, [field]: nv } }
+    }
+
+    if (tool === "Bash" || tool === "bash") {
+        const cmd = input.command
+        if (typeof cmd !== "string") return { kind: "none" }
+        const r = rewriteCommand(cmd)
+        if (r.action === "change") return { kind: "allow", updatedInput: { ...ti, command: r.cmd } }
+        if (r.action === "deny") return { kind: "deny", reason: DENY_MSG }
+    }
+    return { kind: "none" }
+}
+
+async function main() {
+    const data = JSON.parse(await Bun.stdin.text())
+    const r = await run(extractClaudeInput("PreToolUse", data), { directory: process.env.PROJECT_DIR || process.cwd() })
+    const out = serializeClaudeResult("PreToolUse", r)
+    if (out) process.stdout.write(out)
+}
+main().catch(() => {})
