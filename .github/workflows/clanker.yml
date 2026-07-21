@@ -1,0 +1,29 @@
+name: clanker
+
+# Drift gate: regenerate configs and fail if the committed output differs, then run
+# the Go + TypeScript test suites. Guarantees generated == committed so the configs
+# work for people who don't run clanker.
+on:
+  push:
+    paths: ["clanker/**", "claude/**", "opencode/.config/opencode/**", ".github/workflows/clanker.yml"]
+  pull_request:
+    paths: ["clanker/**", "claude/**", "opencode/.config/opencode/**"]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive # clanker/skills — checkSkills validates against it
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26.5"
+          cache: false # stdlib-only, no go.sum to key a cache on
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: make check
+        working-directory: clanker
+        run: make check

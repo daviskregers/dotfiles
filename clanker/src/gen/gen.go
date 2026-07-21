@@ -282,10 +282,14 @@ func writeFile(outRoot string, f target.OutputFile) error {
 	return os.WriteFile(path, []byte(f.Content), 0o644)
 }
 
+// prettierVersion is pinned so formatting is deterministic across machines — an
+// unpinned `bunx prettier` floats to latest and silently drifts generated != committed.
+const prettierVersion = "3.9.5"
+
 // formatTS normalizes a generated TypeScript file to the project's canonical
 // style (prettier, printWidth 120, no semicolons) so generated == committed.
 func formatTS(path string) error {
-	cmd := exec.Command("bunx", "prettier", "--print-width", "120", "--no-semi", "--tab-width", "4", "--parser", "typescript", "--write", path)
+	cmd := exec.Command("bunx", "prettier@"+prettierVersion, "--print-width", "120", "--no-semi", "--tab-width", "4", "--parser", "typescript", "--write", path)
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("gen: prettier %s: %w", path, err)
