@@ -1,0 +1,151 @@
+/* waybar — oldworld oled theme */
+* {
+    font-family: "FiraCode Nerd Font Mono";
+    font-size: 13px;
+    color: #c9c7cd;
+    background: transparent;
+    min-height: 0;
+}
+
+window#waybar {
+    background: #000000;
+}
+
+/* ---- tooltips / context menus ---- */
+tooltip {
+    background: #161617;
+    border: 1px solid #313134;
+    border-radius: 8px;
+    color: #c9c7cd;
+}
+
+tooltip label {
+    color: #c9c7cd;
+}
+
+menu,
+menuitem,
+menuitem:hover {
+    background: #161617;
+    color: #c9c7cd;
+}
+
+menuitem:hover {
+    background: #2a2a2c;
+}
+
+/* ---- left: workspaces + window ---- */
+#workspaces button {
+    padding: 4px 12px;
+    margin: 4px 2px;
+    border-radius: 6px;
+    color: #6c6874;
+    transition: all 0.2s ease;
+}
+
+#workspaces button:hover {
+    background: rgba(146, 162, 213, 0.1);
+    color: #c9c7cd;
+}
+
+#workspaces button.active,
+#workspaces button.focused {
+    background: rgba(146, 162, 213, 0.15);
+    color: #92a2d5;
+    font-weight: 600;
+}
+
+#workspaces button.urgent {
+    background: rgba(234, 131, 165, 0.15);
+    color: #ea83a5;
+}
+
+#window {
+    padding: 0 12px;
+    color: #6c6874;
+    font-style: italic;
+}
+
+/* ---- center: mode ---- */
+#mode {
+    background: rgba(146, 162, 213, 0.15);
+    color: #92a2d5;
+    font-weight: 600;
+    padding: 4px 16px;
+    border-radius: 6px;
+    margin: 4px 0;
+}
+
+/* ---- right: module pills ---- */
+#network,
+#battery,
+#disk,
+#cpu,
+#memory,
+#pulseaudio,
+#backlight,
+#custom-hyprshade,
+#custom-power-profiles,
+#clock,
+#tray {
+    padding: 4px 8px;
+    margin: 4px 1px;
+    border-radius: 6px;
+    background: #161617;
+}
+
+#network:hover,
+#battery:hover,
+#disk:hover,
+#cpu:hover,
+#memory:hover,
+#pulseaudio:hover,
+#backlight:hover,
+#custom-hyprshade:hover,
+#custom-power-profiles:hover,
+#clock:hover {
+    background: #1b1b1c;
+}
+
+#custom-hyprshade.on {
+    color: #e8a858;
+    background: rgba(232, 168, 88, 0.1);
+}
+
+#custom-hyprshade.on:hover {
+    background: rgba(232, 168, 88, 0.15);
+}
+
+#custom-power-profiles.power-saver {
+    color: #90b99f;
+    background: rgba(144, 185, 159, 0.1);
+}
+
+#custom-power-profiles.power-saver:hover {
+    background: rgba(144, 185, 159, 0.15);
+}
+
+#custom-power-profiles.performance {
+    color: #ea83a5;
+    background: rgba(234, 131, 165, 0.1);
+}
+
+#custom-power-profiles.performance:hover {
+    background: rgba(234, 131, 165, 0.15);
+}
+
+#battery.critical {
+    background: rgba(234, 131, 165, 0.1);
+}
+
+#tray {
+    padding: 4px 8px;
+}
+
+#tray > .passive {
+    -gtk-icon-effect: dim;
+}
+
+#tray > .needs-attention {
+    -gtk-icon-effect: highlight;
+}
