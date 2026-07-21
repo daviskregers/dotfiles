@@ -50,6 +50,60 @@ func inlineCore(core string) string {
 	return deExport(strings.Join(keep, "\n"))
 }
 
+// SettingsFile is claude's settings file, relative to the dotfiles root.
+func (Claude) SettingsFile() string { return "claude/.claude/settings.json" }
+
+// claudeHookCommand is the settings.json command that runs a hook. $HOME is shell-
+// expanded (claude runs the command through a shell), so the path stays portable.
+func claudeHookCommand(name string) string { return `bun "$HOME/.claude/hooks/` + name + `.ts"` }
+
+// RenderClaudeHookSettings produces surgical merges registering the hooks in
+// settings.json: one hooks.<event> array per event, grouping hooks by matcher (in
+// first-seen order) exactly as claude expects. setPath replaces only these event
+// keys, leaving unmanaged events (Notification) and other settings untouched.
+func RenderClaudeHookSettings(hooks []spec.Hook) []ConfigMerge {
+	type group struct {
+		matcher string
+		names   []string
+	}
+	groups := map[spec.HookEvent]*[]group{}
+	var order []spec.HookEvent
+	for _, h := range hooks {
+		gs, ok := groups[h.Event]
+		if !ok {
+			gs = &[]group{}
+			groups[h.Event] = gs
+			order = append(order, h.Event)
+		}
+		idx := -1
+		for i := range *gs {
+			if (*gs)[i].matcher == h.Matcher {
+				idx = i
+				break
+			}
+		}
+		if idx < 0 {
+			*gs = append(*gs, group{matcher: h.Matcher})
+			idx = len(*gs) - 1
+		}
+		(*gs)[idx].names = append((*gs)[idx].names, h.Name)
+	}
+
+	var merges []ConfigMerge
+	for _, ev := range order {
+		var arr []any
+		for _, g := range *groups[ev] {
+			var cmds []any
+			for _, n := range g.names {
+				cmds = append(cmds, map[string]any{"type": "command", "command": claudeHookCommand(n)})
+			}
+			arr = append(arr, map[string]any{"matcher": g.matcher, "hooks": cmds})
+		}
+		merges = append(merges, ConfigMerge{File: Claude{}.SettingsFile(), Path: []string{"hooks", string(ev)}, Value: arr})
+	}
+	return merges
+}
+
 // claudeHookEntrypoint is thin plumbing: read stdin, delegate extraction/serialization
 // to the (tested) adapters, write stdout, always exit 0 (fail-open via .catch).
 func claudeHookEntrypoint(event spec.HookEvent) string {
