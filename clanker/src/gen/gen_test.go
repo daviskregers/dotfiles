@@ -133,6 +133,34 @@ func TestRun_SkipsSkillCheckWhenSubmoduleAbsent(t *testing.T) {
 	}
 }
 
+// setPath must create the intermediate key when absent: an opencode.json with no
+// "agent" object at all should gain one (not panic / no-op).
+func TestRun_CreatesIntermediateKeyWhenAbsent(t *testing.T) {
+	root := dotfilesRoot(t)
+	seed(t, root, "opencode/.config/opencode", "opencode.json", `{"provider":{"x":1}}`) // no "agent" key
+
+	agents := []spec.Agent{{Name: "git-committer", Description: "d", Body: "b\n", Bash: []string{"git diff"}}}
+	if err := gen.Run(root, nil, agents, nil, nil, nil, nil, "", target.Registry()); err != nil {
+		t.Fatalf("Run: %v", err)
+	}
+
+	raw, _ := os.ReadFile(filepath.Join(root, "opencode/.config/opencode/opencode.json"))
+	var m map[string]any
+	if err := json.Unmarshal(raw, &m); err != nil {
+		t.Fatalf("parse: %v", err)
+	}
+	if _, ok := m["provider"]; !ok {
+		t.Error("provider clobbered")
+	}
+	agent, ok := m["agent"].(map[string]any)
+	if !ok {
+		t.Fatal("agent key was not created")
+	}
+	if _, ok := agent["git-committer"].(map[string]any); !ok {
+		t.Errorf("git-committer not written under created agent key: %v", agent)
+	}
+}
+
 func TestRun_ErrorsWhenNotDotfilesRoot(t *testing.T) {
 	root := t.TempDir() // no target command dirs
 

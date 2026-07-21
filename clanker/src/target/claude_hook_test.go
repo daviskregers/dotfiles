@@ -1,11 +1,41 @@
 package target_test
 
 import (
+	"strings"
 	"testing"
 
 	"clanker/src/spec"
 	"clanker/src/target"
 )
+
+func TestRenderClaudeHook_importsRuntimeAndDeExportsCore(t *testing.T) {
+	core := `import type { HookResult, HookCtx, HookInput } from "./hook-utils"
+
+export async function run(input: HookInput, _ctx: HookCtx): Promise<HookResult> {
+    return { kind: "none" }
+}`
+	out := target.RenderClaudeHook(spec.Hook{Name: "sample", Event: spec.PreToolUse, Core: core})
+
+	if out.RelPath != "claude/.claude/hooks/sample.ts" {
+		t.Fatalf("RelPath = %q", out.RelPath)
+	}
+	c := out.Content
+	if !strings.HasPrefix(c, `import { extractClaudeInput, serializeClaudeResult,`) {
+		t.Errorf("missing runtime import header:\n%s", c[:80])
+	}
+	if strings.Count(c, `from "./hook-utils"`) != 1 {
+		t.Errorf("core's own hook-utils import not stripped (want exactly 1, the header): \n%s", c)
+	}
+	if strings.Contains(c, "export async function run") {
+		t.Error("core's run not de-exported")
+	}
+	if !strings.Contains(c, "async function run") {
+		t.Error("run should remain in file scope")
+	}
+	if !strings.Contains(c, "main().catch(() => {})") {
+		t.Error("entrypoint not appended")
+	}
+}
 
 func TestRenderClaudeHookSettings_groupsByEventThenMatcher(t *testing.T) {
 	hooks := []spec.Hook{
