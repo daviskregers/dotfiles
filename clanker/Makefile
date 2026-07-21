@@ -1,4 +1,4 @@
-.PHONY: gen test test-go test-ts check doctor bootstrap install-mcp
+.PHONY: gen test test-go test-ts check lint lint-go lint-ts doctor bootstrap install-mcp
 
 # Install the TS dependencies that are gitignored out of the repo: the claude MCP
 # server's runtime deps (without which the custom-tools server fails to launch and
@@ -27,13 +27,28 @@ doctor:
 gen:
 	go run ./src -out ..
 
-# Drift gate (CI runs this on a clean checkout): regenerate, fail if committed output
-# differs, then test. Guarantees "generated == committed" — the promise that clanker's
-# output works for people who don't run it. Run locally only on a clean tree.
-check: gen
+# Drift gate (CI runs this on a clean checkout): lint, regenerate, fail if committed
+# output differs, then test. Guarantees "generated == committed" — the promise that
+# clanker's output works for people who don't run it. Run locally only on a clean tree.
+check: lint gen
 	@git -C .. diff --exit-code -- claude opencode clanker/generated-manifest.json \
 		|| { echo "ERROR: generated output is stale — run 'make gen' and commit the result"; exit 1; }
 	$(MAKE) test
+
+# Lint both languages. Go: vet + gofmt. TS: typecheck (tsc) + format-check (prettier,
+# same style gen emits). Source cores only — generated output is checked by `check`.
+lint: lint-go lint-ts
+
+lint-go:
+	go vet ./...
+	@unformatted="$$(gofmt -l src config)"; test -z "$$unformatted" || { echo "gofmt needs: $$unformatted"; exit 1; }
+
+lint-ts:
+	@for d in config/hooks config/tools; do \
+		echo "lint ($$d)"; \
+		(cd $$d && bunx tsc --noEmit) || exit 1; \
+		bunx prettier@3.9.5 --check --print-width 120 --no-semi --tab-width 4 "$$d/*.ts" "$$d/tests/*.ts" || exit 1; \
+	done
 
 # Run the full suite: Go engine tests + TypeScript core tests (bun).
 test: test-go test-ts

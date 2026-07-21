@@ -14,11 +14,10 @@ export async function execute(
 
     while (Date.now() - start < timeout) {
         try {
-            const { stdout } = await execFileAsync(
-                "gh",
-                ["pr", "view", args.prUrl, "--json", "reviews"],
-                { encoding: "utf8", maxBuffer: MAX_BUFFER },
-            )
+            const { stdout } = await execFileAsync("gh", ["pr", "view", args.prUrl, "--json", "reviews"], {
+                encoding: "utf8",
+                maxBuffer: MAX_BUFFER,
+            })
             const reviews = JSON.parse(stdout)?.reviews ?? []
             const copilot = reviews.filter((r: any) => /copilot/i.test(r.author?.login ?? ""))
             if (copilot.length > 0) {

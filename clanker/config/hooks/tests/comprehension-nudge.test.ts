@@ -4,7 +4,13 @@ import { parseNumstat, signature } from "../comprehension-nudge"
 test("parseNumstat sums churn over source files, skips non-source + generated", () => {
     // IGNORE requires surrounding slashes (/dist/), matching the original — a nested
     // dist path is excluded; churn counts only src/a.ts + pkg/b.go.
-    const out = ["10\t5\tsrc/a.ts", "3\t2\tREADME.md", "40\t0\tpkg/b.go", "9\t9\tapp/dist/bundle.js", "1\t0\tyarn.lock"].join("\n")
+    const out = [
+        "10\t5\tsrc/a.ts",
+        "3\t2\tREADME.md",
+        "40\t0\tpkg/b.go",
+        "9\t9\tapp/dist/bundle.js",
+        "1\t0\tyarn.lock",
+    ].join("\n")
     const r = parseNumstat(out)
     expect(r.files.sort()).toEqual(["pkg/b.go", "src/a.ts"])
     expect(r.lines).toBe(10 + 5 + 40) // README/dist/lock excluded

@@ -78,12 +78,18 @@ describe("commandView", () => {
 
 describe("run — structured tools (FIELD_MAP, exact tool names)", () => {
     test("claude custom-tools update_pr_info (hyphenated) gets attributed", async () => {
-        const r = await run({ tool: "mcp__custom-tools__update_pr_info", toolInput: { body: "desc" } }, { directory: "." })
+        const r = await run(
+            { tool: "mcp__custom-tools__update_pr_info", toolInput: { body: "desc" } },
+            { directory: "." },
+        )
         expect(r.kind).toBe("allow")
         if (r.kind === "allow") expect((r.updatedInput as any).body).toBe(`desc\n\n${NOTICE}`)
     })
     test("claude Linear save_issue attributes the description field", async () => {
-        const r = await run({ tool: "mcp__claude_ai_Linear__save_issue", toolInput: { description: "d" } }, { directory: "." })
+        const r = await run(
+            { tool: "mcp__claude_ai_Linear__save_issue", toolInput: { description: "d" } },
+            { directory: "." },
+        )
         expect(r.kind).toBe("allow")
         if (r.kind === "allow") expect((r.updatedInput as any).description).toBe(`d\n\n${NOTICE}`)
     })
@@ -102,7 +108,10 @@ describe("run — structured tools (FIELD_MAP, exact tool names)", () => {
 
 describe("run — Bash", () => {
     test("commit -m → allow with rewritten command", async () => {
-        const r = await run({ tool: "Bash", command: 'git commit -m "x"', toolInput: { command: 'git commit -m "x"' } }, { directory: "." })
+        const r = await run(
+            { tool: "Bash", command: 'git commit -m "x"', toolInput: { command: 'git commit -m "x"' } },
+            { directory: "." },
+        )
         expect(r.kind).toBe("allow")
         if (r.kind === "allow") expect((r.updatedInput as any).command).toContain(NOTICE)
     })

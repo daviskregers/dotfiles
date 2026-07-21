@@ -27,12 +27,7 @@ export async function execute(
         const { stdout } = await execFileAsync("gh", ghArgs, {
             encoding: "utf8",
         })
-        const updated = [
-            args.title ? "title" : null,
-            args.body ? "body" : null,
-        ]
-            .filter(Boolean)
-            .join(" and ")
+        const updated = [args.title ? "title" : null, args.body ? "body" : null].filter(Boolean).join(" and ")
         return `Successfully updated ${updated} for ${args.prUrl}\n${stdout}`.trim()
     } catch (err: any) {
         return `Error updating PR: ${err.message}`

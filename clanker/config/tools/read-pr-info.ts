@@ -16,8 +16,11 @@ export async function execute(
         const { stdout: meta } = await execFileAsync(
             "gh",
             [
-                "pr", "view", args.prUrl,
-                "--json", "title,body,baseRefName,headRefName,commits,files,additions,deletions,labels",
+                "pr",
+                "view",
+                args.prUrl,
+                "--json",
+                "title,body,baseRefName,headRefName,commits,files,additions,deletions,labels",
             ],
             { encoding: "utf8", maxBuffer: 10 * 1024 * 1024 },
         )
@@ -44,8 +47,7 @@ export async function execute(
             try {
                 const { stdout: singleCommit } = await execFileAsync(
                     "gh",
-                    ["api", `repos/${parsed.ownerRepo}/commits/${lastSha}`,
-                        "--jq", ".commit.message"],
+                    ["api", `repos/${parsed.ownerRepo}/commits/${lastSha}`, "--jq", ".commit.message"],
                     { encoding: "utf8", maxBuffer: 10 * 1024 * 1024 },
                 )
                 results.lastCommitMessage = singleCommit.trim()
@@ -57,32 +59,35 @@ export async function execute(
             try {
                 const { stdout: singleDiff } = await execFileAsync(
                     "gh",
-                    ["api", `repos/${parsed.ownerRepo}/commits/${lastSha}`,
-                        "-H", "Accept: application/vnd.github.diff"],
+                    [
+                        "api",
+                        `repos/${parsed.ownerRepo}/commits/${lastSha}`,
+                        "-H",
+                        "Accept: application/vnd.github.diff",
+                    ],
                     { encoding: "utf8", maxBuffer: 10 * 1024 * 1024 },
                 )
                 results.diff = singleDiff
             } catch {
                 // Fallback: fetch the full PR diff when the single-commit diff fails
                 try {
-                    const { stdout: fullDiff } = await execFileAsync(
-                        "gh",
-                        ["pr", "diff", args.prUrl],
-                        { encoding: "utf8", maxBuffer: 10 * 1024 * 1024 },
-                    )
+                    const { stdout: fullDiff } = await execFileAsync("gh", ["pr", "diff", args.prUrl], {
+                        encoding: "utf8",
+                        maxBuffer: 10 * 1024 * 1024,
+                    })
                     results.diff = fullDiff
-                    results.note = (results.note ? results.note + ". " : "")
-                        + "Could not isolate last commit diff; showing full PR diff instead"
+                    results.note =
+                        (results.note ? results.note + ". " : "") +
+                        "Could not isolate last commit diff; showing full PR diff instead"
                 } catch (diffErr: any) {
                     return `Error fetching PR diff: ${diffErr.message}`
                 }
             }
         } else {
-            const { stdout: diff } = await execFileAsync(
-                "gh",
-                ["pr", "diff", args.prUrl],
-                { encoding: "utf8", maxBuffer: 10 * 1024 * 1024 },
-            )
+            const { stdout: diff } = await execFileAsync("gh", ["pr", "diff", args.prUrl], {
+                encoding: "utf8",
+                maxBuffer: 10 * 1024 * 1024,
+            })
             results.diff = diff
         }
     } catch (err: any) {

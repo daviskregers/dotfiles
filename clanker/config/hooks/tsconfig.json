@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
     "target": "ES2022", "module": "ESNext", "moduleResolution": "bundler",
-    "types": ["node"], "strict": true, "noEmit": true, "skipLibCheck": true
+    "types": ["node", "bun-types"], "strict": true, "noEmit": true, "skipLibCheck": true
   }
 }

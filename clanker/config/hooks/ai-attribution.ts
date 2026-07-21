@@ -23,8 +23,8 @@ const BODY_RE = /(--body|-b)(\s+|=)("(?:[^"\\]|\\.)*"|'[^']*')/
 // only its own — the other keys are inert. (opencode has no Linear tool wired, so
 // its Linear coverage matches the pre-existing plugin: none.)
 const FIELD_MAP: Record<string, string> = {
-    "mcp__claude_ai_Linear__save_comment": "body",
-    "mcp__claude_ai_Linear__save_issue": "description",
+    mcp__claude_ai_Linear__save_comment: "body",
+    mcp__claude_ai_Linear__save_issue: "description",
     "mcp__custom-tools__update_pr_info": "body",
     "mcp__custom-tools__resolve_pr_thread": "replyBody",
     "update-pr-info": "body",

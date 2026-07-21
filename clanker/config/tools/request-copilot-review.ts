@@ -3,10 +3,7 @@ import { copilotIsRequested, COPILOT_LOOKUP, REQUEST_REVIEW_MUT } from "./pr-uti
 
 const PR_URL_RE = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)\/?$/
 
-export async function execute(
-    args: { prUrl: string },
-    ctx: { directory: string },
-): Promise<string> {
+export async function execute(args: { prUrl: string }, ctx: { directory: string }): Promise<string> {
     const m = args.prUrl.match(PR_URL_RE)
     if (!m) {
         return `Error: Invalid PR URL format. Expected https://github.com/<owner>/<repo>/pull/<number>`
@@ -56,11 +53,10 @@ export async function execute(
     // 3. Resolve PR node id + requestReviews
     let prId: string
     try {
-        const { stdout } = await execFileAsync(
-            "gh",
-            ["pr", "view", args.prUrl, "--json", "id", "--jq", ".id"],
-            { encoding: "utf8", maxBuffer: MAX_BUFFER },
-        )
+        const { stdout } = await execFileAsync("gh", ["pr", "view", args.prUrl, "--json", "id", "--jq", ".id"], {
+            encoding: "utf8",
+            maxBuffer: MAX_BUFFER,
+        })
         prId = stdout.trim()
     } catch (err: any) {
         return `Error resolving PR node id: ${err.message}`
