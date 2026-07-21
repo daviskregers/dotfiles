@@ -1,4 +1,22 @@
-.PHONY: gen test test-go test-ts check
+.PHONY: gen test test-go test-ts check doctor bootstrap
+
+# Install the TS dependencies that are gitignored out of the repo: the claude MCP
+# server's runtime deps (without which the custom-tools server fails to launch and
+# every mcp__custom-tools__* tool silently vanishes) + the hook/tool test deps.
+# Run once after cloning.
+bootstrap:
+	cd config/hooks && bun install
+	cd config/tools && bun install
+	cd ../claude/.claude/mcp-tools && bun install
+	@echo "NOTE: register the custom-tools MCP server in ~/.claude.json (see clanker/CLAUDE.md §MCP)"
+
+# Preflight for a new machine. The generated hooks run via `bun`; a missing bun
+# silently disables ALL of them — including dangerous-command-guard, which fails OPEN
+# (no deny emitted → the command runs). Run this after cloning so that gap is loud.
+doctor:
+	@command -v bun >/dev/null || { echo "MISSING bun — hooks won't run; dangerous-command-guard fails OPEN"; exit 1; }
+	@command -v go  >/dev/null || { echo "MISSING go — cannot regenerate configs"; exit 1; }
+	@echo "ok: bun $$(bun --version), $$(go version | awk '{print $$3}')"
 
 # Regenerate all configs into the dotfiles root.
 gen:

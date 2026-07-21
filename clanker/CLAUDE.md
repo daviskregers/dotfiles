@@ -41,6 +41,17 @@ Regenerate + confirm round-trip against committed configs (byte-identical except
 go run ./src -out ..     # from clanker/
 ```
 
+## Fresh-machine setup + MCP
+
+- `make doctor` — verify `bun` + `go` are on PATH. Missing `bun` silently disables ALL generated hooks (incl. dangerous-command-guard, which fails OPEN).
+- `make bootstrap` — `bun install` the gitignored deps (MCP server runtime + hook/tool test deps).
+- `make check` — regenerate, fail on any diff vs committed, then test (what CI runs).
+- **MCP registration is NOT yet single-sourced.** opencode auto-discovers `tools/`; claude needs a GLOBAL entry in `~/.claude.json` (a home file outside this repo), so `make bootstrap` can't write it. Without it every `mcp__custom-tools__*` tool silently vanishes. The entry (portable form):
+  ```json
+  "mcpServers": { "custom-tools": { "type": "stdio", "command": "bun", "args": ["run", "$HOME/.claude/mcp-tools/index.ts"] } }
+  ```
+  Bringing this under clanker = a future `spec.MCPServer` + a `~/.claude.json` merge.
+
 ## Conventions
 
 - Comments: load-bearing "why" only; never restate code.
