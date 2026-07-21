@@ -44,31 +44,6 @@ func RenderClaudeHook(h spec.Hook) OutputFile {
 	return OutputFile{RelPath: Claude{}.HookDir() + "/" + h.Name + ".ts", Content: b.String()}
 }
 
-// deExport drops the core's top-level `export ` keywords: the wrapper references
-// `run` in file scope, and a stray export would look like a plugin to opencode's
-// loader. (Types/adapters come from the imported shared runtime, not the core.)
-var deExporter = strings.NewReplacer(
-	"export async function", "async function",
-	"export function", "function",
-	"export const", "const",
-	"export type", "type",
-)
-
-func deExport(s string) string { return deExporter.Replace(s) }
-
-// inlineCore returns the neutral core with its `import … from "./hook-utils"` line
-// removed (the generated file imports the runtime itself) and its exports dropped.
-func inlineCore(core string) string {
-	var keep []string
-	for _, l := range strings.Split(core, "\n") {
-		if strings.Contains(l, `from "./hook-utils"`) {
-			continue
-		}
-		keep = append(keep, l)
-	}
-	return deExport(strings.Join(keep, "\n"))
-}
-
 // SettingsFile is claude's settings file, relative to the dotfiles root.
 func (Claude) SettingsFile() string { return "claude/.claude/settings.json" }
 
@@ -85,40 +60,47 @@ func RenderClaudeHookSettings(hooks []spec.Hook) []ConfigMerge {
 		matcher string
 		names   []string
 	}
-	groups := map[spec.HookEvent]*[]group{}
-	var order []spec.HookEvent
+	type event struct {
+		name   spec.HookEvent
+		groups []group
+	}
+	// Ordered list of events, each holding matcher-grouped hook names, preserving
+	// first-seen order. Index maps avoid a pointer-to-slice dance.
+	var events []event
+	eventAt := map[spec.HookEvent]int{}
 	for _, h := range hooks {
-		gs, ok := groups[h.Event]
+		ei, ok := eventAt[h.Event]
 		if !ok {
-			gs = &[]group{}
-			groups[h.Event] = gs
-			order = append(order, h.Event)
+			ei = len(events)
+			eventAt[h.Event] = ei
+			events = append(events, event{name: h.Event})
 		}
-		idx := -1
-		for i := range *gs {
-			if (*gs)[i].matcher == h.Matcher {
-				idx = i
+		e := &events[ei]
+		gi := -1
+		for i := range e.groups {
+			if e.groups[i].matcher == h.Matcher {
+				gi = i
 				break
 			}
 		}
-		if idx < 0 {
-			*gs = append(*gs, group{matcher: h.Matcher})
-			idx = len(*gs) - 1
+		if gi < 0 {
+			e.groups = append(e.groups, group{matcher: h.Matcher})
+			gi = len(e.groups) - 1
 		}
-		(*gs)[idx].names = append((*gs)[idx].names, h.Name)
+		e.groups[gi].names = append(e.groups[gi].names, h.Name)
 	}
 
 	var merges []ConfigMerge
-	for _, ev := range order {
+	for _, e := range events {
 		var arr []any
-		for _, g := range *groups[ev] {
+		for _, g := range e.groups {
 			var cmds []any
 			for _, n := range g.names {
 				cmds = append(cmds, map[string]any{"type": "command", "command": claudeHookCommand(n)})
 			}
 			arr = append(arr, map[string]any{"matcher": g.matcher, "hooks": cmds})
 		}
-		merges = append(merges, ConfigMerge{File: Claude{}.SettingsFile(), Path: []string{"hooks", string(ev)}, Value: arr})
+		merges = append(merges, ConfigMerge{File: Claude{}.SettingsFile(), Path: []string{"hooks", string(e.name)}, Value: arr})
 	}
 	return merges
 }

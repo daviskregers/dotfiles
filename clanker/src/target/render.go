@@ -72,3 +72,44 @@ func renderFile(fields []fmField, body string, c renderCtx) string {
 	b.WriteString(execBody(body, c))
 	return b.String()
 }
+
+// --- shared string helpers (used across targets) ---
+
+// camel converts snake_case to camelCase (tool core import aliases).
+func camel(name string) string {
+	parts := strings.Split(name, "_")
+	for i := 1; i < len(parts); i++ {
+		if parts[i] != "" {
+			parts[i] = strings.ToUpper(parts[i][:1]) + parts[i][1:]
+		}
+	}
+	return strings.Join(parts, "")
+}
+
+// kebab converts snake_case to kebab-case (opencode filenames).
+func kebab(name string) string { return strings.ReplaceAll(name, "_", "-") }
+
+// deExporter drops a hook core's top-level `export ` keywords when it's inlined into a
+// generated file: the wrapper references `run` in file scope, and a stray export would
+// look like a plugin to opencode's loader.
+var deExporter = strings.NewReplacer(
+	"export async function", "async function",
+	"export function", "function",
+	"export const", "const",
+	"export type", "type",
+)
+
+func deExport(s string) string { return deExporter.Replace(s) }
+
+// inlineCore returns a neutral hook core with its `import … from "./hook-utils"` line
+// removed (the generated file imports the runtime itself) and its exports dropped.
+func inlineCore(core string) string {
+	var keep []string
+	for _, l := range strings.Split(core, "\n") {
+		if strings.Contains(l, `from "./hook-utils"`) {
+			continue
+		}
+		keep = append(keep, l)
+	}
+	return deExport(strings.Join(keep, "\n"))
+}

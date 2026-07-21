@@ -2,12 +2,11 @@ import path from "path"
 import os from "os"
 import fs from "fs"
 import { execFileAsync, withAttribution, MAX_COMMENT_BYTES } from "./shared"
-
-const PR_URL_RE = /^https:\/\/github\.com\/[^/]+\/[^/]+\/pull\/\d+\/?$/
+import { parsePrUrl, INVALID_PR_URL } from "./pr-utils"
 
 export async function execute(args: { prUrl: string; filePath: string }, ctx: { directory: string }): Promise<string> {
-    if (!PR_URL_RE.test(args.prUrl)) {
-        return `Error: Invalid PR URL format. Expected https://github.com/<owner>/<repo>/pull/<number>`
+    if (!parsePrUrl(args.prUrl)) {
+        return INVALID_PR_URL
     }
 
     const resolved = path.isAbsolute(args.filePath) ? args.filePath : path.join(ctx.directory, args.filePath)

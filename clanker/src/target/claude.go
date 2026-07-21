@@ -21,6 +21,8 @@ func (Claude) RenderCommand(c spec.Command) []OutputFile {
 			{"allowed-tools", o.AllowedTools},
 		},
 		body,
+		// claude has one arg token regardless of spec.ArgStyle — only opencode
+		// distinguishes a first positional ($1) from all args ($ARGUMENTS).
 		renderCtx{Claude: true, Args: "$ARGUMENTS"},
 	)
 	return []OutputFile{{

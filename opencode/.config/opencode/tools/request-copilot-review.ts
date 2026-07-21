@@ -1,15 +1,11 @@
 import { tool } from "@opencode-ai/plugin"
 import { execFileAsync, MAX_BUFFER } from "./shared"
-import { copilotIsRequested, COPILOT_LOOKUP, REQUEST_REVIEW_MUT } from "./pr-utils"
-
-const PR_URL_RE = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)\/?$/
+import { copilotIsRequested, parsePrUrl, INVALID_PR_URL, COPILOT_LOOKUP, REQUEST_REVIEW_MUT } from "./pr-utils"
 
 async function execute(args: { prUrl: string }, ctx: { directory: string }): Promise<string> {
-    const m = args.prUrl.match(PR_URL_RE)
-    if (!m) {
-        return `Error: Invalid PR URL format. Expected https://github.com/<owner>/<repo>/pull/<number>`
-    }
-    const [, owner, repo, number] = m
+    const parsed = parsePrUrl(args.prUrl)
+    if (!parsed) return INVALID_PR_URL
+    const { owner, repo, number } = parsed
 
     // 1. Native @copilot (gh 2.88+)
     try {

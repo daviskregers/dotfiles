@@ -1,5 +1,5 @@
-import { execFileAsync } from "./shared"
-import { parsePrUrl } from "./pr-utils"
+import { execFileAsync, MAX_BUFFER } from "./shared"
+import { parsePrUrl, INVALID_PR_URL } from "./pr-utils"
 
 export async function execute(
     args: { prUrl: string; lastCommitOnly?: boolean },
@@ -7,7 +7,7 @@ export async function execute(
 ): Promise<string> {
     const parsed = parsePrUrl(args.prUrl)
     if (!parsed) {
-        return `Error: Invalid PR URL format. Expected https://github.com/<owner>/<repo>/pull/<number>`
+        return INVALID_PR_URL
     }
 
     const results: Record<string, string> = {}
@@ -22,7 +22,7 @@ export async function execute(
                 "--json",
                 "title,body,baseRefName,headRefName,commits,files,additions,deletions,labels",
             ],
-            { encoding: "utf8", maxBuffer: 10 * 1024 * 1024 },
+            { encoding: "utf8", maxBuffer: MAX_BUFFER },
         )
         results.meta = meta
     } catch (err: any) {
@@ -48,7 +48,7 @@ export async function execute(
                 const { stdout: singleCommit } = await execFileAsync(
                     "gh",
                     ["api", `repos/${parsed.ownerRepo}/commits/${lastSha}`, "--jq", ".commit.message"],
-                    { encoding: "utf8", maxBuffer: 10 * 1024 * 1024 },
+                    { encoding: "utf8", maxBuffer: MAX_BUFFER },
                 )
                 results.lastCommitMessage = singleCommit.trim()
             } catch {
@@ -65,7 +65,7 @@ export async function execute(
                         "-H",
                         "Accept: application/vnd.github.diff",
                     ],
-                    { encoding: "utf8", maxBuffer: 10 * 1024 * 1024 },
+                    { encoding: "utf8", maxBuffer: MAX_BUFFER },
                 )
                 results.diff = singleDiff
             } catch {
@@ -73,7 +73,7 @@ export async function execute(
                 try {
                     const { stdout: fullDiff } = await execFileAsync("gh", ["pr", "diff", args.prUrl], {
                         encoding: "utf8",
-                        maxBuffer: 10 * 1024 * 1024,
+                        maxBuffer: MAX_BUFFER,
                     })
                     results.diff = fullDiff
                     results.note =
@@ -86,7 +86,7 @@ export async function execute(
         } else {
             const { stdout: diff } = await execFileAsync("gh", ["pr", "diff", args.prUrl], {
                 encoding: "utf8",
-                maxBuffer: 10 * 1024 * 1024,
+                maxBuffer: MAX_BUFFER,
             })
             results.diff = diff
         }

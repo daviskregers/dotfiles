@@ -6,19 +6,27 @@ package spec
 type Agent struct {
 	Name        string
 	Description string
-	Body        string   // shared system prompt
-	Model       string   // claude frontmatter model (per-target; opencode omits)
-	MaxTurns    int      // claude-only turn cap; 0 = omit
-	Mode        string   // opencode agent mode: "" = subagent (default), or "primary"
-	Read        bool     // Read/Grep/Glob tools
-	Write       bool     // Write tool
-	Webfetch    bool     // opencode webfetch tool
-	Bash        []string // allowed bash prefixes ("git diff"); nil = no bash
-	MCP         []string // custom-tools this agent may use; non-empty → claude mcpServers: [custom-tools]
-	Deny        []string // claude `disallowedTools:` denylist; when set, overrides the derived allowlist
-	Skills      []string // claude `skills:` frontmatter; opencode carries "Load X" in the prompt
+	Body        string    // shared system prompt
+	Model       string    // claude frontmatter model (per-target; opencode omits)
+	MaxTurns    int       // claude-only turn cap; 0 = omit
+	Mode        AgentMode // opencode agent mode; zero value = subagent
+	Read        bool      // Read/Grep/Glob tools
+	Write       bool      // Write tool
+	Webfetch    bool      // opencode webfetch tool
+	Bash        []string  // allowed bash prefixes ("git diff"); nil = no bash
+	MCP         []string  // custom-tools this agent may use; non-empty → claude mcpServers: [custom-tools]
+	Deny        []string  // claude `disallowedTools:` denylist; when set, overrides the derived allowlist
+	Skills      []string  // claude `skills:` frontmatter; opencode carries "Load X" in the prompt
 	Overlay     AgentOverlays
 }
+
+// AgentMode is an opencode agent mode. Typed so a typo is a compile error.
+type AgentMode string
+
+const (
+	ModeSubagent AgentMode = "" // default (zero value)
+	ModePrimary  AgentMode = "primary"
+)
 
 type AgentOverlay struct {
 	Description string

@@ -47,7 +47,7 @@ func RenderToolOpencode(t spec.Tool) OutputFile {
 	b.WriteString("    description: " + strconv.Quote(t.Description) + ",\n")
 	b.WriteString("    args: {\n")
 	for _, a := range t.Args {
-		line := "        " + a.Name + ": tool.schema." + a.Type + "()"
+		line := "        " + a.Name + ": tool.schema." + string(a.Type) + "()"
 		if a.Optional {
 			line += ".optional()"
 		}
@@ -62,6 +62,3 @@ func RenderToolOpencode(t spec.Tool) OutputFile {
 		Content: b.String(),
 	}
 }
-
-// kebab converts a snake_case tool name to the kebab-case opencode filename.
-func kebab(name string) string { return strings.ReplaceAll(name, "_", "-") }

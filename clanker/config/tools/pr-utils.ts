@@ -1,15 +1,19 @@
 import { execFileAsync, MAX_BUFFER } from "./shared"
 
-export const PR_URL_RE = /^https:\/\/github\.com\/([^/]+\/[^/]+)\/pull\/(\d+)\/?$/
+export const PR_URL_RE = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)\/?$/
+
+// Canonical error for a PR URL that doesn't match — one source so the 5+ PR tools
+// don't each spell it differently.
+export const INVALID_PR_URL = "Error: Invalid PR URL format. Expected https://github.com/<owner>/<repo>/pull/<number>"
 
 /**
- * Parse a validated GitHub PR URL into its components.
- * Returns null if the URL doesn't match.
+ * Parse a validated GitHub PR URL into its components (null if it doesn't match).
+ * `ownerRepo` is the combined "owner/repo" form some gh API paths want.
  */
-export function parsePrUrl(url: string): { ownerRepo: string; number: string } | null {
+export function parsePrUrl(url: string): { owner: string; repo: string; number: string; ownerRepo: string } | null {
     const m = url.match(PR_URL_RE)
     if (!m) return null
-    return { ownerRepo: m[1], number: m[2] }
+    return { owner: m[1], repo: m[2], number: m[3], ownerRepo: `${m[1]}/${m[2]}` }
 }
 
 export const THREADS_Q =

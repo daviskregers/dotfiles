@@ -19,10 +19,20 @@ type ToolUtil struct {
 	Content string
 }
 
+// ArgType is a tool argument's primitive type. Typed so a typo is a compile error
+// rather than a broken `z.str()` emitted into the generated TS.
+type ArgType string
+
+const (
+	ArgString  ArgType = "string"
+	ArgBoolean ArgType = "boolean"
+	ArgNumber  ArgType = "number"
+)
+
 // ToolArg is one tool argument.
 type ToolArg struct {
 	Name     string
-	Type     string // "string" | "boolean" | "number"
+	Type     ArgType
 	Optional bool
 	Describe string
 }

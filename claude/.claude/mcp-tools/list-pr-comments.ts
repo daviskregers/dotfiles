@@ -1,16 +1,12 @@
-import { fetchAllPrNodes, THREADS_Q, REVIEWS_Q, CONV_Q } from "./pr-utils"
-
-const PR_URL_RE = /^https:\/\/github\.com\/([^/]+)\/([^/]+)\/pull\/(\d+)\/?$/
+import { fetchAllPrNodes, parsePrUrl, INVALID_PR_URL, THREADS_Q, REVIEWS_Q, CONV_Q } from "./pr-utils"
 
 export async function execute(
     args: { prUrl: string; includeResolved?: boolean },
     ctx: { directory: string },
 ): Promise<string> {
-    const m = args.prUrl.match(PR_URL_RE)
-    if (!m) {
-        return `Error: Invalid PR URL format. Expected https://github.com/<owner>/<repo>/pull/<number>`
-    }
-    const [, owner, repo, num] = m
+    const parsed = parsePrUrl(args.prUrl)
+    if (!parsed) return INVALID_PR_URL
+    const { owner, repo, number: num } = parsed
 
     let pr: any
     try {
