@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"clanker/src/gen"
@@ -96,6 +97,42 @@ func TestRun_MergesAgentIntoOpencodeJSON(t *testing.T) {
 	}
 }
 
+// A referenced skill that isn't a real dir in clanker/skills/ fails generation —
+// catches dead refs (e.g. a retired skill) before they ship into agent frontmatter.
+func TestRun_ErrorsOnUnknownSkill(t *testing.T) {
+	root := dotfilesRoot(t)
+	mustMkdir(t, filepath.Join(root, "clanker/skills/git-commit"))
+	agents := []spec.Agent{{Name: "a", Description: "d", Body: "b\n", Skills: []string{"git-commit", "caveman"}}}
+
+	err := gen.Run(root, nil, agents, nil, nil, nil, nil, "", target.Registry())
+	if err == nil || !strings.Contains(err.Error(), "caveman") {
+		t.Fatalf("expected unknown-skill error naming caveman, got %v", err)
+	}
+}
+
+func TestRun_AllowsKnownSkills(t *testing.T) {
+	root := dotfilesRoot(t)
+	mustMkdir(t, filepath.Join(root, "clanker/skills/git-commit"))
+	seed(t, root, "opencode/.config/opencode", "opencode.json", "{}")
+	agents := []spec.Agent{{Name: "a", Description: "d", Body: "b\n", Skills: []string{"git-commit"}}}
+
+	if err := gen.Run(root, nil, agents, nil, nil, nil, nil, "", target.Registry()); err != nil {
+		t.Fatalf("Run with a known skill: %v", err)
+	}
+}
+
+// When the skills submodule isn't checked out (dir absent), the check is skipped
+// rather than failing every ref.
+func TestRun_SkipsSkillCheckWhenSubmoduleAbsent(t *testing.T) {
+	root := dotfilesRoot(t)
+	seed(t, root, "opencode/.config/opencode", "opencode.json", "{}")
+	agents := []spec.Agent{{Name: "a", Description: "d", Body: "b\n", Skills: []string{"anything"}}}
+
+	if err := gen.Run(root, nil, agents, nil, nil, nil, nil, "", target.Registry()); err != nil {
+		t.Fatalf("Run should skip skill check when clanker/skills absent: %v", err)
+	}
+}
+
 func TestRun_ErrorsWhenNotDotfilesRoot(t *testing.T) {
 	root := t.TempDir() // no target command dirs
 
@@ -127,6 +164,13 @@ func writeManifest(t *testing.T, root, json string) {
 		t.Fatal(err)
 	}
 	if err := os.WriteFile(path, []byte(json+"\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func mustMkdir(t *testing.T, path string) {
+	t.Helper()
+	if err := os.MkdirAll(path, 0o755); err != nil {
 		t.Fatal(err)
 	}
 }

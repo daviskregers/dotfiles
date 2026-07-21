@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	"clanker/src/spec"
 	"clanker/src/target"
@@ -21,6 +22,9 @@ const ManifestPath = "clanker/generated-commands.json"
 
 func Run(outRoot string, cmds []spec.Command, agents []spec.Agent, docs []spec.Doc, tools []spec.Tool, toolUtils []spec.ToolUtil, hooks []spec.Hook, hookUtils string, targets []target.Target) error {
 	if err := validateRoot(outRoot, targets); err != nil {
+		return err
+	}
+	if err := checkSkills(outRoot, agents); err != nil {
 		return err
 	}
 
@@ -161,6 +165,46 @@ func setPath(root map[string]any, path []string, val any) {
 		m = sub
 	}
 	m[path[len(path)-1]] = val
+}
+
+// checkSkills fails generation if any agent references a skill that isn't a real
+// directory in clanker/skills/ — catching dead refs (a retired skill) before they
+// ship into agent frontmatter. Skipped when the submodule isn't checked out (dir
+// absent/empty): can't validate, so don't false-fail.
+func checkSkills(outRoot string, agents []spec.Agent) error {
+	entries, err := os.ReadDir(filepath.Join(outRoot, "clanker/skills"))
+	if err != nil {
+		return nil // submodule not present → skip
+	}
+	available := make(map[string]bool, len(entries))
+	for _, e := range entries {
+		if e.IsDir() {
+			available[e.Name()] = true
+		}
+	}
+	if len(available) == 0 {
+		return nil
+	}
+	if missing := missingSkills(available, agents); len(missing) > 0 {
+		return fmt.Errorf("gen: agents reference unknown skills (not in clanker/skills/): %s", strings.Join(missing, ", "))
+	}
+	return nil
+}
+
+// missingSkills returns the distinct skill names referenced by agents that are not
+// in the available set, preserving first-seen order.
+func missingSkills(available map[string]bool, agents []spec.Agent) []string {
+	seen := map[string]bool{}
+	var missing []string
+	for _, a := range agents {
+		for _, s := range a.Skills {
+			if !available[s] && !seen[s] {
+				seen[s] = true
+				missing = append(missing, s)
+			}
+		}
+	}
+	return missing
 }
 
 // validateRoot guards against running from the wrong cwd: every target's command

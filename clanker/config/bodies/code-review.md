@@ -31,7 +31,7 @@
 
 ## Steps
 
-1. Load `code-review-comprehension`, `code-review-rules`, and `caveman-review` skills.
+1. Load `code-review-comprehension`, `code-review-rules` skills.
 2. Run `git rev-parse --show-cdup` to get relative path from cwd to repo root.
 3. Run `git diff` (unstaged) and `git diff --cached` (staged). Both empty? Run `git diff HEAD~1`. Review ALL repo changes.
 4. Run `git status` for overall state.

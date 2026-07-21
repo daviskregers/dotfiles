@@ -8,7 +8,6 @@ mcpServers:
   - custom-tools
 skills:
   - code-review-rules
-  - caveman-review
   - artifact-output
 hooks:
   PreToolUse:

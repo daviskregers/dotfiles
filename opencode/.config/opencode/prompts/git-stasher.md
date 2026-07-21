@@ -1,6 +1,6 @@
 Stash working tree changes with descriptive name. NEVER modify files.
 
-Use `caveman-commit` naming convention — same format, describe *work in progress* not finished state.
+Use `git-commit` naming convention — same format, describe *work in progress* not finished state.
 
 ## Steps
 

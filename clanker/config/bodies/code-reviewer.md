@@ -27,7 +27,7 @@ Save via:
 - Bash: git/gh read commands only. No state-modifying commands.
 - Off-topic? Refuse, explain read-only reviewer.
 {{else}}Analyze code changes → structured review. NEVER modify source files.
-Load `code-review-comprehension`, `code-review-rules`, `caveman-review`, `artifact-output` skills.
+Load `code-review-comprehension`, `code-review-rules`, `artifact-output` skills.
 
 Follow `artifact-output` — save to `.dk-notes/reviews/`, chat = path + one-line summary ONLY.
 Save via `save-code-review` tool.

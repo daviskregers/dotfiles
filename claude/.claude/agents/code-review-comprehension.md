@@ -6,7 +6,6 @@ model: sonnet
 maxTurns: 15
 skills:
   - code-review-comprehension
-  - caveman-review
 hooks:
   PreToolUse:
     - matcher: "Bash"
