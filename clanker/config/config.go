@@ -88,6 +88,15 @@ var Hooks = []spec.Hook{
 		OpencodeEvent: spec.SessionIdle,
 		Core:          hookFile("comprehension-nudge.ts"),
 	},
+	{
+		// Compliance (EU AI Act Art. 50). Matcher covers commits/PRs (Bash) + the
+		// structured post tools; the core's merged FIELD_MAP matches each target's names.
+		Name:          "ai-attribution",
+		Event:         spec.PreToolUse,
+		Matcher:       "Bash|mcp__claude_ai_Linear__save_comment|mcp__claude_ai_Linear__save_issue|mcp__custom-tools__update_pr_info|mcp__custom-tools__resolve_pr_thread",
+		OpencodeEvent: spec.ToolExecuteBefore,
+		Core:          hookFile("ai-attribution.ts"),
+	},
 }
 
 // body returns an embedded markdown body, panicking if absent — the body set is
