@@ -4,7 +4,10 @@ import type { HookResult, HookCtx, HookInput } from "./hook-utils"
 const GITX = String.raw`(?:-C\s+\S+\s+|-c\s+\S+\s+|--\S+\s+|-\w+\s+)*`
 
 const DANGER: [RegExp, string][] = [
-    [new RegExp(String.raw`\bgit\s+${GITX}push\b[^|;&\n]*(?:--force(?!-with-lease\b|-if-includes\b)|\s-f\b)`, "i"), "git force-push"],
+    [
+        new RegExp(String.raw`\bgit\s+${GITX}push\b[^|;&\n]*(?:--force(?!-with-lease\b|-if-includes\b)|\s-f\b)`, "i"),
+        "git force-push",
+    ],
     [new RegExp(String.raw`\bgit\s+${GITX}reset\s+--hard\b`, "i"), "git reset --hard (discards work)"],
     [new RegExp(String.raw`\bgit\s+${GITX}clean\s+-\S*f`, "i"), "git clean -f (deletes untracked)"],
     [/\b(?:migrate:fresh|migrate:reset|db:wipe)\b/i, "destructive DB migration (drops all tables)"],
@@ -58,7 +61,9 @@ function chmod777Recursive(text: string): boolean {
     for (let i = 0; i < toks.length; i++) {
         if (base(toks[i]) !== "chmod") continue
         const rest = toks.slice(i + 1)
-        const recursive = rest.some((x) => x === "--recursive" || (x.startsWith("-") && !x.startsWith("--") && x.includes("R")))
+        const recursive = rest.some(
+            (x) => x === "--recursive" || (x.startsWith("-") && !x.startsWith("--") && x.includes("R")),
+        )
         const mode = rest.some((x) => x === "777" || x === "0777" || x === "a+rwx")
         if (recursive && mode) return true
     }

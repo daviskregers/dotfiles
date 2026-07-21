@@ -14,9 +14,31 @@ const exec = promisify(execFile)
 // per cwd). Only above a HIGH threshold. FAIL-OPEN: any error → allow stop.
 
 const SRC_EXT = new Set([
-    ".py", ".js", ".jsx", ".ts", ".tsx", ".vue", ".go", ".rb", ".php", ".rs",
-    ".java", ".kt", ".swift", ".c", ".cc", ".cpp", ".h", ".hpp", ".cs",
-    ".scala", ".ex", ".exs", ".m", ".mm", ".lua",
+    ".py",
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".vue",
+    ".go",
+    ".rb",
+    ".php",
+    ".rs",
+    ".java",
+    ".kt",
+    ".swift",
+    ".c",
+    ".cc",
+    ".cpp",
+    ".h",
+    ".hpp",
+    ".cs",
+    ".scala",
+    ".ex",
+    ".exs",
+    ".m",
+    ".mm",
+    ".lua",
 ])
 const IGNORE = /(lock|\.min\.|generated|\/vendor\/|\/node_modules\/|\/dist\/)/i
 const MIN_LINES = 150

@@ -47,7 +47,14 @@ export async function execute(
     }
     for (const r of pr.reviews?.nodes ?? []) {
         if (!r.body?.trim()) continue
-        items.push({ kind: "review", threadId: null, author: r.author?.login, body: r.body, state: r.state, url: r.url })
+        items.push({
+            kind: "review",
+            threadId: null,
+            author: r.author?.login,
+            body: r.body,
+            state: r.state,
+            url: r.url,
+        })
     }
     for (const c of pr.comments?.nodes ?? []) {
         if (!c.body?.trim()) continue

@@ -11,9 +11,31 @@ const exec = promisify(execFile)
 // NUDGES, never blocks. FAIL-OPEN: any error → none.
 
 const SRC_EXT = new Set([
-    ".py", ".js", ".jsx", ".ts", ".tsx", ".vue", ".go", ".rb", ".php", ".rs",
-    ".java", ".kt", ".swift", ".c", ".cc", ".cpp", ".h", ".hpp", ".cs",
-    ".scala", ".ex", ".exs", ".m", ".mm", ".lua",
+    ".py",
+    ".js",
+    ".jsx",
+    ".ts",
+    ".tsx",
+    ".vue",
+    ".go",
+    ".rb",
+    ".php",
+    ".rs",
+    ".java",
+    ".kt",
+    ".swift",
+    ".c",
+    ".cc",
+    ".cpp",
+    ".h",
+    ".hpp",
+    ".cs",
+    ".scala",
+    ".ex",
+    ".exs",
+    ".m",
+    ".mm",
+    ".lua",
 ])
 // Match test/spec as path SEGMENTS, not substrings (latest.py isn't a test).
 const TEST_RE = /(^|[/_.\-])(tests?|specs?|__tests__)([/_.\-]|$)/i

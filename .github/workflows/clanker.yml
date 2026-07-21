@@ -24,6 +24,9 @@ jobs:
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
+      - name: install TS type deps (gitignored; tsc needs them)
+        working-directory: clanker
+        run: cd config/hooks && bun install && cd ../tools && bun install
       - name: make check
         working-directory: clanker
         run: make check

@@ -26,7 +26,10 @@ export async function run(input: HookInput, ctx: HookCtx): Promise<HookResult> {
     const cmd = input.command
     if (typeof cmd !== "string" || !isGitPush(cmd)) return { kind: "none" }
     try {
-        const { stdout } = await exec("gh", ["pr", "view", "--json", "url,number"], { cwd: ctx.directory, timeout: 15000 })
+        const { stdout } = await exec("gh", ["pr", "view", "--json", "url,number"], {
+            cwd: ctx.directory,
+            timeout: 15000,
+        })
         const url = JSON.parse(stdout).url
         return url ? { kind: "context", text: refreshContext(url) } : { kind: "none" }
     } catch {

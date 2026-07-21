@@ -30,17 +30,28 @@ describe("extractClaudeInput", () => {
         expect(extractClaudeInput("UserPromptSubmit", { prompt: "hey" })).toEqual({ prompt: "hey" })
     })
     test("Stop pulls stopHookActive + cwd", () => {
-        expect(extractClaudeInput("Stop", { stop_hook_active: true, cwd: "/x" })).toEqual({ stopHookActive: true, cwd: "/x" })
+        expect(extractClaudeInput("Stop", { stop_hook_active: true, cwd: "/x" })).toEqual({
+            stopHookActive: true,
+            cwd: "/x",
+        })
     })
     test("missing tool_input does not throw", () => {
-        expect(extractClaudeInput("PreToolUse", {})).toEqual({ tool: undefined, command: undefined, toolInput: undefined })
+        expect(extractClaudeInput("PreToolUse", {})).toEqual({
+            tool: undefined,
+            command: undefined,
+            toolInput: undefined,
+        })
     })
 })
 
 describe("serializeClaudeResult", () => {
     test("deny → permissionDecision deny with reason + event", () => {
         const out = JSON.parse(serializeClaudeResult("PreToolUse", { kind: "deny", reason: "no" }))
-        expect(out.hookSpecificOutput).toEqual({ hookEventName: "PreToolUse", permissionDecision: "deny", permissionDecisionReason: "no" })
+        expect(out.hookSpecificOutput).toEqual({
+            hookEventName: "PreToolUse",
+            permissionDecision: "deny",
+            permissionDecisionReason: "no",
+        })
     })
     test("allow → permissionDecision allow with updatedInput", () => {
         const out = JSON.parse(serializeClaudeResult("PreToolUse", { kind: "allow", updatedInput: { command: "x" } }))
@@ -52,7 +63,10 @@ describe("serializeClaudeResult", () => {
         expect(out.hookSpecificOutput).toEqual({ hookEventName: "UserPromptSubmit", additionalContext: "ctx" })
     })
     test("block → decision block (Stop)", () => {
-        expect(JSON.parse(serializeClaudeResult("Stop", { kind: "block", reason: "wait" }))).toEqual({ decision: "block", reason: "wait" })
+        expect(JSON.parse(serializeClaudeResult("Stop", { kind: "block", reason: "wait" }))).toEqual({
+            decision: "block",
+            reason: "wait",
+        })
     })
     test("none → empty string (nothing written)", () => {
         expect(serializeClaudeResult("PreToolUse", { kind: "none" })).toBe("")
@@ -61,13 +75,24 @@ describe("serializeClaudeResult", () => {
 
 describe("extractOpencode*", () => {
     test("before: command from output.args", () => {
-        expect(extractOpencodeBefore({ tool: "bash" }, { args: { command: "rm x" } })).toEqual({ tool: "bash", command: "rm x", toolInput: { command: "rm x" } })
+        expect(extractOpencodeBefore({ tool: "bash" }, { args: { command: "rm x" } })).toEqual({
+            tool: "bash",
+            command: "rm x",
+            toolInput: { command: "rm x" },
+        })
     })
     test("after: command from input.args, response from output.output", () => {
-        expect(extractOpencodeAfter({ tool: "bash", args: { command: "ls" } }, { output: "res" })).toEqual({ tool: "bash", command: "ls", filePath: undefined, toolResponse: "res" })
+        expect(extractOpencodeAfter({ tool: "bash", args: { command: "ls" } }, { output: "res" })).toEqual({
+            tool: "bash",
+            command: "ls",
+            filePath: undefined,
+            toolResponse: "res",
+        })
     })
     test("after: filePath from opencode camelCase args", () => {
-        expect(extractOpencodeAfter({ tool: "edit", args: { filePath: "src/a.ts" } }, { output: "" }).filePath).toBe("src/a.ts")
+        expect(extractOpencodeAfter({ tool: "edit", args: { filePath: "src/a.ts" } }, { output: "" }).filePath).toBe(
+            "src/a.ts",
+        )
     })
     test("message: concatenates text parts, ignores non-text", () => {
         const output = { parts: [{ type: "text", text: "a" }, { type: "file" }, { type: "text", text: "b" }] }
