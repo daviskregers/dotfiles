@@ -1,0 +1,305 @@
+/* oldworld oled — GTK3 theme (pavucontrol, swappy, etc.) */
+@define-color bg_color #000000;
+@define-color bg_alt_color #161617;
+@define-color fg_color #c9c7cd;
+@define-color fg_alt_color #9f9ca6;
+@define-color accent_color #92a2d5;
+@define-color error_color #ea83a5;
+@define-color success_color #90b99f;
+@define-color warning_color #e6b99d;
+@define-color borders #2a2a2c;
+
+window.background, .background {
+  background-color: @bg_color;
+  color: @fg_color;
+}
+
+headerbar, .titlebar {
+  background-color: @bg_color;
+  color: @fg_color;
+  border-bottom: 1px solid @borders;
+}
+
+button {
+  background-image: none;
+  background-color: @bg_alt_color;
+  color: @fg_color;
+  border: 1px solid @borders;
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+button:hover {
+  background-color: @accent_color;
+  color: @bg_color;
+}
+
+button:active, button:checked {
+  background-color: @accent_color;
+  color: @bg_color;
+}
+
+button.suggested-action {
+  background-color: @accent_color;
+  color: @bg_color;
+}
+
+button.destructive-action {
+  background-color: @error_color;
+  color: @bg_color;
+}
+
+entry {
+  background-color: @bg_alt_color;
+  color: @fg_color;
+  border: 1px solid @borders;
+}
+
+entry selection {
+  background-color: @accent_color;
+  color: @bg_color;
+}
+
+textview, textview text {
+  background-color: @bg_alt_color;
+  color: @fg_color;
+}
+
+selection {
+  background-color: @accent_color;
+  color: @bg_color;
+}
+
+scrollbar {
+  background-color: @bg_color;
+}
+
+scrollbar slider {
+  background-color: @fg_alt_color;
+  border-radius: 4px;
+}
+
+tooltip {
+  background-color: @bg_alt_color;
+  color: @fg_color;
+}
+
+popover {
+  background-color: @bg_alt_color;
+  color: @fg_color;
+}
+
+popover separator {
+  background-color: @borders;
+}
+
+scale trough {
+  background-color: @borders;
+  border: 1px solid #3a3a3c;
+  border-radius: 4px;
+  min-height: 8px;
+}
+
+scale highlight {
+  background-color: @accent_color;
+  border-radius: 4px;
+}
+
+scale slider {
+  background-color: @fg_color;
+  border: 2px solid @accent_color;
+  border-radius: 50%;
+  min-width: 16px;
+  min-height: 16px;
+  margin: -4px;
+}
+
+scale slider:hover {
+  background-color: @accent_color;
+  border-color: @fg_color;
+}
+
+scale marks mark indicator {
+  background-color: @fg_alt_color;
+}
+
+notebook {
+  background-color: @bg_color;
+}
+
+notebook tab {
+  background-color: @bg_alt_color;
+  color: @fg_color;
+  border: 1px solid @borders;
+  border-radius: 4px 4px 0 0;
+  padding: 4px 8px;
+}
+
+notebook tab:checked {
+  background-color: @bg_color;
+  border-bottom-color: @bg_color;
+}
+
+notebook > header {
+  background-color: @bg_color;
+  border-color: @borders;
+}
+
+notebook > header.top {
+  border-bottom: 1px solid @borders;
+}
+
+notebook > header.bottom {
+  border-top: 1px solid @borders;
+}
+
+notebook > header.left {
+  border-right: 1px solid @borders;
+}
+
+notebook > header.right {
+  border-left: 1px solid @borders;
+}
+
+treeview, treeview.view {
+  background-color: @bg_color;
+  color: @fg_color;
+}
+
+treeview:selected, treeview.view:selected {
+  background-color: @accent_color;
+  color: @bg_color;
+}
+
+treeview header button {
+  background-color: @bg_alt_color;
+  color: @fg_color;
+  border: 1px solid @borders;
+  border-radius: 0;
+}
+
+list, list.row {
+  background-color: @bg_color;
+  color: @fg_color;
+}
+
+list row {
+  background-color: @bg_color;
+  color: @fg_color;
+}
+
+list row:selected {
+  background-color: @accent_color;
+  color: @bg_color;
+}
+
+list row:hover {
+  background-color: @bg_alt_color;
+}
+
+label {
+  color: @fg_color;
+}
+
+label:disabled {
+  color: @fg_alt_color;
+}
+
+separator {
+  background-color: @borders;
+}
+
+combo box, combobox {
+  background-color: @bg_alt_color;
+  color: @fg_color;
+  border: 1px solid @borders;
+  border-radius: 4px;
+}
+
+combo box button, combobox button {
+  background-color: @bg_alt_color;
+  color: @fg_color;
+}
+
+combo box button:hover, combobox button:hover {
+  background-color: @accent_color;
+  color: @bg_color;
+}
+
+switch {
+  background-color: @bg_alt_color;
+  border: 1px solid @borders;
+  border-radius: 12px;
+}
+
+switch:checked {
+  background-color: @accent_color;
+}
+
+switch slider {
+  background-color: @fg_color;
+}
+
+frame {
+  border-color: @borders;
+}
+
+statusbar {
+  color: @fg_alt_color;
+}
+
+levelbar block {
+  background-color: @accent_color;
+}
+
+levelbar block.empty {
+  background-color: @bg_alt_color;
+}
+
+menu, .menu {
+  background-color: @bg_alt_color;
+  color: @fg_color;
+}
+
+menuitem {
+  background-color: @bg_alt_color;
+  color: @fg_color;
+}
+
+menuitem:hover {
+  background-color: @accent_color;
+  color: @bg_color;
+}
+
+progressbar trough {
+  background-color: @bg_alt_color;
+  border: 1px solid @borders;
+}
+
+progressbar progress {
+  background-color: @accent_color;
+}
+
+checkbutton, radiobutton {
+  color: @fg_color;
+}
+
+check, radio {
+  background-color: @bg_alt_color;
+  border: 1px solid @borders;
+}
+
+check:checked, radio:checked {
+  background-color: @accent_color;
+  color: @bg_color;
+}
+
+infobar {
+  background-color: @bg_alt_color;
+  color: @fg_color;
+}
+
+infobar.error {
+  background-color: @error_color;
+  color: @bg_color;
+}

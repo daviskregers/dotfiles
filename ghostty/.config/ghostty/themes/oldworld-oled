@@ -1,0 +1,29 @@
+# Oldworld OLED (matches neovim theme)
+
+background = 000000
+foreground = c9c7cd
+
+cursor-color = c9c7cd
+cursor-text = 000000
+
+selection-background = 313134
+selection-foreground = c9c7cd
+
+palette = 0=#000000
+palette = 1=#ea83a5
+palette = 2=#90b99f
+palette = 3=#e6b99d
+palette = 4=#92a2d5
+palette = 5=#aca1cf
+palette = 6=#85b5ba
+palette = 7=#c9c7cd
+palette = 8=#444448
+palette = 9=#ea83a5
+palette = 10=#90b99f
+palette = 11=#e6b99d
+palette = 12=#92a2d5
+palette = 13=#aca1cf
+palette = 14=#85b5ba
+palette = 15=#c9c7cd
+
+background-opacity = 0.92

@@ -1,0 +1,327 @@
+/* oldworld oled — libadwaita overrides (pavucontrol, gnome-calendar, etc.) */
+@define-color window_bg_color #000000;
+@define-color window_fg_color #c9c7cd;
+@define-color view_bg_color #161617;
+@define-color view_fg_color #c9c7cd;
+@define-color headerbar_bg_color #000000;
+@define-color headerbar_fg_color #c9c7cd;
+@define-color sidebar_bg_color #161617;
+@define-color sidebar_fg_color #c9c7cd;
+@define-color accent_bg_color #92a2d5;
+@define-color accent_fg_color #000000;
+@define-color destructive_bg_color #ea83a5;
+@define-color destructive_fg_color #000000;
+@define-color success_bg_color #90b99f;
+@define-color success_fg_color #000000;
+@define-color warning_bg_color #e6b99d;
+@define-color warning_fg_color #000000;
+@define-color error_bg_color #ea83a5;
+@define-color error_fg_color #000000;
+@define-color card_bg_color #161617;
+@define-color card_fg_color #c9c7cd;
+@define-color dialog_bg_color #161617;
+@define-color dialog_fg_color #c9c7cd;
+@define-color popover_bg_color #161617;
+@define-color popover_fg_color #c9c7cd;
+@define-color shaded_color rgba(0,0,0,0.6);
+@define-color borders rgba(42,42,44,0.6);
+
+/* --- window / base --- */
+window, .background {
+  background-color: @window_bg_color;
+  color: @window_fg_color;
+}
+
+/* --- headerbar --- */
+headerbar, .titlebar {
+  background-color: @headerbar_bg_color;
+  color: @headerbar_fg_color;
+  border-bottom: 1px solid @borders;
+}
+
+/* --- views / lists --- */
+.view, textview > text, listview, list {
+  background-color: @view_bg_color;
+  color: @view_fg_color;
+}
+
+row {
+  background-color: @view_bg_color;
+  color: @view_fg_color;
+}
+
+row:selected {
+  background-color: @accent_bg_color;
+  color: @accent_fg_color;
+}
+
+row:hover {
+  background-color: #1e1e20;
+}
+
+/* --- labels --- */
+label {
+  color: @window_fg_color;
+}
+
+label:disabled {
+  color: #6c6874;
+}
+
+/* --- buttons --- */
+button {
+  background-color: @view_bg_color;
+  color: @window_fg_color;
+  border: 1px solid @borders;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+button:hover {
+  background-color: @accent_bg_color;
+  color: @accent_fg_color;
+}
+
+button:active {
+  background-color: #7b8ac4;
+  color: @accent_fg_color;
+}
+
+button.suggested-action {
+  background-color: @accent_bg_color;
+  color: @accent_fg_color;
+}
+
+button.destructive-action {
+  background-color: @destructive_bg_color;
+  color: @destructive_fg_color;
+}
+
+/* --- notebook (tabs) --- */
+notebook > header {
+  background-color: @window_bg_color;
+  border-color: @borders;
+}
+
+notebook > header.top {
+  border-bottom: 1px solid @borders;
+}
+
+notebook > header.bottom {
+  border-top: 1px solid @borders;
+}
+
+notebook > header tab {
+  background-color: @view_bg_color;
+  color: @window_fg_color;
+  border: 1px solid @borders;
+  border-radius: 6px 6px 0 0;
+  padding: 4px 10px;
+}
+
+notebook > header tab:checked {
+  background-color: @window_bg_color;
+  border-bottom-color: @window_bg_color;
+}
+
+notebook > header tab:hover {
+  background-color: #1e1e20;
+}
+
+notebook > stack {
+  background-color: @window_bg_color;
+}
+
+/* --- scale (volume sliders) --- */
+scale trough {
+  background-color: #2a2a2c;
+  border: 1px solid #3a3a3c;
+  border-radius: 4px;
+  min-height: 8px;
+}
+
+scale highlight {
+  background-color: @accent_bg_color;
+  border-radius: 4px;
+}
+
+scale slider {
+  background-color: @window_fg_color;
+  border: 2px solid @accent_bg_color;
+  border-radius: 50%;
+  min-width: 16px;
+  min-height: 16px;
+  margin: -4px;
+}
+
+scale slider:hover {
+  background-color: @accent_bg_color;
+  border-color: @window_fg_color;
+}
+
+scale marks mark indicator {
+  background-color: #6c6874;
+}
+
+/* --- combo box / dropdown --- */
+dropdown, combobox, box.combo {
+  background-color: @view_bg_color;
+  color: @window_fg_color;
+  border: 1px solid @borders;
+  border-radius: 6px;
+}
+
+dropdown button, combobox button {
+  background-color: @view_bg_color;
+  color: @window_fg_color;
+}
+
+dropdown button:hover, combobox button:hover {
+  background-color: @accent_bg_color;
+  color: @accent_fg_color;
+}
+
+popover.background.dropdown {
+  background-color: @popover_bg_color;
+}
+
+/* --- switch --- */
+switch {
+  background-color: #2a2a2c;
+  border: 1px solid @borders;
+  border-radius: 12px;
+}
+
+switch:checked {
+  background-color: @accent_bg_color;
+}
+
+switch slider {
+  background-color: @window_fg_color;
+}
+
+/* --- separator --- */
+separator {
+  background-color: @borders;
+}
+
+/* --- tooltip --- */
+tooltip, tooltip.background {
+  background-color: @popover_bg_color;
+  color: @popover_fg_color;
+}
+
+/* --- popover --- */
+popover, popover.background {
+  background-color: @popover_bg_color;
+  color: @popover_fg_color;
+}
+
+popover separator {
+  background-color: @borders;
+}
+
+/* --- treeview / list --- */
+treeview, treeview.view {
+  background-color: @view_bg_color;
+  color: @view_fg_color;
+}
+
+treeview:selected {
+  background-color: @accent_bg_color;
+  color: @accent_fg_color;
+}
+
+treeview header button {
+  background-color: @view_bg_color;
+  color: @window_fg_color;
+  border: 1px solid @borders;
+  border-radius: 0;
+}
+
+/* --- levelbar (volume meters) --- */
+levelbar block {
+  background-color: @accent_bg_color;
+}
+
+levelbar block.empty {
+  background-color: #2a2a2c;
+}
+
+levelbar block.filled.low {
+  background-color: @success_bg_color;
+}
+
+levelbar block.filled.high {
+  background-color: @accent_bg_color;
+}
+
+levelbar block.filled.full {
+  background-color: @warning_bg_color;
+}
+
+/* --- progressbar --- */
+progressbar trough {
+  background-color: #2a2a2c;
+  border: 1px solid #3a3a3c;
+  border-radius: 4px;
+}
+
+progressbar progress {
+  background-color: @accent_bg_color;
+  border-radius: 4px;
+}
+
+/* --- frame --- */
+frame {
+  border-color: @borders;
+}
+
+/* --- calendar --- */
+calendar:selected {
+  background-color: @accent_bg_color;
+  color: @accent_fg_color;
+}
+
+/* --- infobar --- */
+infobar {
+  background-color: @view_bg_color;
+  color: @window_fg_color;
+}
+
+infobar.error {
+  background-color: @destructive_bg_color;
+  color: @destructive_fg_color;
+}
+
+/* --- check / radio --- */
+check, radio {
+  background-color: @view_bg_color;
+  border: 1px solid @borders;
+}
+
+check:checked, radio:checked {
+  background-color: @accent_bg_color;
+  color: @accent_fg_color;
+}
+
+/* --- menu --- */
+menu, menu.background, popover.background menu {
+  background-color: @popover_bg_color;
+  color: @popover_fg_color;
+}
+
+menuitem:hover {
+  background-color: @accent_bg_color;
+  color: @accent_fg_color;
+}
+
+/* --- scrollbar --- */
+scrollbar slider {
+  background-color: #6c6874;
+  border-radius: 4px;
+}
+
+scrollbar slider:hover {
+  background-color: @accent_bg_color;
+}

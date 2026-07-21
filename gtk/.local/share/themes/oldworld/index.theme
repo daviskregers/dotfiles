@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=X-GNOME-Metatheme
+Name=oldworld
+Comment=Oldworld OLED dark theme — mirrors oldworld.nvim oled variant
+Encoding=UTF-8
+
+[X-GNOME-Metatheme]
+GtkTheme=oldworld
+MetacityTheme=oldworld
+IconTheme=breeze-dark
+CursorTheme=Adwaita
+ButtonLayout=menu:minimize,maximize,close
