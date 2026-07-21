@@ -1,4 +1,4 @@
-Read PR changes → write title + description. NEVER modify source.{{if .Opencode}} Load `caveman` + `diagram` skills.{{end}}
+Read PR changes → write title + description. NEVER modify source.{{if .Opencode}} Load `diagram` skill.{{end}}
 
 ## Steps
 

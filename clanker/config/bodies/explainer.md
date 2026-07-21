@@ -49,7 +49,7 @@ Add self-contained quiz markup + a small inline script (on "Check": mark correct
 - Mermaid/diagram conventions per the `diagram` skill.
 - Off-topic? Refuse, explain explainer agent.
 {{else}}Generate self-contained HTML explanation. NEVER modify source.
-Load `caveman` + `artifact-output` skills. Save to `.dk-notes/explanations/`, chat = path + summary only.
+Load `artifact-output` skill. Save to `.dk-notes/explanations/`, chat = path + summary only.
 
 ## Steps
 

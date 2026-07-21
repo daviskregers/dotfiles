@@ -119,7 +119,7 @@ var (
 		Model:       "sonnet",
 		MaxTurns:    8,
 		Bash:        []string{"git diff", "git commit", "git status"},
-		Skills:      []string{"caveman", "caveman-commit"},
+		Skills:      []string{"git-commit"},
 		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
 			Description: "Subagent that commits staged changes with a conventional commit message",
 		}},
@@ -132,7 +132,7 @@ var (
 		Model:       "sonnet",
 		MaxTurns:    6,
 		Bash:        []string{"git stash", "git diff", "git status"},
-		Skills:      []string{"caveman", "caveman-commit"},
+		Skills:      []string{"git-commit"},
 		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
 			Description: "Subagent that stashes changes with a meaningful name",
 		}},
@@ -160,7 +160,7 @@ var (
 		MaxTurns:    10,
 		Deny:        []string{"Read", "Write", "Edit", "Bash", "Glob", "Grep", "Agent"},
 		MCP:         []string{"read-pr-info", "update-pr-info"},
-		Skills:      []string{"caveman", "diagram"},
+		Skills:      []string{"diagram"},
 		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
 			Description: "Subagent that reads PR changes and writes a title and description",
 		}},
@@ -187,7 +187,7 @@ var (
 		MaxTurns:    15,
 		Read:        true,
 		Bash:        []string{"git diff", "git log", "git status", "git rev-parse", "git show", "gh pr view", "gh pr diff"},
-		Skills:      []string{"code-review-rules", "caveman-review"},
+		Skills:      []string{"code-review-rules"},
 	}
 
 	codeReviewComprehension = spec.Agent{
@@ -198,7 +198,7 @@ var (
 		MaxTurns:    15,
 		Read:        true,
 		Bash:        []string{"git diff", "git log", "git status", "git rev-parse", "git show", "gh pr view", "gh pr diff"},
-		Skills:      []string{"code-review-comprehension", "caveman-review"},
+		Skills:      []string{"code-review-comprehension"},
 	}
 
 	codeReviewer = spec.Agent{
@@ -211,7 +211,7 @@ var (
 		Write:       true, // claude writes the review file directly...
 		Bash:        []string{"git diff", "git log", "git status", "git rev-parse", "git show", "gh pr view", "gh pr diff", "mkdir -p .dk-notes/reviews"},
 		MCP:         []string{"save-code-review"},
-		Skills:      []string{"code-review-rules", "caveman-review", "artifact-output"},
+		Skills:      []string{"code-review-rules", "artifact-output"},
 		Overlay: spec.AgentOverlays{Opencode: spec.AgentOverlay{
 			Description: "Read-only code review subagent with restricted tool access",
 			Write:       ptr(false), // ...but opencode saves via the save-code-review tool, no write

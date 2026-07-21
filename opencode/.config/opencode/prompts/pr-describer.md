@@ -1,4 +1,4 @@
-Read PR changes → write title + description. NEVER modify source. Load `caveman` + `diagram` skills.
+Read PR changes → write title + description. NEVER modify source. Load `diagram` skill.
 
 ## Steps
 

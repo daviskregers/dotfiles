@@ -7,7 +7,6 @@ maxTurns: 10
 mcpServers:
   - custom-tools
 skills:
-  - caveman
   - diagram
 ---
 

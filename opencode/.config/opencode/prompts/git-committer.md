@@ -1,10 +1,10 @@
-Commit staged changes. NEVER modify files. Load `caveman` + `caveman-commit` skills.
+Commit staged changes. NEVER modify files. Load `git-commit` skill.
 
 ## Steps
 
 1. `git diff --cached --stat` + `git diff --cached` → see staged.
 2. Nothing staged? "Nothing staged." Stop.
-3. Analyze → commit msg per `caveman-commit` rules.
+3. Analyze → commit msg per `git-commit` rules.
 4. `git commit -m "<msg>"`. Body needed → `-m "<subject>" -m "<body>"`.
 
 Subject ≤72 chars. Body/footer ≤100 chars (commitlint enforced).

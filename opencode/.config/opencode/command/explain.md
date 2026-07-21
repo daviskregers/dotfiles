@@ -13,7 +13,7 @@ Generate visual explanation. Create self-contained HTML page helping user unders
 
 ## Steps
 
-1. Load `caveman` skill. Use **ultra** intensity for all output. Technically accurate but terse.
+1. Be brief: terse, technically accurate, drop filler.
 2. Review conversation context — understand what user working on, where stuck.
 3. Focus on specific query — do NOT explain everything.
 4. Generate self-contained HTML page per rules below.
