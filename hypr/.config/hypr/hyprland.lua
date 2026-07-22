@@ -5,9 +5,9 @@ local mainMod = "SUPER"  -- was $mod = Mod4 in i3
 
 -- ------------------------------------------------------------------ monitor / input
 -- i3 had GDK_SCALE=2 + Xft.dpi=144; hyprland uses fractional monitor scaling natively.
--- PC desktop monitors: 24–27" 1080p, slightly smaller.
-hl.monitor({ output = "DP-2", mode = "preferred", position = "0x0", scale = 0.83 })
-hl.monitor({ output = "DP-1", mode = "preferred", position = "2313x0", scale = 0.83 })
+-- PC desktop monitors: 24–27" 1080p at native scale.
+hl.monitor({ output = "DP-2", mode = "preferred", position = "0x0", scale = 1.0 })
+hl.monitor({ output = "DP-1", mode = "preferred", position = "1920x0", scale = 1.0 })
 -- Default: no scaling for normal-DPI displays.
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1.0 })
 -- Archbook retina internal display (2880x1800): 1.5x fractional scale.
@@ -30,6 +30,9 @@ hl.config({
   },
   env = {
     { "GTK_THEME", "oldworld" },
+    -- Force Electron apps (1Password, etc.) to X11 so they render under XWayland
+    -- and avoid broken Wayland fractional-scaling cursor offsets.
+    { "ELECTRON_OZONE_PLATFORM_HINT", "x11" },
   },
 })
 
@@ -223,6 +226,15 @@ hl.config({
   },
 })
 
+-- ------------------------------------------------------------------ xwayland
+hl.config({
+  xwayland = {
+    -- Render XWayland windows at 1.0 scale and upscale them, avoiding cursor
+    -- coordinate offset on fractional-scaled monitors.
+    force_zero_scaling = true,
+  },
+})
+
 -- ------------------------------------------------------------------ window rules
 hl.window_rule({ match = { class = "^(org.gnome.Calculator)$" }, float = true })
 hl.window_rule({ match = { class = "^(nm-connection-editor)$" }, float = true })
@@ -231,5 +243,6 @@ hl.window_rule({ match = { class = "^(imv)$" },                  float = true })
 hl.window_rule({ match = { class = "^(mpv)$" },                  float = true, center = true })
 hl.window_rule({ match = { class = "^(wlogout)$" },             float = true })
 hl.window_rule({ match = { class = "^(ssh-askpass)$" },          float = true })
+hl.window_rule({ match = { class = "^(1password)$" },          float = true, center = true })
 
 -- EOF
