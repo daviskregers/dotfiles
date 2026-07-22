@@ -1,0 +1,128 @@
+#!/usr/bin/env bash
+# waybar custom network module — current speed on bar, speed + total in tooltip
+# click: open nm-connection-editor
+# State between runs stored in XDG_RUNTIME_DIR for delta calculation.
+
+export PATH="/home/davis/.nix-profile/bin:$PATH"
+export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+
+STATE_DIR="$XDG_RUNTIME_DIR/waybar-network"
+STATE_FILE="$STATE_DIR/counters"
+mkdir -p "$STATE_DIR"
+
+now=$(date +%s)
+
+fmt_bytes() {
+    local b=$1
+    if (( b >= 1073741824 )); then
+        printf "%.1f GB" "$(echo "scale=1; $b/1073741824" | bc)"
+    elif (( b >= 1048576 )); then
+        printf "%.1f MB" "$(echo "scale=1; $b/1048576" | bc)"
+    elif (( b >= 1024 )); then
+        printf "%.1f KB" "$(echo "scale=1; $b/1024" | bc)"
+    else
+        printf "%d B" "$b"
+    fi
+}
+
+fmt_rate() {
+    local bps=$1
+    if (( bps >= 1073741824 )); then
+        printf "%.1f GB/s" "$(echo "scale=1; $bps/1073741824" | bc)"
+    elif (( bps >= 1048576 )); then
+        printf "%.1f MB/s" "$(echo "scale=1; $bps/1048576" | bc)"
+    elif (( bps >= 1024 )); then
+        printf "%.1f KB/s" "$(echo "scale=1; $bps/1024" | bc)"
+    else
+        printf "%d B/s" "$bps"
+    fi
+}
+
+# read previous state
+declare -A prev_rx prev_tx prev_ts
+if [[ -f "$STATE_FILE" ]]; then
+    while IFS='|' read -r dev rx tx ts; do
+        prev_rx[$dev]=$rx
+        prev_tx[$dev]=$tx
+        prev_ts[$dev]=$ts
+    done < "$STATE_FILE"
+fi
+
+# snapshot current counters
+declare -A cur_rx cur_tx
+total_rx=0
+total_tx=0
+devices=()
+tooltip="Network"
+active=0
+
+while IFS=: read -r type name device state; do
+    [[ -z "$type" || "$state" != "activated" ]] && continue
+    [[ "$device" == lo || "$device" == virbr* ]] && continue
+    active=1
+    devices+=("$device")
+
+    rx=$(cat "/sys/class/net/$device/statistics/rx_bytes" 2>/dev/null || echo 0)
+    tx=$(cat "/sys/class/net/$device/statistics/tx_bytes" 2>/dev/null || echo 0)
+    cur_rx[$device]=$rx
+    cur_tx[$device]=$tx
+    total_rx=$((total_rx + rx))
+    total_tx=$((total_tx + tx))
+done < <(nmcli -t -f TYPE,NAME,DEVICE,STATE connection show --active 2>/dev/null)
+
+# calculate speeds and build tooltip
+agg_speed_rx=0
+agg_speed_tx=0
+tooltip_detail=""
+
+for device in "${devices[@]}"; do
+    rx=${cur_rx[$device]}
+    tx=${cur_tx[$device]}
+    ip=$(nmcli -t -f IP4.ADDRESS device show "$device" 2>/dev/null | head -1 | cut -d: -f2)
+    [[ -z "$ip" ]] && ip="no ip"
+
+    speed_rx=0
+    speed_tx=0
+    if [[ -n "${prev_ts[$device]}" ]]; then
+        dt=$((now - prev_ts[$device]))
+        if (( dt > 0 )); then
+            drx=$(( rx - ${prev_rx[$device]:-0} ))
+            dtx=$(( tx - ${prev_tx[$device]:-0} ))
+            (( drx < 0 )) && drx=0
+            (( dtx < 0 )) && dtx=0
+            speed_rx=$(( drx / dt ))
+            speed_tx=$(( dtx / dt ))
+        fi
+    fi
+    agg_speed_rx=$((agg_speed_rx + speed_rx))
+    agg_speed_tx=$((agg_speed_tx + speed_tx))
+
+    tooltip_detail="${tooltip_detail}\\n${device} ($ip)\\n   ↓ $(fmt_rate "$speed_rx")  total $(fmt_bytes "$rx")\\n   ↑ $(fmt_rate "$speed_tx")  total $(fmt_bytes "$tx")"
+done
+
+# save current state
+: > "$STATE_FILE"
+for device in "${devices[@]}"; do
+    echo "${device}|${cur_rx[$device]}|${cur_tx[$device]}|${now}" >> "$STATE_FILE"
+done
+
+if [[ "$active" -eq 0 ]]; then
+    text="󰤭 down"
+    tooltip="${tooltip}\\nNo active connections"
+else
+    text="↓ $(fmt_rate "$agg_speed_rx")  ↑ $(fmt_rate "$agg_speed_tx")"
+    tooltip="${tooltip}\\n${tooltip_detail}"
+
+    procs=$(ss -tunap 2>/dev/null | awk 'NR>1 && $1 ~ /^(tcp|udp)/ {print $NF}' | grep -oP 'users:\(\("\K[^"]+' | sort | uniq -c | sort -rn)
+    if [[ -n "$procs" ]]; then
+        tooltip="${tooltip}\\nProcesses"
+        while IFS= read -r line; do
+            count=$(echo "$line" | awk '{print $1}')
+            name=$(echo "$line" | awk '{print $2}')
+            tooltip="${tooltip}\\n   ${name} (${count})"
+        done <<< "$procs"
+    fi
+fi
+
+printf '{"text":"%s","tooltip":"%s","class":"%s"}\n' \
+    "$text" "$tooltip" "$classes"

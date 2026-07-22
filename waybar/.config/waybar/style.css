@@ -77,7 +77,7 @@ menuitem:hover {
 }
 
 /* ---- right: module pills ---- */
-#network,
+#custom-network,
 #battery,
 #disk,
 #cpu,
@@ -94,7 +94,7 @@ menuitem:hover {
     background: #161617;
 }
 
-#network:hover,
+#custom-network:hover,
 #battery:hover,
 #disk:hover,
 #cpu:hover,
