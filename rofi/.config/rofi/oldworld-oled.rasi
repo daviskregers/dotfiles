@@ -56,13 +56,13 @@ inputbar {
 }
 
 prompt {
-  font: "FiraCode Nerd Font 14";
+  font: "FiraCode Nerd Font 12";
   text-color: @lavender;
   background-color: transparent;
 }
 
 entry {
-  font: "FiraCode Nerd Font 14";
+  font: "FiraCode Nerd Font 12";
   text-color: @fg;
   background-color: transparent;
   cursor: text;
@@ -103,7 +103,7 @@ element-icon {
 }
 
 element-text {
-  font: "FiraCode Nerd Font 13";
+  font: "FiraCode Nerd Font 11";
   text-color: @fg;
   background-color: transparent;
 

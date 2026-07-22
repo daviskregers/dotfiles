@@ -1,6 +1,6 @@
 configuration {
   modi: "combi,drun,calc";
-  font: "FiraCode Nerd Font 13";
+  font: "FiraCode Nerd Font 11";
   show-icons: true;
   icon-theme: "Papirus";
   drun-display-format: "{name}";
