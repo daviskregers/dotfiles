@@ -5,8 +5,13 @@ local mainMod = "SUPER"  -- was $mod = Mod4 in i3
 
 -- ------------------------------------------------------------------ monitor / input
 -- i3 had GDK_SCALE=2 + Xft.dpi=144; hyprland uses fractional monitor scaling natively.
--- Empty output = wildcard (matches hyprlang leading comma). 1.5x fractional scale.
-hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1.5 })
+-- PC desktop monitors: 24–27" 1080p, slightly smaller.
+hl.monitor({ output = "DP-2", mode = "preferred", position = "0x0", scale = 0.83 })
+hl.monitor({ output = "DP-1", mode = "preferred", position = "2313x0", scale = 0.83 })
+-- Default: no scaling for normal-DPI displays.
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1.0 })
+-- Archbook retina internal display (2880x1800): 1.5x fractional scale.
+hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = 1.5 })
 
 hl.config({
   input = {
