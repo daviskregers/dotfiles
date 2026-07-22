@@ -2,8 +2,7 @@
 # power profiles control script for waybar custom module
 # Auto-switches on charger events; manual override persists until next event
 
-export PATH="/home/davis/.nix-profile/bin:$PATH"
-export HOME="/home/davis"
+export PATH="$HOME/.nix-profile/bin:$PATH"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u davis)}"
 
 STATE_FILE="${XDG_RUNTIME_DIR}/power-profiles-state"

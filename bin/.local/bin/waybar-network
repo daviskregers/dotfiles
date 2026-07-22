@@ -3,7 +3,7 @@
 # click: open nm-connection-editor
 # State between runs stored in XDG_RUNTIME_DIR for delta calculation.
 
-export PATH="/home/davis/.nix-profile/bin:$PATH"
+export PATH="$HOME/.nix-profile/bin:$PATH"
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
 
 STATE_DIR="$XDG_RUNTIME_DIR/waybar-network"
