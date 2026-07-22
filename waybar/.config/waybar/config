@@ -11,7 +11,7 @@
         "hyprland/mode"
     ],
     "modules-right": [
-        "network",
+        "custom/network",
         "battery",
         "custom/power-profiles",
         "disk",
@@ -44,16 +44,12 @@
         "format": "{}",
         "tooltip": false
     },
-    "network": {
-        "interface": [
-            "enp6s0",
-            "enp5s0",
-            "wlan0"
-        ],
-        "format-wifi": "󰤨 {signalStrength}%",
-        "format-ethernet": "󰈀 {ipaddr}",
-        "format-disconnected": "󰤭 down",
-        "tooltip-format": "Network\n{ifname}: {ipaddr}\nUp: {bandwidthUpBytes}  Down: {bandwidthDownBytes}"
+    "custom/network": {
+        "exec": "sh -c '$HOME/.local/bin/waybar-network'",
+        "return-type": "json",
+        "on-click": "nm-connection-editor",
+        "interval": 5,
+        "tooltip": true
     },
     "battery": {
         "bat": "BAT0",
