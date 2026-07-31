@@ -38,3 +38,4 @@ fi
 
 # bun completions
 [ -s "/Users/daviskregers/.bun/_bun" ] && source "/Users/daviskregers/.bun/_bun"
+export OLLAMA_MODELS=/mnt/storage-nvme/ollama-models
