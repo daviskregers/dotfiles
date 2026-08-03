@@ -26,6 +26,19 @@ func hookFile(name string) string {
 	return string(b)
 }
 
+//go:embed bodies/*.md
+var bodies embed.FS
+
+// body returns an embedded markdown body, panicking if absent — the body set is
+// fixed at compile time, so a missing file is a bug to fix, not a runtime case.
+func body(name string) string {
+	b, err := bodies.ReadFile("bodies/" + name)
+	if err != nil {
+		panic(fmt.Sprintf("config: missing body %q: %v", name, err))
+	}
+	return string(b)
+}
+
 // HookUtils is the shared hook types module, inlined into each generated hook.
 var HookUtils = hookFile("hook-utils.ts")
 
@@ -60,8 +73,25 @@ var Tools = []spec.Tool{}
 // Agents is the set clanker generates. Wiped to a blank slate — redefine here.
 var Agents = []spec.Agent{}
 
-// Commands is the set clanker generates. Wiped to a blank slate — redefine here.
-var Commands = []spec.Command{}
+// Commands is the set clanker generates. The Socratic pair — user holds the pen,
+// the assistant only asks the questions that lead them to their own understanding
+// (distilled from a real EDU-6483 investigation session). `learn` is the general
+// tutor; `investigate` layers the artifact→hypothesis→verify-in-code→root-cause arc
+// on top. Both are self-contained interactive commands (NOT subagents — the value is
+// turn-by-turn dialogue with the user, which a subagent can't do) and bake in the
+// user-owns-the-writeup review loop.
+var Commands = []spec.Command{
+	{
+		Name:        "learn",
+		Description: "Socratic learning buddy — leads you to understand a topic by questions, never hands the answer",
+		Body:        body("learn.md"),
+	},
+	{
+		Name:        "investigate",
+		Description: "Socratic root-cause investigation — you drive from artifact to verified root cause, unbiased by existing theories",
+		Body:        body("investigate.md"),
+	},
+}
 
 // Docs is the shared global rules document, rendered to CLAUDE.md / AGENTS.md.
 // Wiped to a blank slate — no global doc emitted until repopulated.
