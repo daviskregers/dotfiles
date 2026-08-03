@@ -143,5 +143,25 @@ end
 
 vim.keymap.set("n", "<leader>sw", swap_word_forward, { desc = "Swap word with the next word" })
 
+-- copy grep-style location of the cursor line (or selection) to the clipboard:
+--   file.lua:123          (normal)
+--   file.lua:123-321      (visual selection)
+vim.api.nvim_create_user_command("CLoc", function(opts)
+    local file = vim.fn.expand("%")
+    if file == "" then
+        vim.notify("CLoc: buffer has no file name", vim.log.levels.WARN)
+        return
+    end
+    local loc
+    if opts.range == 2 and opts.line1 ~= opts.line2 then
+        loc = string.format("%s:%d-%d", file, opts.line1, opts.line2)
+    else
+        loc = string.format("%s:%d", file, opts.line1)
+    end
+    vim.fn.setreg("+", loc)
+    vim.notify("Copied " .. loc)
+end, { range = true, desc = "Copy grep-style location of cursor/selection" })
+vim.keymap.set({ "n", "x" }, "<leader>cl", ":CLoc<CR>", { desc = "Copy grep-style location" })
+
 -- statusline: code-agents segment removed 2026-07-15 (module superseded by clank.nvim).
 -- TODO(clank): re-add a clank statusline segment once it exists.
