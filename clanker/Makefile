@@ -1,19 +1,8 @@
-.PHONY: gen test test-go test-ts check lint lint-go lint-ts doctor bootstrap install-mcp
+.PHONY: gen test test-go test-ts check lint lint-go lint-ts doctor bootstrap
 
-# Install the TS dependencies that are gitignored out of the repo: the claude MCP
-# server's runtime deps (without which the custom-tools server fails to launch and
-# every mcp__custom-tools__* tool silently vanishes) + the hook/tool test deps.
-# Run once after cloning.
+# Install the gitignored hook test deps (bun). Run once after cloning.
 bootstrap:
 	cd config/hooks && bun install
-	cd config/tools && bun install
-	cd ../claude/.claude/mcp-tools && bun install
-	$(MAKE) install-mcp
-
-# Merge the generated MCP registration into ~/.claude.json (the only global location
-# claude reads it from). Backs up first; safe to re-run (idempotent).
-install-mcp:
-	python3 scripts/install-mcp.py
 
 # Preflight for a new machine. The generated hooks run via `bun`; a missing bun
 # silently disables ALL of them — including dangerous-command-guard, which fails OPEN
@@ -44,7 +33,7 @@ lint-go:
 	@unformatted="$$(gofmt -l src config)"; test -z "$$unformatted" || { echo "gofmt needs: $$unformatted"; exit 1; }
 
 lint-ts:
-	@for d in config/hooks config/tools; do \
+	@for d in config/hooks; do \
 		echo "lint ($$d)"; \
 		(cd $$d && bunx tsc --noEmit) || exit 1; \
 		bunx prettier@3.9.5 --check --print-width 120 --no-semi --tab-width 4 "$$d/*.ts" "$$d/tests/*.ts" || exit 1; \
@@ -59,6 +48,6 @@ test-go:
 # TS cores (tools/hooks) carry their own bun tests under tests/. Run bun only in
 # dirs that actually have tests, so an untested core dir isn't a failure.
 test-ts:
-	@for d in config/hooks config/tools; do \
+	@for d in config/hooks; do \
 		if ls $$d/tests/*.test.ts >/dev/null 2>&1; then echo "bun test ($$d)"; (cd $$d && bun test) || exit 1; fi; \
 	done

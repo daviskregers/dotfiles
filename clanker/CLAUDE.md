@@ -2,6 +2,13 @@
 
 Config generator: define each command/agent/tool ONCE (type-safe Go), emit per-tool configs (claude, opencode; later pi). Kills manual dual-sync. Full design: `../.dk-notes/plans/config-builder.md`.
 
+## Blank slate (reset 2026-08-03)
+
+Workflow reset — the command/agent/tool catalog + global-rules doc (`global.md`) were wiped to rebuild from scratch. Only `dangerous-command-guard` + `ai-attribution` hooks retained (destructive-shell guard + EU AI Act Art. 50 marker) plus the shared hook runtime. The engine (`src/`) and the config *scaffolding* — catalog shape in `config.go`, hook/tool wiring, per-target overlays, renderers — are UNCHANGED and worked well: when rebuilding, restore the patterns, don't reinvent them.
+
+Full working setup preserved at commit **`b941ea6`** (last before the wipe): 13 commands, 9 agents, 11 PR tools, 7 hooks. Recover a piece from history:
+`git show b941ea6:clanker/config/config.go` · `git show b941ea6 -- clanker/config/tools` · `git show b941ea6 -- clanker/config/bodies`.
+
 ## Layout — engine vs data, strict split
 
 - `src/` = generator source (engine). `config/` = the data it consumes.

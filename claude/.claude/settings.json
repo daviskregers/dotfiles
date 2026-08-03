@@ -34,17 +34,6 @@
         "matcher": ""
       }
     ],
-    "PostToolUse": [
-      {
-        "hooks": [
-          {
-            "command": "bun \"$HOME/.claude/hooks/pr-refresh-reminder.ts\"",
-            "type": "command"
-          }
-        ],
-        "matcher": "Bash"
-      }
-    ],
     "PreToolUse": [
       {
         "hooks": [
@@ -58,46 +47,11 @@
       {
         "hooks": [
           {
-            "command": "bun \"$HOME/.claude/hooks/tdd-reminder.ts\"",
-            "type": "command"
-          }
-        ],
-        "matcher": "Write|Edit"
-      },
-      {
-        "hooks": [
-          {
             "command": "bun \"$HOME/.claude/hooks/ai-attribution.ts\"",
             "type": "command"
           }
         ],
-        "matcher": "Bash|mcp__claude_ai_Linear__save_comment|mcp__claude_ai_Linear__save_issue|mcp__custom-tools__update_pr_info|mcp__custom-tools__resolve_pr_thread"
-      }
-    ],
-    "Stop": [
-      {
-        "hooks": [
-          {
-            "command": "bun \"$HOME/.claude/hooks/comprehension-nudge.ts\"",
-            "type": "command"
-          }
-        ],
-        "matcher": ""
-      }
-    ],
-    "UserPromptSubmit": [
-      {
-        "hooks": [
-          {
-            "command": "bun \"$HOME/.claude/hooks/offloading-nudge.ts\"",
-            "type": "command"
-          },
-          {
-            "command": "bun \"$HOME/.claude/hooks/approval-scope.ts\"",
-            "type": "command"
-          }
-        ],
-        "matcher": ""
+        "matcher": "Bash|mcp__claude_ai_Linear__save_comment|mcp__claude_ai_Linear__save_issue"
       }
     ]
   },
@@ -109,8 +63,6 @@
       "Bash(git log*)",
       "Bash(git diff*)",
       "Bash(rg:*)",
-      "mcp__custom-tools__list_pr_comments",
-      "mcp__custom-tools__resolve_pr_thread",
       "mcp__claude_ai_Linear__get_issue",
       "mcp__claude_ai_Linear__list_comments",
       "mcp__claude_ai_Linear__list_issues"
