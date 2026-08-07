@@ -8,6 +8,7 @@ else
     tsp_file="$HOME/.tsp"
     default_directories=""
     extra_paths=""
+    exclude_patterns=()
 
     if [[ -f "$tsp_file" ]]; then
         while IFS= read -r line; do
@@ -17,6 +18,12 @@ else
 
             # Expand ~ to $HOME
             line="${line/#\~/$HOME}"
+
+            # Lines starting with ! are exclusion patterns
+            if [[ "$line" == !* ]]; then
+                exclude_patterns+=("${line#!}")
+                continue
+            fi
 
             # Bare paths (no glob chars) are also offered as themselves.
             # Skip machine-specific bare paths absent on this host (.tsp is synced cross-machine).
@@ -38,10 +45,19 @@ else
         extra_paths="$HOME/.dotfiles"$'\n'
     fi
 
+    # Filter excluded paths using grep -v -e for each exclusion pattern
+    filter_arg=""
+    if [[ ${#exclude_patterns[@]} -gt 0 ]]; then
+        filter_arg="-v"
+        for pat in "${exclude_patterns[@]}"; do
+            filter_arg="$filter_arg -e $pat"
+        done
+    fi
+
     selected=$({
         [[ -n "$extra_paths" ]] && printf '%s' "$extra_paths"
         eval "find $default_directories -mindepth 1 -maxdepth 1 -type d"
-    } | fzf)
+    } | if [[ -n "$filter_arg" ]]; then eval "grep $filter_arg"; else cat; fi | fzf)
 fi
 
 if [[ -z $selected ]]; then
