@@ -1,0 +1,20 @@
+FROM node:22-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git ca-certificates curl ripgrep \
+    golang-go \
+    python3 python3-pip \
+    php-cli php-xml \
+    elixir \
+    lua5.4 luarocks \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN npm install -g \
+    opencode-ai \
+    @anthropic-ai/claude-code \
+    typescript typescript-language-server @vue/typescript-plugin \
+    eslint prettier \
+    pyright \
+    @johnnymorganz/stylua-bin
+
+WORKDIR /workspace
