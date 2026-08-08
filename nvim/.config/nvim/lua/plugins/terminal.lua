@@ -174,10 +174,6 @@ vim.api.nvim_create_autocmd('User', {
 })
 
 vim.keymap.set("t", "<esc><esc>", "<c-\\><c-n>")
-vim.keymap.set({ "n", "i", "x" }, "<C-/>", function()
-    toggle_scratch_terminal()
-end, { desc = "Scratch terminal" })
-
-vim.keymap.set({ "n", "i", "x" }, "<C-_>", function()
+vim.keymap.set({ "n", "i", "x" }, "<C-t>", function()
     toggle_scratch_terminal()
 end, { desc = "Scratch terminal" })

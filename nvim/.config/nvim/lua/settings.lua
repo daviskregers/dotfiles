@@ -163,5 +163,4 @@ vim.api.nvim_create_user_command("CLoc", function(opts)
 end, { range = true, desc = "Copy grep-style location of cursor/selection" })
 vim.keymap.set({ "n", "x" }, "<leader>cl", ":CLoc<CR>", { desc = "Copy grep-style location" })
 
--- statusline: code-agents segment removed 2026-07-15 (module superseded by clank.nvim).
--- TODO(clank): re-add a clank statusline segment once it exists.
+
