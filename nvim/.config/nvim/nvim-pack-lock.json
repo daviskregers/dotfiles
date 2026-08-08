@@ -8,6 +8,11 @@
       "rev": "2789206e10a0e4880f808c2aaf52bc57d876b481",
       "src": "https://github.com/saghen/blink.lib"
     },
+    "codecompanion.nvim": {
+      "rev": "2b959b2bf5fdb13e3b333c078ba549996e477b7c",
+      "src": "https://github.com/olimorris/codecompanion.nvim",
+      "version": "19.0.0 - 20.0.0"
+    },
     "diffview.nvim": {
       "rev": "4516612fe98ff56ae0415a259ff6361a89419b0a",
       "src": "https://github.com/sindrets/diffview.nvim"

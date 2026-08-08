@@ -1,6 +1,6 @@
 # clanker
 
-Config generator: define each command/agent/tool ONCE (type-safe Go), emit per-tool configs (claude, opencode; later pi). Kills manual dual-sync. Full design: `../.dk-notes/plans/config-builder.md`.
+Config generator: define each command/agent/tool ONCE (type-safe Go), emit per-tool configs (claude, opencode; later pi). Kills manual dual-sync.
 
 ## Blank slate (reset 2026-08-03)
 
