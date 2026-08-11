@@ -175,5 +175,9 @@ var Commands = []spec.Command{
 }
 
 // Docs is the shared global rules document, rendered to CLAUDE.md / AGENTS.md.
-// Wiped to a blank slate — no global doc emitted until repopulated.
-var Docs = []spec.Doc{}
+// global.md is a communication-style rule: kill restatement, lead with the
+// decision, one idea per home — applies to chat AND external artifacts (PRs,
+// Linear, commit bodies). Target-neutral, so no {{if}} spans.
+var Docs = []spec.Doc{
+	{Body: body("global.md")},
+}
