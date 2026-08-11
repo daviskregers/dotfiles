@@ -50,10 +50,33 @@ describe("rewriteCommand", () => {
         // appended (the branded quoted arg is not stripped from commands). See NOTE.
         expect(rewriteCommand('git commit -m "x" -m "Co-Authored-By: Claude"').action).toBe("change")
     })
-    test("gh pr create --body → notice injected inside the body", () => {
+    test("gh pr create --body → notice appended as a concatenated segment at the end", () => {
         const r = rewriteCommand('gh pr create --title t --body "summary"')
         expect(r.action).toBe("change")
-        if (r.action === "change") expect(r.cmd).toContain(`summary\n\n${NOTICE}`)
+        // appended after the body word, so the shell concatenates it onto the end
+        if (r.action === "change") expect(r.cmd).toBe(`gh pr create --title t --body "summary""\n\n${NOTICE}"`)
+    })
+    test("single-quoted body with an escaped '\\'' apostrophe → notice at end, not mid-body", () => {
+        // regression: the old regex closed at the first ' of the '\'' escape and
+        // spliced the notice into the middle of the body
+        const cmd = "gh pr create --body 'the school'\\''s own model'"
+        const r = rewriteCommand(cmd)
+        expect(r.action).toBe("change")
+        if (r.action === "change") {
+            expect(r.cmd).toBe(cmd + `"\n\n${NOTICE}"`)
+            expect(r.cmd).not.toContain(`school\n\n${NOTICE}`) // not spliced at the apostrophe
+        }
+    })
+    test("double-quoted body with escaped inner quotes → notice at end", () => {
+        const cmd = 'gh pr create --body "New \\"Login page source\\" section"'
+        const r = rewriteCommand(cmd)
+        expect(r.action).toBe("change")
+        if (r.action === "change") expect(r.cmd).toBe(cmd + `"\n\n${NOTICE}"`)
+    })
+    test("--body with a following flag → notice attaches to the body word only", () => {
+        const r = rewriteCommand('gh pr create --body "sum" --label bug')
+        expect(r.action).toBe("change")
+        if (r.action === "change") expect(r.cmd).toBe(`gh pr create --body "sum""\n\n${NOTICE}" --label bug`)
     })
     test("gh pr create --body-file → deny", () => {
         expect(rewriteCommand("gh pr create --body-file body.md").action).toBe("deny")
@@ -68,6 +91,60 @@ describe("rewriteCommand", () => {
         // `git commit` appears only inside a quoted echo arg → structural view drops it
         expect(rewriteCommand(`echo "run git commit later"`).action).toBe("none")
     })
+})
+
+// Decode the real body a shell would pass to `gh`, by running the rewritten
+// `--body <arg>` through `printf`. This is the airtight check that the notice is
+// a strict suffix and the body's middle survives intact — not just that some
+// substring appears in the command text.
+function decodeBody(cmd: string): string {
+    const prefix = "gh pr create --body "
+    const arg = cmd.slice(prefix.length) // tests below keep --body as the last arg
+    const p = Bun.spawnSync(["sh", "-c", `printf '%s' ${arg}`])
+    return new TextDecoder().decode(p.stdout)
+}
+
+describe("gh body: notice is a strict suffix, never mid-body (real-shell decode)", () => {
+    const cases: Array<[string, string, string]> = [
+        // [label, command, intended body before attribution]
+        ["single quotes, no specials", `gh pr create --body 'simple summary'`, "simple summary"],
+        ["apostrophe in the middle", `gh pr create --body 'the school'\\''s own model'`, "the school's own model"],
+        [
+            "two apostrophes, text after each",
+            `gh pr create --body 'it'\\''s the school'\\''s page'`,
+            "it's the school's page",
+        ],
+        [
+            "double quotes with an escaped quote in the MIDDLE",
+            `gh pr create --body "New \\"Login page source\\" section in file"`,
+            'New "Login page source" section in file',
+        ],
+        [
+            "double-quoted body ending mid-sentence before more prose",
+            `gh pr create --body "before \\"quoted\\" and a lot more text after"`,
+            'before "quoted" and a lot more text after',
+        ],
+        [
+            "mixed concatenation: double + single segments",
+            `gh pr create --body "quote: \\"x\\" "'and the org'\\''s name'`,
+            "quote: \"x\" and the org's name",
+        ],
+    ]
+    for (const [label, cmd, body] of cases) {
+        test(label, () => {
+            const r = rewriteCommand(cmd)
+            expect(r.action).toBe("change")
+            if (r.action !== "change") return
+            const decoded = decodeBody(r.cmd)
+            // the notice sits at the very end...
+            expect(decoded).toBe(`${body}\n\n${NOTICE}`)
+            // ...and appears exactly once, as a suffix — not spliced into the middle
+            expect(decoded.indexOf(NOTICE)).toBe(decoded.length - NOTICE.length)
+            expect(decoded.split(NOTICE).length - 1).toBe(1)
+            // the original body is preserved unbroken ahead of it
+            expect(decoded.startsWith(body)).toBe(true)
+        })
+    }
 })
 
 describe("commandView", () => {
