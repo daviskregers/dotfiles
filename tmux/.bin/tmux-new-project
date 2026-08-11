@@ -107,4 +107,4 @@ else
 fi
 
 # Launch tmux-sessionizer with the new project
-exec ~/.local/bin/tmux-sessionizer "$project_path"
+exec ~/.bin/tmux-sessionizer "$project_path"
