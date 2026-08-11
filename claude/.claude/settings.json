@@ -51,7 +51,7 @@
             "type": "command"
           }
         ],
-        "matcher": "Bash|mcp__claude_ai_Linear__save_comment|mcp__claude_ai_Linear__save_issue"
+        "matcher": "Bash|mcp__claude_ai_Linear__save_comment|mcp__claude_ai_Linear__save_issue|mcp__custom-tools__resolve_pr_thread"
       }
     ]
   },
