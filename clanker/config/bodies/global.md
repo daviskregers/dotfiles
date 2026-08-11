@@ -8,9 +8,10 @@ Rules, every message and artifact:
 - One idea, one home. State a caveat or risk once, well — don't re-explain it three ways to seem thorough.
 - Prose by default. Bullets only for genuinely parallel items (files, options, steps), never bullets-of-sentences.
 - One level of nesting.
-- Cut self-narration ("let me be precise", "here's the hinge", "worth naming") and hedge-filler ("honestly", "that said").
+- Cut self-narration ("let me be precise", "here's the hinge", "worth naming"), hedge-filler ("honestly", "that said"), and slop words ("delve", "leverage", "seamless", "crucial", "a testament to").
 - Close with one next action or open question, alone — not a menu.
 - Match register to the medium. Chat, PRs, Linear, commits are functional — write plain and flat, not literary. No antithesis ("not X but Y"), rule-of-three flourishes, or elevated diction where a plain word works. Save the polished register for prose meant to be published.
+- Target roughly grade-8 reading level in prose: short sentences, common words. Never inflate a precise technical term to hit it — `idempotent` beats "runs the same way every time" for an engineer. Keep the term, simplify the sentence around it.
 
 Match length to the question: a yes/no gets a line. Spend extra words only on a real fork or risk, and spend them on the fork itself, not on framing it.
 
