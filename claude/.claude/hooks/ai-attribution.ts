@@ -15,8 +15,12 @@ const BRANDED_LINE = /^[ \t>]*(?:co-authored-by:.*|.*generated with (?:claude co
 const CMD_BRANDED = /co-authored-by:|generated with (?:claude code|opencode)/i
 // A notice line already present, in either the bare or "(model)" form.
 const NOTICE_PRESENT = new RegExp(`^[ \\t>]*${NOTICE}\\b`, "im")
-// --body "..." / -b '...' value capture (handles escaped dquotes).
-const BODY_RE = /(--body|-b)(\s+|=)("(?:[^"\\]|\\.)*"|'[^']*')/
+// --body / -b flag (value follows). The value is scanned with bodyWordEnd rather
+// than a quoted-string regex — a naive regex closes at the first inner quote and
+// would splice the notice into the MIDDLE of any body containing a quote (an
+// escaped '\'' apostrophe in a single-quoted body, an unescaped " in a
+// double-quoted one). See bodyWordEnd.
+const BODY_FLAG_RE = /(--body|-b)(\s+|=)/
 
 // Structured tool name → field holding the postable body. Merged across targets:
 // claude MCP names + opencode names. Names never collide, so each target matches
@@ -45,6 +49,42 @@ function ensureNotice(t: string): string {
 }
 
 const reEsc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+// End of the shell WORD whose value begins at `start` (must be a quote), following
+// shell quoting/escaping and adjacent-segment concatenation ('a'\''b', "a"'b', a\ b).
+// Returns the index just past the word, or -1 if a quote is left unterminated
+// (fail-safe: caller then leaves the command untouched rather than corrupt it).
+function bodyWordEnd(cmd: string, start: number): number {
+    const n = cmd.length
+    let i = start
+    while (i < n) {
+        const c = cmd[i]
+        if (c === "'") {
+            const close = cmd.indexOf("'", i + 1) // single quotes: literal to next '
+            if (close < 0) return -1
+            i = close + 1
+        } else if (c === '"') {
+            i++ // double quotes: honor \" escapes
+            let closed = false
+            while (i < n) {
+                if (cmd[i] === "\\") i += 2
+                else if (cmd[i] === '"') {
+                    i++
+                    closed = true
+                    break
+                } else i++
+            }
+            if (!closed) return -1
+        } else if (c === "\\") {
+            i += 2 // unquoted escaped char (incl. an escaped space) — part of the word
+        } else if (/\s/.test(c) || ";|&<>()`".includes(c)) {
+            break // unquoted boundary: word ends here
+        } else {
+            i++ // bare word char — concatenation glue between quoted segments
+        }
+    }
+    return i
+}
 
 // Structure-only view for DETECTION: drop heredoc bodies + quoted strings so
 // `git commit` / `gh pr …` appearing as data (a message, heredoc, or another
@@ -80,14 +120,18 @@ function rewriteCommand(cmd: string): Rewrite {
     }
 
     if (/--body-file|(?:^|\s)-F\b|<</.test(view)) return { action: "deny" }
-    const m = BODY_RE.exec(cmd)
-    if (!m) return { action: "none" }
-    const raw = m[3]
-    const quote = raw[0]
-    const inner = raw.slice(1, -1)
-    const newInner = quote === '"' ? ensureNotice(inner.replace(/\\n/g, "\n")) : ensureNotice(inner)
-    const repl = `${m[1]}${m[2]}${quote}${newInner}${quote}`
-    return { action: "change", cmd: cmd.slice(0, m.index) + repl + cmd.slice(m.index + m[0].length) }
+    const fm = BODY_FLAG_RE.exec(cmd)
+    if (!fm) return { action: "none" }
+    const valStart = fm.index + fm[0].length
+    const q = cmd[valStart]
+    if (q !== '"' && q !== "'") return { action: "none" } // only quoted bodies are safely editable
+    const end = bodyWordEnd(cmd, valStart)
+    if (end < 0) return { action: "none" } // unterminated quoting — don't risk corrupting it
+    // Append the notice as a concatenated, real-newline double-quoted segment at the
+    // very end of the body word (mirrors the extra `-m` used for commits). Never
+    // touch the body's internals, so no quote inside it can misplace the notice.
+    const seg = `"\n\n${NOTICE}"`
+    return { action: "change", cmd: cmd.slice(0, end) + seg + cmd.slice(end) }
 }
 
 const DENY_MSG =
