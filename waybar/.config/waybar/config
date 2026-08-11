@@ -45,7 +45,7 @@
         "tooltip": false
     },
     "custom/network": {
-        "exec": "sh -c '$HOME/.local/bin/waybar-network'",
+        "exec": "sh -c '$HOME/.bin/waybar-network'",
         "return-type": "json",
         "on-click": "nm-connection-editor",
         "interval": 5,
@@ -76,11 +76,11 @@
         "tooltip-format": "Battery\n{timeTo}\n{capacity}%"
     },
     "custom/power-profiles": {
-        "exec": "sh -c '$HOME/.local/bin/power-profiles-ctl status'",
+        "exec": "sh -c '$HOME/.bin/power-profiles-ctl status'",
         "return-type": "json",
-        "on-click": "sh -c '$HOME/.local/bin/power-profiles-ctl toggle'",
-        "on-scroll-up": "sh -c '$HOME/.local/bin/power-profiles-ctl scroll-up'",
-        "on-scroll-down": "sh -c '$HOME/.local/bin/power-profiles-ctl scroll-down'",
+        "on-click": "sh -c '$HOME/.bin/power-profiles-ctl toggle'",
+        "on-scroll-up": "sh -c '$HOME/.bin/power-profiles-ctl scroll-up'",
+        "on-scroll-down": "sh -c '$HOME/.bin/power-profiles-ctl scroll-down'",
         "interval": 5,
         "tooltip": true
     },
@@ -126,9 +126,9 @@
         "tooltip-format": "Brightness\n{percent}%"
     },
         "custom/hyprshade": {
-            "exec": "sh -c '$HOME/.local/bin/hyprshade-ctl status'",
+            "exec": "sh -c '$HOME/.bin/hyprshade-ctl status'",
             "return-type": "json",
-            "on-click": "sh -c '$HOME/.local/bin/hyprshade-ctl toggle'",
+            "on-click": "sh -c '$HOME/.bin/hyprshade-ctl toggle'",
             "interval": 5,
             "tooltip": true
         },
