@@ -124,6 +124,14 @@ var Tools = []spec.Tool{
 		Core: toolFile("submit-pr-comment.ts"),
 	},
 	{
+		Name:        "open_nvim_window",
+		Description: "Open a new detached tmux window running nvim at a directory, to review an agent's changes. Call once per distinct directory; requires running inside tmux. Path may be relative to the cwd or absolute.",
+		Args: []spec.ToolArg{
+			{Name: "path", Type: spec.ArgString, Describe: "Directory to open nvim in (relative to cwd or absolute)"},
+		},
+		Core: toolFile("open-nvim-window.ts"),
+	},
+	{
 		Name:        "create_stacked_pr",
 		Description: "Open a PR targeting the branch the current branch was stacked on (closest-ancestor parent, overridable), not the default branch. Pushes the branch, stamps AI attribution, and creates the PR.",
 		Args: []spec.ToolArg{
@@ -171,6 +179,11 @@ var Commands = []spec.Command{
 		Name:        "stacked-pr",
 		Description: "Open a PR targeting the branch the current branch was stacked on, not the default branch",
 		Body:        body("stacked-pr.md"),
+	},
+	{
+		Name:        "nvim",
+		Description: "Open a tmux window with nvim at the directory an agent worked in, to review its changes",
+		Body:        body("nvim.md"),
 	},
 }
 

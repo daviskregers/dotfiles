@@ -5,6 +5,7 @@ import { execute as listPrComments } from "./list-pr-comments"
 import { execute as readPrInfo } from "./read-pr-info"
 import { execute as resolvePrThread } from "./resolve-pr-thread"
 import { execute as submitPrComment } from "./submit-pr-comment"
+import { execute as openNvimWindow } from "./open-nvim-window"
 import { execute as createStackedPr } from "./create-stacked-pr"
 
 const PROJECT_DIR = process.env.PROJECT_DIR || process.cwd()
@@ -53,6 +54,15 @@ server.tool(
         filePath: z.string().describe("Path to file to post as comment (relative to cwd or absolute)"),
     },
     async (args) => text(await submitPrComment(args, { directory: PROJECT_DIR })),
+)
+
+server.tool(
+    "open_nvim_window",
+    "Open a new detached tmux window running nvim at a directory, to review an agent's changes. Call once per distinct directory; requires running inside tmux. Path may be relative to the cwd or absolute.",
+    {
+        path: z.string().describe("Directory to open nvim in (relative to cwd or absolute)"),
+    },
+    async (args) => text(await openNvimWindow(args, { directory: PROJECT_DIR })),
 )
 
 server.tool(
