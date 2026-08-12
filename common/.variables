@@ -50,11 +50,27 @@ PATH=$(go env GOBIN):$(go env GOPATH)/bin:$PATH
 PATH=$HOME/.local/bin/:$PATH
 
 export NVM_DIR="$HOME/.nvm"
-[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
-[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+# Lazy-load nvm: sourcing nvm.sh and running `nvm use` costs ~0.5s+ on every
+# shell (much more under memory pressure). Defer it until nvm/node/npm/npx is
+# first called; the shim replaces itself with the real thing on first use.
+_load_nvm() {
+  unset -f nvm node npm npx
+  [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+  [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+}
+nvm()  { _load_nvm; nvm "$@"; }
+node() { _load_nvm; node "$@"; }
+npm()  { _load_nvm; npm "$@"; }
+npx()  { _load_nvm; npx "$@"; }
 
 # pnpm
-export PNPM_HOME=$(dirname $(dirname $(pnpm store path)))
+# Hardcoded per-OS to avoid forking `pnpm store path` (spawns node, ~0.5s) on
+# every shell. pnpm's default home differs by platform; only changes if moved.
+if [[ "$ARCH" == "Darwin" ]]; then
+  export PNPM_HOME="$HOME/Library/pnpm"
+else
+  export PNPM_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/pnpm"
+fi
 export COREPACK_ENABLE_AUTO_PIN=0
 case ":$PATH:" in
   *":$PNPM_HOME:"*) ;;
