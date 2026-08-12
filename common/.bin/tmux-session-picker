@@ -8,6 +8,57 @@ set -u
 
 current="$(tmux display-message -p '#S' 2>/dev/null || true)"
 
+SELF="$(cd "$(dirname "$0")" >/dev/null 2>&1 && pwd)/$(basename "$0")"
+MODE="${1:-}"
+
+# Shared row formatter: tab-separated `sess<TAB>win<TAB>state` -> fzf line.
+# Empty/unknown state renders a dim pending badge; the async reload swaps in
+# the real busy/wait/idle badge once detection finishes.
+fmt_rows() {
+  awk -F'\t' '
+    NF<2 { next }
+    {
+      badge=""
+      if ($3=="busy")      badge="\033[33m⚙ busy\033[0m"
+      else if ($3=="wait") badge="\033[31m⚠ wait\033[0m"
+      else if ($3=="idle")    badge="\033[32m● idle\033[0m"
+      else if ($3=="pending") badge="\033[2m…\033[0m"
+      printf "%-50s  %2s win  %s\n", $1, $2, badge
+    }'
+}
+
+# Fast pass: sessions only, no process inspection — draws instantly.
+if [ "$MODE" = "rows-fast" ]; then
+  tmux list-sessions -F '#{session_last_attached}	#{session_name}	#{session_windows}' 2>/dev/null | sort -rn |
+  while IFS=$'\t' read -r _ts sess windows; do
+    [ "$sess" = "$current" ] && continue
+    printf '%s\t%s\tpending\n' "$sess" "$windows"
+  done | fmt_rows
+  exit 0
+fi
+
+# Default (interactive) mode: draw the fast list, then trigger a single async
+# fzf reload of the annotated `rows-full` pass, so badges appear without
+# blocking selection. `load` fires again after the reload completes, so a
+# sentinel file guards against an infinite reload loop.
+if [ "$MODE" != "rows-full" ]; then
+  SENT="$(mktemp -t tmuxpick.XXXXXX)"
+  trap 'rm -f "$SENT"' EXIT
+  choice="$(
+    "$SELF" rows-fast | fzf --ansi --reverse --no-multi \
+      --header='switch tmux session  (agent state loads async)' \
+      --bind "load:transform:[ -s '$SENT' ] || { echo x > '$SENT'; echo 'reload($SELF rows-full)'; }"
+  )" || exit 0
+  sess="$(printf '%s' "$choice" | awk '{print $1}')"
+  [ -n "$sess" ] && tmux switch-client -t "$sess"
+  exit 0
+fi
+
+# ==========================================================================
+# rows-full: annotate each session with claude/opencode state. This is the
+# slower detection pass, run only when triggered by the async reload above.
+# ==========================================================================
+
 # --- Process inventory ----------------------------------------------------
 #   LLM_DESCS — every PID in claude/opencode's subtree (claude itself + every
 #               child it spawned, e.g. bash → npm → node when running a tool).
@@ -198,19 +249,5 @@ for line in $SESSIONS_DATA; do
 done
 IFS="$_OLD_IFS"
 
-# --- Render + fzf ---------------------------------------------------------
-fmt_rows=$(printf '%s' "$rows" | awk -F'\t' '
-  NF<2 { next }
-  {
-    badge=""
-    if ($3=="busy")      badge="\033[33m⚙ busy\033[0m"
-    else if ($3=="wait") badge="\033[31m⚠ wait\033[0m"
-    else if ($3=="idle") badge="\033[32m● idle\033[0m"
-    printf "%-50s  %2s win  %s\n", $1, $2, badge
-  }')
-
-choice=$(printf '%s' "$fmt_rows" | fzf --ansi --reverse --no-multi \
-  --header='switch tmux session  (claude/opencode state shown)') || exit 0
-
-sess=$(printf '%s' "$choice" | awk '{print $1}')
-[ -n "$sess" ] && tmux switch-client -t "$sess"
+# --- Render: emit annotated rows for the async fzf reload -----------------
+printf '%s' "$rows" | fmt_rows
