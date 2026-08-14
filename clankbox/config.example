@@ -1,0 +1,40 @@
+# clankbox per-machine config. Copy to ~/.config/clankbox/config and edit.
+# Sourced as shell — keep it to VAR=value lines.
+
+# Default agent when a project has no .dk-notes/.agent file.
+# This machine: claude. Other machines: opencode.
+CLANKBOX_AGENT=claude
+
+# Base network posture initialized by `clankbox setup` (deny-all | balanced | allow-all).
+# Adversarial default is deny-all; the allowlist is layered on top.
+CLANKBOX_POLICY_BASE=deny-all
+
+# Local model endpoints reachable from inside a sandbox, comma-separated.
+# ONLY set on machines that actually run them (e.g. the Arch stationary with ollama).
+# Leave empty on machines without — absent, not denied-and-noisy.
+# CLANKBOX_HOST_MODELS=host.docker.internal:11434,host.docker.internal:1234
+CLANKBOX_HOST_MODELS=
+
+# Optional per-session memory cap (sbx -m). Helps fit parallel sessions on 24GB.
+# Empty = let sbx decide (50% of host RAM, max 32GiB).
+# CLANKBOX_MEMORY=6g
+CLANKBOX_MEMORY=
+
+# Which non-secret config items to copy from your host into each sandbox at start.
+# Space-separated paths relative to ~/.claude and ~/.config/opencode respectively.
+# `hooks` (bun-run .ts) is included; settings.json is MERGED separately (kit's
+# bypassPermissions wins) so your model/hooks apply without breaking YOLO mode.
+# Never list credentials here.
+CLANKBOX_INJECT_CLAUDE="CLAUDE.md commands agents hooks"
+CLANKBOX_INJECT_OPENCODE="AGENTS.md command"
+
+# opencode: inject ~/.local/share/opencode/auth.json so all your subscription models
+# (github-copilot, OpenCode Zen, anthropic, openai) work without per-provider login.
+# Set to 0 to instead log in interactively per sandbox (opencode auth login).
+CLANKBOX_INJECT_OPENCODE_AUTH=1
+
+# Marketplace plugins to copy into the sandbox, OFFLINE (no gh, no network — the
+# plugin cache is copied and manifests are path-rewritten). Works for private
+# marketplaces without any credential in the box. Space-separated plugin@marketplace.
+# Set per machine, e.g.: CLANKBOX_INJECT_PLUGINS="edurio-core@edurio-plugins"
+CLANKBOX_INJECT_PLUGINS=""
