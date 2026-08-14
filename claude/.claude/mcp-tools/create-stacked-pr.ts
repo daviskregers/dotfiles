@@ -121,10 +121,22 @@ export async function execute(
     // 5. Create the PR against the parent branch.
     const ghArgs = ["pr", "create", "--base", base, "--head", current, "--title", title, "--body", body]
     if (args.draft) ghArgs.push("--draft")
+    let url: string
     try {
         const { stdout } = await execFileAsync("gh", ghArgs, { cwd, encoding: "utf8", maxBuffer: MAX_BUFFER })
-        return `Stacked PR created: ${stdout.trim()}\n  base: ${base}  ←  head: ${current}`
+        url = stdout.trim()
     } catch (err: any) {
         return `Error creating PR (gh pr create): ${err.message}`
     }
+
+    // 6. Open the PR in the browser. Non-fatal — the PR exists regardless, so a
+    //    headless/no-browser environment still gets a successful result.
+    let opened = ""
+    try {
+        await execFileAsync("gh", ["pr", "view", url, "--web"], { cwd, encoding: "utf8", maxBuffer: MAX_BUFFER })
+        opened = "\n  opened in browser"
+    } catch (err: any) {
+        opened = `\n  (could not open browser: ${err.message})`
+    }
+    return `Stacked PR created: ${url}\n  base: ${base}  ←  head: ${current}${opened}`
 }
