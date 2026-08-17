@@ -68,8 +68,11 @@ export function bodyWordEnd(cmd: string, start: number): number {
             let closed = false
             while (i < n) {
                 if (cmd[i] === "\\") i += 2
-                else if (cmd[i] === '"') { i++; closed = true; break }
-                else i++
+                else if (cmd[i] === '"') {
+                    i++
+                    closed = true
+                    break
+                } else i++
             }
             if (!closed) return -1
         } else if (c === "\\") {
