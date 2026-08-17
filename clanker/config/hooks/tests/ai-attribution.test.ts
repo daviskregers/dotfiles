@@ -127,7 +127,7 @@ describe("gh body: notice is a strict suffix, never mid-body (real-shell decode)
         [
             "mixed concatenation: double + single segments",
             `gh pr create --body "quote: \\"x\\" "'and the org'\\''s name'`,
-            "quote: \"x\" and the org's name",
+            'quote: "x" and the org\'s name',
         ],
     ]
     for (const [label, cmd, body] of cases) {
