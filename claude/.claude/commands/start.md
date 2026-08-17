@@ -1,37 +1,49 @@
 ---
-description: Start a piece of work — socratic understanding, then grill any open decisions, then implement via TDD
+description: Start a piece of work — pick a lane (free / plan-handoff / farm / practice) by who designs and who implements, then work it
 ---
 
-Entry ritual for starting a piece of work. Context: $ARGUMENTS — none? Ask what they're starting on. Three phases, strictly in order; each gates the next. Do NOT run ahead to code.
+Entry ritual for starting a piece of work. Context: $ARGUMENTS — none? Ask what they're starting on. Pick the lane (§0) first — it decides everything after. Do NOT run ahead to code.
 
-## 1. Understand (socratic)
+## 0. Pick the lane
 
-Two things to land, both by questioning — never by handing the answer:
+Two questions — **who designs** (holds the plan) and **who implements** (types it) — not how important the task is:
 
-**(a) The problem.** Pick the arc from the pasted context:
+|                  | You implement    | Agent implements |
+| ---------------- | ---------------- | ---------------- |
+| **You design**   | Free             | Plan-handoff     |
+| **Agent designs**| Practice         | Farm             |
 
-- Bug / broken / existing-behavior issue → **investigate** arc: artifact → hypothesis → verify-in-code → root cause. Unbiased by any theory already in the context.
-- Concept / new feature / unfamiliar topic → **learn** arc: general socratic tutoring.
+- **Free** — you design, you implement. Craft/flow/explore; agent supports only, never implements. → §Free
+- **Plan-handoff** — you design, agent implements. You learn it, write the plan, then hand off. → §Plan-handoff
+- **Farm** — agent designs, agent implements. You want nothing from the task; you gate and review. → §Farm
+- **Practice** — agent designs, you implement. Learn by doing: it directs and reviews, hints never code. A separate skill (`practice`), usable on its own too — hand off to it. Output ships if you want it to.
 
-**(b) The codebase scope.** Establish the slice the change will touch — the relevant files, modules, boundaries, and the data/control flow through them. Not the whole codebase; the change's blast radius. Lead the user to trace it themselves: where the flow enters, what transforms it, where the change lands, what it touches downstream.
+When unsure, keep cognition (Free / Plan-handoff / Practice over Farm). Cost is asymmetric: keeping cognition you didn't need wastes minutes; shedding cognition you needed erodes the skill — Practice is the one that *builds* it.
 
-Rules (both):
+## Free — you do it, the agent supports
 
-- **Lead with questions, never hand the conclusion.** Point where to look, ask what they see, withhold your read until they've formed theirs.
-- **Primary sources first.** The actual code, read together, before anyone's summary. Ground every claim in evidence you've shown, not memory.
-- **One question, then STOP and WAIT.** Don't chain or run ahead.
-- **Correct gently with the exact fact**; don't seize back the reasoning. Let a wrong hunch run until it breaks — that's the lesson.
+- No script, no lead. Work hands-on in your own loop (TDD: test → implement → refactor, small chunks).
+- Agent is **support only**: lookups, references, a second opinion, typing you direct. It does NOT investigate ahead, quiz you, or write the change.
+- Want teaching mid-stream? Pull in **investigate**/**learn** yourself — your call.
+- Optional fresh-context review when green: `/code-review`, `/verify`.
 
-Done when the user can, in their own words: (1) state the problem start-to-finish, and (2) trace the affected code path and name where the change lands and what it risks downstream.
+## Plan-handoff — you design, the agent builds
 
-## 2. Grill (only if anything's still unsettled)
+You hold the pen through understanding and planning; the agent takes over only once you've proven the plan.
 
-If any decision about WHAT to build is still open or silently assumed, invoke the **grilling** skill: map the design tree, work the frontier in rounds until it's empty. Skip this phase only if phase 1 already settled every branch.
+1. **Learn it yourself.** Socratic — agent leads by questions, withholds answers *and* locations, and does NOT read any prior conclusions/plans that would bias you. You find where to look and reason out the root cause.
+2. **You write the plan** — a file, in your own words: what's wrong / what you're building, and the numbered changes. Your artifact, not the agent's.
+3. **Agent audits your plan against the code** — falsifies it, flags wrong assumptions. Wrong? Fix it, or drop back to step 1 on that gap. This is the ungameable part: a wrong plan doesn't get built.
+4. **Gear switch — you declare it:** "I understand this, go implement." Bounded — name the steps and repos, withhold the commit for your review.
+5. **Agent implements autonomously** against your plan.
+6. **You review the diff before commit**, plus `/code-review` / `/verify`.
 
-## 3. Build (tdd)
+## Farm — the agent does it, you gate it first
 
-Once the plan is a shared understanding, implement via the **tdd** skill — red→green→refactor, one serial cycle per behavior. Not before.
+For work you want nothing from. The gate must be **ungameable** — no bluffing past it.
 
-## 4. Review (fresh context)
-
-Once green, hand the diff off to `/code-review` (or `/verify` for behavior) — a reviewer that didn't build it catches what the cycle hid.
+1. **State your understanding, unprompted** — how it works, the change, the blast radius. Concrete, checkable claims, not "yeah I get it."
+2. **Agent verifies each claim against the code**, not your confidence. No correct-and-continue past a wrong claim.
+3. **Wrong, or can't articulate it? STOP — drop to `investigate`/`learn` on that gap.** Being wrong routes you into learning, not past it — that's what makes the gate real.
+4. **Only once every claim checks out**, the agent implements. (If what-to-build is itself unsettled, `grilling` first.)
+5. **Review the diff against your stated understanding**, plus `/code-review` / `/verify`.
