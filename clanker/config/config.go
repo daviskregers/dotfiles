@@ -167,8 +167,13 @@ var Commands = []spec.Command{
 	},
 	{
 		Name:        "start",
-		Description: "Start a piece of work — socratic understanding, then grill any open decisions, then implement via TDD",
+		Description: "Start a piece of work — pick a lane (free / plan-handoff / farm / practice) by who designs and who implements, then work it",
 		Body:        body("start.md"),
+	},
+	{
+		Name:        "practice",
+		Description: "Coached practice — the agent directs and reviews while you implement (hints, never code); rebuild a skill by doing. Ships if you want it to",
+		Body:        body("practice.md"),
 	},
 	{
 		Name:        "pr-comments",
