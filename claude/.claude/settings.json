@@ -56,7 +56,6 @@
     ]
   },
   "includeCoAuthoredBy": false,
-  "model": "opus[1m]",
   "permissions": {
     "allow": [
       "Bash(git status*)",
