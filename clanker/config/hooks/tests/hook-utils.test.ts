@@ -22,6 +22,10 @@ describe("extractClaudeInput", () => {
             toolInput: { file_path: "src/a.ts" },
         })
     })
+    test("PreToolUse carries cwd, so a hook can measure the repo it fired in", () => {
+        const d = { tool_name: "Edit", tool_input: { file_path: "src/a.ts" }, cwd: "/repo" }
+        expect(extractClaudeInput("PreToolUse", d).cwd).toBe("/repo")
+    })
     test("PostToolUse pulls toolResponse", () => {
         const d = { tool_name: "Bash", tool_input: { command: "ls" }, tool_response: "out" }
         expect(extractClaudeInput("PostToolUse", d)).toEqual({ tool: "Bash", command: "ls", toolResponse: "out" })
