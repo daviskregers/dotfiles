@@ -34,6 +34,7 @@ export function extractClaudeInput(event: string, data: any): HookInput {
                 command: data.tool_input?.command,
                 filePath: data.tool_input?.file_path,
                 toolInput: data.tool_input,
+                cwd: data.cwd,
             }
         case "PostToolUse":
             return { tool: data.tool_name, command: data.tool_input?.command, toolResponse: data.tool_response }
