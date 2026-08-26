@@ -1,4 +1,11 @@
-import type { HookResult, HookCtx, HookInput } from "./hook-utils"
+import {
+    extractOpencodeAfter,
+    applyOpencodeAfter,
+    type HookResult,
+    type HookCtx,
+    type HookInput,
+} from "../hook-lib/hook-utils"
+
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
 import { readFileSync, writeFileSync, mkdirSync, statSync } from "node:fs"
@@ -19,7 +26,7 @@ const exec = promisify(execFile)
 // Churn (added + deleted, uncommitted) past which a diff stops being reviewable in one
 // sitting. config.go reads this literal out of the source to keep global.md and start.md
 // quoting the same number — renaming it breaks generation loudly.
-export const MIN_LINES = 250
+const MIN_LINES = 250
 
 // Paths whose churn isn't review work: lockfiles, generated output, minified bundles,
 // vendored trees. A DENYLIST rather than a source-extension allowlist, because the
@@ -30,7 +37,7 @@ export const MIN_LINES = 250
 const IGNORE = /(^|\/)(node_modules|vendor|dist)\/|\.lock$|-lock\.|\.min\.|generated/i
 
 // Parse one `git diff --numstat` block → the files touched + total churn.
-export function parseNumstat(output: string): { files: string[]; lines: number } {
+function parseNumstat(output: string): { files: string[]; lines: number } {
     let lines = 0
     const files: string[] = []
     for (const row of output.split("\n")) {
@@ -46,7 +53,7 @@ export function parseNumstat(output: string): { files: string[]; lines: number }
 
 // Coarse signature: same file-set + churn bucket → same sig, so we re-nudge only on
 // material growth (bucket of 100 lines), not on every tiny change.
-export function signature(cwd: string, files: string[], lines: number): string {
+function signature(cwd: string, files: string[], lines: number): string {
     const bucket = Math.floor(lines / 100)
     const raw = cwd + "|" + [...files].sort().join("|") + `|${bucket}`
     return createHash("sha1").update(raw).digest("hex")
@@ -54,20 +61,20 @@ export function signature(cwd: string, files: string[], lines: number): string {
 
 // Lines in a file's contents. A trailing newline terminates the last line rather than
 // starting a new one, and an empty file is zero lines, not one.
-export function countLines(text: string): number {
+function countLines(text: string): number {
     if (!text) return 0
     return text.split("\n").length - (text.endsWith("\n") ? 1 : 0)
 }
 
 // An untracked file and how many lines it holds — all of it is new, so the whole file is
 // churn.
-export type UntrackedFile = { path: string; lines: number }
+type UntrackedFile = { path: string; lines: number }
 
 // Total reviewable churn across the three places uncommitted work hides: worktree, index,
 // and untracked files. Untracked is the one that matters most and is easiest to miss —
 // `git diff` never reports them, so a session that writes entirely new files (a new
 // module, a new test file, a new plugin) otherwise measures as zero.
-export function totalChurn(worktree: string, cached: string, untracked: UntrackedFile[]) {
+function totalChurn(worktree: string, cached: string, untracked: UntrackedFile[]) {
     const files = new Set<string>()
     let lines = 0
     for (const out of [worktree, cached]) {
@@ -91,14 +98,14 @@ const EDIT_TOOLS = new Set(["edit", "write", "notebookedit", "multiedit", "apply
 // matcher: opencode's tool.execute.after fires for EVERY tool, so without this the hook
 // would shell out to git on every read and grep too. Exact names rather than a substring
 // test — opencode's `todowrite` would otherwise count as a file write.
-export function isEditTool(tool: string): boolean {
+function isEditTool(tool: string): boolean {
     return EDIT_TOOLS.has(tool.toLowerCase())
 }
 
 // The nudge itself. Advisory — it states the measured size and the reason a big
 // uncommitted diff is expensive (the user reviews locally before every commit), then
 // leaves the judgment of whether this is a clean boundary to the agent.
-export function nudgeText(lines: number, files: number): string {
+function nudgeText(lines: number, files: number): string {
     return (
         `Uncommitted churn is now ${lines} reviewable lines across ${files} file(s), past the ` +
         `${MIN_LINES}-line mark where a diff stops being reviewable in one sitting. The user reviews ` +
@@ -183,7 +190,7 @@ function alreadyNudged(cwd: string, sig: string): boolean {
     return false
 }
 
-export async function run(input: HookInput, ctx: HookCtx): Promise<HookResult> {
+async function run(input: HookInput, ctx: HookCtx): Promise<HookResult> {
     if (!isEditTool(input.tool ?? "")) return { kind: "none" }
     const cwd = input.cwd || ctx.directory
     const { lines, files } = await changedLines(cwd)
@@ -191,3 +198,8 @@ export async function run(input: HookInput, ctx: HookCtx): Promise<HookResult> {
     if (alreadyNudged(cwd, signature(cwd, files, lines))) return { kind: "none" }
     return { kind: "context", text: nudgeText(lines, files.length) }
 }
+
+export const comprehensionNudge = async ({ directory }: { directory: string }) => ({
+    "tool.execute.after": async (input: any, output: any) =>
+        applyOpencodeAfter(output, await run(extractOpencodeAfter(input, output), { directory })),
+})

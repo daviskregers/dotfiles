@@ -53,6 +53,10 @@ func body(name string) string {
 // HookUtils is the shared hook types module, inlined into each generated hook.
 var HookUtils = hookFile("hook-utils.ts")
 
+// nudgeCore is referenced twice: as comprehension-nudge's own source, and as the origin of
+// the churn threshold that global.md and start.md quote (see withChurnLimit).
+var nudgeCore = hookFile("comprehension-nudge.ts")
+
 // Hooks retained through the blank-slate wipe: dangerous-command-guard (blocks
 // reflexive destructive shell — e.g. rm -rf) and ai-attribution (stamps the
 // AI-generated marker on commits/PRs, mandated by EU AI Act Art. 50). ai-attribution's
@@ -72,6 +76,17 @@ var Hooks = []spec.Hook{
 		Matcher:       "Bash|mcp__claude_ai_Linear__save_comment|mcp__claude_ai_Linear__save_issue|mcp__custom-tools__resolve_pr_thread",
 		OpencodeEvent: spec.ToolExecuteBefore,
 		Core:          hookFile("ai-attribution.ts"),
+	},
+	// comprehension-nudge is the one restored (not retained) hook, and the only advisory
+	// one: it reports uncommitted churn before a file write so work comes back in
+	// reviewable slices. opencode maps to tool.execute.AFTER because its before-hooks
+	// can't carry non-blocking context — only throw or rewrite args.
+	{
+		Name:          "comprehension-nudge",
+		Event:         spec.PreToolUse,
+		Matcher:       "Edit|Write|NotebookEdit",
+		OpencodeEvent: spec.ToolExecuteAfter,
+		Core:          nudgeCore,
 	},
 }
 
@@ -167,8 +182,8 @@ var Commands = []spec.Command{
 	},
 	{
 		Name:        "start",
-		Description: "Start a piece of work — pick a lane (free / plan-handoff / farm / practice) by who designs and who implements, then work it",
-		Body:        body("start.md"),
+		Description: "Start a piece of work — will you own it, and what do you want out of it; then trace, enumerate, slice, and explain the diff before it commits",
+		Body:        withChurnLimit(body("start.md"), nudgeCore),
 	},
 	{
 		Name:        "practice",
@@ -197,5 +212,5 @@ var Commands = []spec.Command{
 // decision, one idea per home — applies to chat AND external artifacts (PRs,
 // Linear, commit bodies). Target-neutral, so no {{if}} spans.
 var Docs = []spec.Doc{
-	{Body: body("global.md")},
+	{Body: withChurnLimit(body("global.md"), nudgeCore)},
 }

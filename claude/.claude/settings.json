@@ -2,6 +2,7 @@
   "enabledPlugins": {
     "codex@openai-codex": true,
     "edurio-core@edurio-plugins": true,
+    "edurio-dev@edurio-plugins": true,
     "plannotator@plannotator": true
   },
   "env": {
@@ -52,6 +53,15 @@
           }
         ],
         "matcher": "Bash|mcp__claude_ai_Linear__save_comment|mcp__claude_ai_Linear__save_issue|mcp__custom-tools__resolve_pr_thread"
+      },
+      {
+        "hooks": [
+          {
+            "command": "bun \"$HOME/.claude/hooks/comprehension-nudge.ts\"",
+            "type": "command"
+          }
+        ],
+        "matcher": "Edit|Write|NotebookEdit"
       }
     ]
   },
