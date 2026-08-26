@@ -58,5 +58,7 @@ go run ./src -out ..     # from clanker/
 ## Conventions
 
 - Comments: load-bearing "why" only; never restate code.
+- Bodies (`config/bodies/*.md`) load into context every session — write them compressed. Drop articles and filler, use fragments and arrows, keep technical substance and structure. Prose register is for chat, not for these.
 - Commit BOTH source and generated output (`claude/`, `opencode/`) — generated files must work for people who don't run clanker.
+- Never hand-edit generated output, and never hand-replicate a change into the second target. Edit `config/`, then `go run ./src -out ..`.
 - `clanker` is excluded from stow (build tool, not `$HOME` config).
