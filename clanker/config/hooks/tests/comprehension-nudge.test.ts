@@ -1,5 +1,13 @@
 import { test, expect } from "bun:test"
-import { parseNumstat, signature, nudgeText, isEditTool, MIN_LINES } from "../comprehension-nudge"
+import {
+    parseNumstat,
+    signature,
+    nudgeText,
+    isEditTool,
+    totalChurn,
+    countLines,
+    MIN_LINES,
+} from "../comprehension-nudge"
 
 test("parseNumstat counts churn on every path, whatever the extension", () => {
     const out = ["10\t5\tsrc/a.ts", "3\t2\tREADME.md", "40\t0\tbin/tmux-session-picker", "7\t1\tetc/nginx.conf"].join(
@@ -71,6 +79,29 @@ test("isEditTool rejects tools that only look like writers, notably opencode's t
     expect(isEditTool("bash")).toBe(false)
     expect(isEditTool("read")).toBe(false)
     expect(isEditTool("")).toBe(false)
+})
+
+test("totalChurn counts untracked files, which git diff never reports at all", () => {
+    const r = totalChurn("10\t0\tsrc/a.ts", "", [{ path: "src/new.ts", lines: 120 }])
+    expect(r.files.sort()).toEqual(["src/a.ts", "src/new.ts"])
+    expect(r.lines).toBe(130)
+})
+
+test("totalChurn applies the denylist to untracked files too", () => {
+    const r = totalChurn("", "", [
+        { path: "src/new.ts", lines: 40 },
+        { path: "bun.lock", lines: 900 },
+        { path: "web/vendor/lib.js", lines: 500 },
+    ])
+    expect(r.files).toEqual(["src/new.ts"])
+    expect(r.lines).toBe(40)
+})
+
+test("countLines counts what a reviewer would read, trailing newline or not", () => {
+    expect(countLines("a\nb\n")).toBe(2)
+    expect(countLines("a\nb")).toBe(2)
+    expect(countLines("\n")).toBe(1)
+    expect(countLines("")).toBe(0)
 })
 
 test("nudgeText reports the measured churn and the review threshold", () => {

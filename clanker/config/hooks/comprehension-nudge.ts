@@ -1,7 +1,7 @@
 import type { HookResult, HookCtx, HookInput } from "./hook-utils"
 import { execFile } from "node:child_process"
 import { promisify } from "node:util"
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs"
+import { readFileSync, writeFileSync, mkdirSync, statSync } from "node:fs"
 import { homedir } from "node:os"
 import { join, dirname } from "node:path"
 import { createHash } from "node:crypto"
@@ -52,6 +52,37 @@ export function signature(cwd: string, files: string[], lines: number): string {
     return createHash("sha1").update(raw).digest("hex")
 }
 
+// Lines in a file's contents. A trailing newline terminates the last line rather than
+// starting a new one, and an empty file is zero lines, not one.
+export function countLines(text: string): number {
+    if (!text) return 0
+    return text.split("\n").length - (text.endsWith("\n") ? 1 : 0)
+}
+
+// An untracked file and how many lines it holds — all of it is new, so the whole file is
+// churn.
+export type UntrackedFile = { path: string; lines: number }
+
+// Total reviewable churn across the three places uncommitted work hides: worktree, index,
+// and untracked files. Untracked is the one that matters most and is easiest to miss —
+// `git diff` never reports them, so a session that writes entirely new files (a new
+// module, a new test file, a new plugin) otherwise measures as zero.
+export function totalChurn(worktree: string, cached: string, untracked: UntrackedFile[]) {
+    const files = new Set<string>()
+    let lines = 0
+    for (const out of [worktree, cached]) {
+        const r = parseNumstat(out)
+        r.files.forEach((f) => files.add(f))
+        lines += r.lines
+    }
+    for (const u of untracked) {
+        if (IGNORE.test(u.path)) continue
+        files.add(u.path)
+        lines += u.lines
+    }
+    return { files: [...files], lines }
+}
+
 // Claude's file-writing tool names plus opencode's, merged — each target matches only
 // its own and the rest are inert (same convention as ai-attribution's FIELD_MAP).
 const EDIT_TOOLS = new Set(["edit", "write", "notebookedit", "multiedit", "apply_patch"])
@@ -93,17 +124,45 @@ async function numstat(cwd: string, cached: boolean): Promise<string> {
     }
 }
 
-// Worktree + index churn. Both are diffs against HEAD's content, so anything committed
-// drops out — a commit is what resets the counter.
-async function changedLines(cwd: string): Promise<{ lines: number; files: string[] }> {
-    const files = new Set<string>()
-    let lines = 0
-    for (const cached of [false, true]) {
-        const r = parseNumstat(await numstat(cwd, cached))
-        r.files.forEach((f) => files.add(f))
-        lines += r.lines
+// Bounds on the untracked scan, so a repo full of unignored junk can't stall a tool call.
+const MAX_UNTRACKED_FILES = 200
+const MAX_UNTRACKED_BYTES = 1_000_000
+
+// Untracked files, read directly rather than via a git subprocess each. `--exclude-standard`
+// honours .gitignore, and IGNORE (applied in totalChurn) drops the rest.
+async function untrackedFiles(cwd: string): Promise<UntrackedFile[]> {
+    let listing = ""
+    try {
+        const args = ["-C", cwd, "ls-files", "--others", "--exclude-standard"]
+        const { stdout } = await exec("git", args, { timeout: 8000 })
+        listing = stdout
+    } catch {
+        return []
     }
-    return { lines, files: [...files] }
+    const files: UntrackedFile[] = []
+    for (const rel of listing.split("\n").filter(Boolean).slice(0, MAX_UNTRACKED_FILES)) {
+        try {
+            const abs = join(cwd, rel)
+            if (statSync(abs).size > MAX_UNTRACKED_BYTES) continue
+            const text = readFileSync(abs, "utf8")
+            if (text.includes("\0")) continue // binary — nothing to read line by line
+            files.push({ path: rel, lines: countLines(text) })
+        } catch {
+            // unreadable (deleted mid-scan, permissions) — skip it, never break the tool call
+        }
+    }
+    return files
+}
+
+// Everything uncommitted: worktree + index diffs (both against HEAD's content, so anything
+// committed drops out — a commit is what resets the counter) plus untracked files.
+async function changedLines(cwd: string): Promise<{ lines: number; files: string[] }> {
+    const [worktree, cached, untracked] = await Promise.all([
+        numstat(cwd, false),
+        numstat(cwd, true),
+        untrackedFiles(cwd),
+    ])
+    return totalChurn(worktree, cached, untracked)
 }
 
 function alreadyNudged(cwd: string, sig: string): boolean {
