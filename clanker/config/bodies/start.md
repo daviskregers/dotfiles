@@ -18,6 +18,7 @@ When unsure, keep cognition (Free / Plan-handoff / Practice over Farm). Cost is 
 
 ## Free — you do it, the agent supports
 
+- **Say what done looks like, one sentence, before you start.** There's no plan here to size, so this is the only thing between flow and a sprawl you can't review at the end.
 - No script, no lead. Work hands-on in your own loop (TDD: test → implement → refactor, small chunks).
 - Agent is **support only**: lookups, references, a second opinion, typing you direct. It does NOT investigate ahead, quiz you, or write the change.
 - Want teaching mid-stream? Pull in **investigate**/**learn** yourself — your call.
@@ -27,19 +28,23 @@ When unsure, keep cognition (Free / Plan-handoff / Practice over Farm). Cost is 
 
 You hold the pen through understanding and planning; the agent takes over only once you've proven the plan.
 
-1. **Learn it yourself.** Socratic — agent leads by questions, withholds answers *and* locations, and does NOT read any prior conclusions/plans that would bias you. You find where to look and reason out the root cause.
-2. **You write the plan** — a file, in your own words: what's wrong / what you're building, and the numbered changes. Your artifact, not the agent's.
-3. **Agent audits your plan against the code** — falsifies it, flags wrong assumptions. Wrong? Fix it, or drop back to step 1 on that gap. This is the ungameable part: a wrong plan doesn't get built.
-4. **Gear switch — you declare it:** "I understand this, go implement." Bounded — name the steps and repos, withhold the commit for your review.
-5. **Agent implements autonomously** against your plan.
-6. **You review the diff before commit**, plus `/code-review` / `/verify`.
+1. **Learn it yourself — run `investigate` (bug) or `learn` (feature) and follow its rules verbatim.** Don't paraphrase them here; a paraphrase drifts. In particular: point at where to look and ask what you see — withhold the *verdict*, never the coordinates. Agent does NOT read prior conclusions/plans before you have your own.
+2. **Anchor on the entrypoint before any hypothesis.** A stack trace hands it to you; a ticket, video or screenshot does not. If the artifact isn't a trace, the first job is recovering what you actually touched — URL (the port says which app/repo), button, command, endpoint. Agree the anchor and the repo before a single question about mechanism.
+3. **Enumerate the writers.** Once the mutated field or state is known, grep every writer and check each against the invariant. "N call sites, one missing the hook" only surfaces if you enumerate on purpose.
+4. **You write the plan** — a file, in your own words: what's wrong / what you're building, and the numbered changes. Your artifact, not the agent's. Put a rough churn guess on each step, tests included, and mark any step over ~__CHURN_LIMIT__ lines as a candidate to split. It's a guess, not a gate — the point is seeing where the handbacks fall before you start.
+5. **Agent audits your plan against the code** — falsifies it, flags wrong assumptions, says which churn guesses look low. Wrong? Fix it, or drop back to step 1 on that gap. This is the ungameable part: a wrong plan doesn't get built.
+6. **Gear switch — you declare it:** "I understand this, go implement." Bounded — name the steps and repos, withhold the commit for your review.
+7. **Agent implements autonomously** against your plan.
+8. **You review the diff before commit**, plus `/code-review` / `/verify`.
 
 ## Farm — the agent does it, you gate it first
 
-For work you want nothing from. The gate must be **ungameable** — no bluffing past it.
+For work you want nothing from. The gate must be **ungameable** — no bluffing past it. But it can only ask for what a person can hold in their head: mechanism, never counts. "State the blast radius unprompted" has no right answer without a grep, so it fails everyone every time and teaches you to avoid the lane instead of passing it.
 
-1. **State your understanding, unprompted** — how it works, the change, the blast radius. Concrete, checkable claims, not "yeah I get it."
-2. **Agent verifies each claim against the code**, not your confidence. No correct-and-continue past a wrong claim.
-3. **Wrong, or can't articulate it? STOP — drop to `investigate`/`learn` on that gap.** Being wrong routes you into learning, not past it — that's what makes the gate real.
-4. **Only once every claim checks out**, the agent implements. (If what-to-build is itself unsettled, `grilling` first.)
-5. **Review the diff against your stated understanding**, plus `/code-review` / `/verify`.
+1. **Agent traces the entrypoint to the change site first**, one hop at a time, per §Pointing at code — no leaf coordinates, no ticket's evidence list as a starting point. You confirm or correct the trace. This is study material, not the gate.
+2. **You state the mechanism in your own words** before the agent says anything about the change: how the flow works from that entrypoint, and what the change does to it. Concrete, checkable claims, not "yeah I get it."
+3. **Agent verifies each claim against the code**, not your confidence. No correct-and-continue past a wrong claim.
+4. **Agent enumerates, you judge — this is the real gate.** It greps every writer / caller / permission the change touches and hands you the list. For each entry you say whether it upholds the invariant and why; the agent checks each answer against the code. "Looks fine" is not an answer. Step 2 is parrotable after step 1; this is not.
+5. **Wrong, or can't articulate it? STOP — drop to `investigate`/`learn` on that gap.** Being wrong routes you into learning, not past it — that's what makes the gate real.
+6. **Only once every claim checks out**, the agent implements — sketching the slices and their rough churn first, flagging any over ~__CHURN_LIMIT__ lines. (If what-to-build is itself unsettled, `grilling` first.)
+7. **Review the diff against your stated understanding**, plus `/code-review` / `/verify`.
