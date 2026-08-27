@@ -10,8 +10,8 @@ hl.monitor({ output = "DP-2", mode = "preferred", position = "0x0", scale = 1.0 
 hl.monitor({ output = "DP-1", mode = "preferred", position = "1920x0", scale = 1.0 })
 -- Default: no scaling for normal-DPI displays.
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1.0 })
--- Archbook retina internal display (2880x1800): 1.5x fractional scale.
-hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = 1.5 })
+-- Internal display: 1080p 15.6" panel (this Archbook), native 1.0 scale.
+hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = 1.0 })
 
 hl.config({
     input = {
