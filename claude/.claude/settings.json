@@ -80,5 +80,6 @@
   "statusLine": {
     "command": "bash \"/Users/daviskregers/.claude/statusline.sh\"",
     "type": "command"
-  }
+  },
+  "tui": "fullscreen"
 }
