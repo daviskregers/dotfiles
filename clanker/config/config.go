@@ -186,6 +186,15 @@ var Commands = []spec.Command{
 		Body:        withChurnLimit(body("start.md"), nudgeCore),
 	},
 	{
+		// Only claims 1 and 3 are testable: claim 2 is a caller inventory, which a
+		// test can only assert about grep's output. Claim 1's test must be written
+		// blind — reading the implementation first yields a test that passes by
+		// construction and scores nothing.
+		Name:        "claims",
+		Description: "Test the Predictions you wrote in an issue's notes file — claim 1 as a blind executable test, claim 3 pinned as characterization — then score them",
+		Body:        body("claims.md"),
+	},
+	{
 		Name:        "practice",
 		Description: "Coached practice — the agent directs and reviews while you implement (hints, never code); rebuild a skill by doing. Ships if you want it to",
 		Body:        body("practice.md"),
