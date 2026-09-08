@@ -26,9 +26,22 @@ const BODY_FLAG_RE = /(--body|-b)(\s+|=)/
 // claude MCP names + opencode names. Names never collide, so each target matches
 // only its own — the other keys are inert. (opencode has no Linear tool wired, so
 // its Linear coverage matches the pre-existing plugin: none.)
+//
+// Every Linear entity that carries authored prose is listed — issues are no longer
+// the only unit of work. Only the long-form field is attributed, never `summary`
+// (255-char blurb shown in list views, where the notice would be pure noise).
+// GAP: these tools also accept `patch` in place of the prose field; a patch-only
+// update carries no body to attribute and passes through untouched.
 const FIELD_MAP: Record<string, string> = {
     mcp__claude_ai_Linear__save_comment: "body",
     mcp__claude_ai_Linear__save_issue: "description",
+    mcp__claude_ai_Linear__save_project: "description",
+    mcp__claude_ai_Linear__save_milestone: "description",
+    mcp__claude_ai_Linear__save_initiative: "description",
+    mcp__claude_ai_Linear__save_document: "content",
+    mcp__claude_ai_Linear__save_status_update: "body",
+    mcp__claude_ai_Linear__save_release: "description",
+    mcp__claude_ai_Linear__save_release_note: "content",
     "mcp__custom-tools__update_pr_info": "body",
     "mcp__custom-tools__resolve_pr_thread": "replyBody",
     "update-pr-info": "body",

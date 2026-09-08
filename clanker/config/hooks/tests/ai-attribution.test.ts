@@ -170,6 +170,27 @@ describe("run — structured tools (FIELD_MAP, exact tool names)", () => {
         expect(r.kind).toBe("allow")
         if (r.kind === "allow") expect((r.updatedInput as any).description).toBe(`d\n\n${NOTICE}`)
     })
+    // Projects/milestones/documents replaced issues as the unit of work — each writes
+    // its own prose field, so the map must cover them all or attribution silently lapses.
+    const LINEAR_BODY_FIELDS: Array<[string, string]> = [
+        ["save_project", "description"],
+        ["save_milestone", "description"],
+        ["save_initiative", "description"],
+        ["save_document", "content"],
+        ["save_status_update", "body"],
+        ["save_release", "description"],
+        ["save_release_note", "content"],
+    ]
+    for (const [tool, field] of LINEAR_BODY_FIELDS) {
+        test(`claude Linear ${tool} attributes the ${field} field`, async () => {
+            const r = await run(
+                { tool: `mcp__claude_ai_Linear__${tool}`, toolInput: { [field]: "d" } },
+                { directory: "." },
+            )
+            expect(r.kind).toBe("allow")
+            if (r.kind === "allow") expect((r.updatedInput as any)[field]).toBe(`d\n\n${NOTICE}`)
+        })
+    }
     test("opencode update-pr-info attributes body", async () => {
         const r = await run({ tool: "update-pr-info", toolInput: { body: "d" } }, { directory: "." })
         expect(r.kind).toBe("allow")
