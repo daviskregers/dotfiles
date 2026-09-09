@@ -1,24 +1,17 @@
 {
   "enabledPlugins": {
-    "codex@openai-codex": true,
     "edurio-core@edurio-plugins": true,
     "edurio-dev@edurio-plugins": true,
-    "plannotator@plannotator": true
+    "skill-creator@claude-plugins-official": true
   },
   "env": {
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "DISABLE_AUTOUPDATER": "1"
   },
   "extraKnownMarketplaces": {
-    "openai-codex": {
+    "edurio-plugins": {
       "source": {
-        "repo": "openai/codex-plugin-cc",
-        "source": "github"
-      }
-    },
-    "plannotator": {
-      "source": {
-        "repo": "backnotprop/plannotator",
+        "repo": "edurio-dev/claude-plugins",
         "source": "github"
       }
     }
@@ -78,8 +71,9 @@
     ]
   },
   "statusLine": {
-    "command": "bash \"/Users/daviskregers/.claude/statusline.sh\"",
+    "command": "bash \"$HOME/.claude/statusline.sh\"",
     "type": "command"
   },
+  "theme": "dark",
   "tui": "fullscreen"
 }
