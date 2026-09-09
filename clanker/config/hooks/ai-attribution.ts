@@ -11,28 +11,25 @@ const NOTICE = "🤖 Generated with AI"
 
 // Branded attribution lines stripped from bodies.
 const BRANDED_LINE = /^[ \t>]*(?:co-authored-by:.*|.*generated with (?:claude code|opencode).*)\s*$/gim
-// Branded text anywhere in a single-line command.
+// Branded text in the posting command. Matched against that command's masked view,
+// so the same words inside a quoted message are prose, not a trailer.
 const CMD_BRANDED = /co-authored-by:|generated with (?:claude code|opencode)/i
-// A `git commit` invocation: optional VAR=value assignments, then git's own global
-// flags (`git -C dir commit`). One source, two anchorings — whole-command detection
-// needs a separator boundary, per-segment matching starts at the segment.
-// CMD_IS_COMMIT is the LOOSER of the two: it also fires inside `(…)` and backticks,
-// which splitSegments never splits on, so those detect as a commit and then find no
-// segment — `none`, not an attribution.
+// The two commands that post content, each anchored at the START of a segment.
 // A flag's optional VALUE must not itself start with `-`, or `-a -b -c …` can be
 // carved up two ways per token and the match goes exponential (a 44-token run took
 // ~9s, hanging the tool call).
-const GIT_COMMIT = String.raw`(?:\w+=\S*\s+)*git\s+(?:-\S+\s+(?:[^-\s]\S*\s+)?)*commit\b`
-const CMD_IS_COMMIT = new RegExp(String.raw`(?:^|[\n;&|(\`])\s*` + GIT_COMMIT)
-const SEG_IS_COMMIT = new RegExp(String.raw`^\s*` + GIT_COMMIT)
+const SEG_IS_COMMIT = /^\s*(?:\w+=\S*\s+)*git\s+(?:-\S+\s+(?:[^-\s]\S*\s+)?)*commit\b/
+const SEG_IS_GH = /^\s*gh\s+pr\s+(?:create|comment|edit)\b/
 // A notice line already present, in either the bare or "(model)" form.
 const NOTICE_PRESENT = new RegExp(`^[ \\t>]*${NOTICE}\\b`, "im")
-// --body / -b flag (value follows). The value is scanned with bodyWordEnd rather
-// than a quoted-string regex — a naive regex closes at the first inner quote and
-// would splice the notice into the MIDDLE of any body containing a quote (an
-// escaped '\'' apostrophe in a single-quoted body, an unescaped " in a
-// double-quoted one). See bodyWordEnd.
-const BODY_FLAG_RE = /(--body|-b)(\s+|=)/
+// The --body / -b flag TOKEN only; the separator is a lookahead so nothing past the
+// flag name is consumed. It is matched against the mask, where the body itself is
+// blank — a `\s+` here would run the whole length of the blanked body and put the
+// value offset past it. The value is then scanned with bodyWordEnd rather than a
+// quoted-string regex: a naive regex closes at the first inner quote and would splice
+// the notice into the MIDDLE of any body containing one (an escaped '\'' apostrophe
+// in a single-quoted body, an unescaped " in a double-quoted one).
+const BODY_FLAG_RE = /(?:^|\s)(?:--body|-b)(?==|\s)/
 
 // Structured tool name → field holding the postable body. Merged across targets:
 // claude MCP names + opencode names. Names never collide, so each target matches
@@ -73,8 +70,6 @@ export function ensureNotice(t: string): string {
     return s ? s + "\n\n" + NOTICE : NOTICE
 }
 
-const reEsc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-
 // End of the shell WORD whose value begins at `start` (must be a quote), following
 // shell quoting/escaping and adjacent-segment concatenation ('a'\''b', "a"'b', a\ b).
 // Returns the index just past the word, or -1 if a quote is left unterminated
@@ -111,16 +106,23 @@ export function bodyWordEnd(cmd: string, start: number): number {
     return i
 }
 
-// Top-level segment spans of a command line, split on UNQUOTED separators
-// (; && || | & newline). Quoting/escaping is followed as in bodyWordEnd, and
-// `(`/`)` nest so a separator inside $(…) doesn't split. Returns null on
-// unterminated quoting — the caller then leaves the command untouched.
-//
-// Needed because commandView is not index-preserving (it rewrites spans to a
-// single space), so its offsets can't be mapped back onto the raw command.
-export function splitSegments(cmd: string): Array<{ start: number; end: number }> | null {
-    const out: Array<{ start: number; end: number }> = []
+export type Scan = { segments: Array<{ start: number; end: number }>; mask: string }
+
+// One structural pass over a command line, producing both things every caller needs:
+//   segments — top-level spans, split on UNQUOTED separators (; && || | & newline)
+//   mask     — the command with quoted spans blanked to spaces, SAME LENGTH, so a
+//              regex match index maps 1:1 back onto the raw command
+// Quoting/escaping follows the same rules as bodyWordEnd; `(`/`)` nest so a separator
+// inside $(…) doesn't split. Returns null whenever the shape can't be read safely —
+// unterminated quoting, unbalanced parens, an unquoted heredoc or comment — and every
+// caller then leaves the command untouched rather than guessing.
+export function scanCommand(cmd: string): Scan | null {
     const n = cmd.length
+    const m = cmd.split("")
+    const blank = (a: number, b: number) => {
+        for (let k = a; k < b; k++) m[k] = " "
+    }
+    const segments: Array<{ start: number; end: number }> = []
     let start = 0
     let i = 0
     let depth = 0
@@ -133,8 +135,10 @@ export function splitSegments(cmd: string): Array<{ start: number; end: number }
         } else if (c === "'" || c === "`") {
             const close = cmd.indexOf(c, i + 1) // literal to the matching mark
             if (close < 0) return null
+            blank(i, close + 1)
             i = close + 1
         } else if (c === '"') {
+            const open = i
             i++
             let closed = false
             while (i < n) {
@@ -146,6 +150,7 @@ export function splitSegments(cmd: string): Array<{ start: number; end: number }
                 } else i++
             }
             if (!closed) return null
+            blank(open, i)
         } else if (c === "\\") {
             i += 2
         } else if (c === "(") {
@@ -155,14 +160,14 @@ export function splitSegments(cmd: string): Array<{ start: number; end: number }
             if (depth > 0) depth--
             i++
         } else if (depth === 0 && (c === ";" || c === "\n" || c === "|" || (c === "&" && !isRedirectAmp(cmd, i)))) {
-            out.push({ start, end: i })
+            segments.push({ start, end: i })
             while (i < n && ";\n&|".includes(cmd[i])) i++ // consume the whole separator
             start = i
         } else i++
     }
     if (depth !== 0) return null // unbalanced parens — we misread the structure, don't guess
-    out.push({ start, end: n })
-    return out
+    segments.push({ start, end: n })
+    return { segments, mask: m.join("") }
 }
 
 // True when the `&` at `i` belongs to a redirection (`2>&1`, `>&2`) rather than
@@ -173,80 +178,67 @@ function isRedirectAmp(cmd: string, i: number): boolean {
     return prev === ">" || prev === "<"
 }
 
-// Span of the `git commit` invocation inside a possibly-chained command. An
-// unrecognised shape yields null → no attribution, rather than a flag appended to
-// whatever command happens to come last.
-export function commitSegment(cmd: string): { start: number; end: number } | null {
-    const segs = splitSegments(cmd)
-    if (!segs) return null
-    return segs.find((s) => SEG_IS_COMMIT.test(commandView(cmd.slice(s.start, s.end)))) ?? null
-}
+export type Target = { start: number; end: number; kind: "commit" | "gh"; mask: string }
 
-// Structure-only view for DETECTION: drop heredoc bodies + quoted strings so
-// `git commit` / `gh pr …` appearing as data (a message, heredoc, or another
-// command's args) isn't mistaken for the real command being invoked.
-export function commandView(cmd: string): string {
-    let s = cmd
-    for (;;) {
-        const m = /<<-?\s*(['"]?)([A-Za-z_]\w*)\1/.exec(s)
-        if (!m) break
-        const pat = new RegExp(reEsc(m[0]) + "[\\s\\S]*?^\\s*" + reEsc(m[2]) + "\\s*$", "m")
-        const next = s.replace(pat, " ")
-        s = next === s ? s.slice(0, m.index) + " " : next // no terminator → drop to end
+// The ONE segment in a chain that actually posts content. Every later check runs
+// against this span alone: scanning the whole chain let a sibling command's flags
+// qualify the commit, deny it, or receive the notice itself — `git checkout -b
+// "feat/x" && gh pr create --body "text"` used to append the notice to the BRANCH
+// NAME and leave the PR body unattributed.
+export function targetSegment(cmd: string): Target | null {
+    const scan = scanCommand(cmd)
+    if (!scan) return null
+    for (const s of scan.segments) {
+        const seg = scan.mask.slice(s.start, s.end)
+        if (SEG_IS_COMMIT.test(seg)) return { ...s, kind: "commit", mask: scan.mask }
+        if (SEG_IS_GH.test(seg)) return { ...s, kind: "gh", mask: scan.mask }
     }
-    return s.replace(/'[^']*'/g, " ").replace(/"(?:[^"\\]|\\.)*"/g, " ")
+    return null
 }
 
 type Rewrite = { action: "none" } | { action: "deny" } | { action: "change"; cmd: string }
 
 export function rewriteCommand(cmd: string): Rewrite {
     if (cmd.includes(NOTICE)) return { action: "none" }
-    const view = commandView(cmd)
-    const isCommit = CMD_IS_COMMIT.test(view)
-    const isGhPost = /(?:^|[\n;&|(`])\s*gh\s+pr\s+(?:create|comment|edit)\b/.test(view)
-    if (!isCommit && !isGhPost) return { action: "none" }
-    if (CMD_BRANDED.test(view)) return { action: "deny" } // scan structural view — prose mentioning it isn't a trailer
+    const t = targetSegment(cmd)
+    if (!t) return { action: "none" }
+    // Structural view of the POSTING command only. Quoted spans are blank here, so
+    // flags and branded text appearing as DATA (inside a message, a title, a sibling
+    // command's args) can neither qualify the rewrite nor trigger a deny.
+    const view = t.mask.slice(t.start, t.end)
+    if (CMD_BRANDED.test(view)) return { action: "deny" }
 
-    if (isCommit) {
-        // Work on the commit's OWN segment, never the whole chain. Appending to the raw
-        // string put the flag on the last command of a chain; and scanning the whole
-        // chain for flags let a later command's `-m` qualify an editor-driven commit
-        // (turning it non-interactive with the notice as its entire message) and a
-        // later `grep -F` false-deny the commit.
-        const seg = commitSegment(cmd)
-        if (!seg) return { action: "none" }
-        const segRaw = cmd.slice(seg.start, seg.end)
-        // scan the segment's view (not raw) so -F/--file inside a message don't false-deny;
+    if (t.kind === "commit") {
         // bare -C dropped (collides with git's global `-C <dir>`; --reuse-message covers it).
-        const segView = commandView(segRaw)
-        if (/(?:^|\s)(?:-F|--file|--reuse-message|--reedit-message)\b/.test(segView)) return { action: "deny" }
-        // `-[a-z]*m` also catches the combined short forms (-am, -sm). Scan the VIEW:
-        // on raw, a quoted arg containing " -m " (`--author="Foo -m Bar <x@y>"`)
-        // qualifies an editor-driven --amend and overwrites its message with the notice.
-        if (!/(?:^|\s)(?:-[a-zA-Z]*m|--message)\b/.test(segView)) return { action: "none" }
-        let e = seg.end
-        while (e > seg.start && /\s/.test(cmd[e - 1])) {
+        if (/(?:^|\s)(?:-F|--file|--reuse-message|--reedit-message)\b/.test(view)) return { action: "deny" }
+        // `-[a-z]*m` also catches the combined short forms (-am, -sm).
+        if (!/(?:^|\s)(?:-[a-zA-Z]*m|--message)\b/.test(view)) return { action: "none" }
+        let e = t.end
+        while (e > t.start && /\s/.test(cmd[e - 1])) {
             let b = e - 1
-            while (b > seg.start && cmd[b - 1] === "\\") b--
+            while (b > t.start && cmd[b - 1] === "\\") b--
             if ((e - 1 - b) % 2 === 1) break // backslash-escaped space — part of the word, not padding
             e-- // keep the separator's spacing intact
         }
         return { action: "change", cmd: cmd.slice(0, e) + ` -m "${NOTICE}"` + cmd.slice(e) }
     }
 
-    if (/--body-file|(?:^|\s)-F\b|<</.test(view)) return { action: "deny" }
-    const fm = BODY_FLAG_RE.exec(cmd)
+    // Heredoc bodies never reach here — scanCommand bails on them.
+    if (/--body-file|(?:^|\s)-F\b/.test(view)) return { action: "deny" }
+    const fm = BODY_FLAG_RE.exec(view)
     if (!fm) return { action: "none" }
-    const valStart = fm.index + fm[0].length
+    // Walk from the end of the flag NAME to the start of its value, on the raw command.
+    let valStart = t.start + fm.index + fm[0].length
+    if (cmd[valStart] === "=") valStart++
+    else while (valStart < t.end && /\s/.test(cmd[valStart])) valStart++
     const q = cmd[valStart]
     if (q !== '"' && q !== "'") return { action: "none" } // only quoted bodies are safely editable
     const end = bodyWordEnd(cmd, valStart)
-    if (end < 0) return { action: "none" } // unterminated quoting — don't risk corrupting it
+    if (end < 0 || end > t.end) return { action: "none" } // unterminated, or ran past this command
     // Append the notice as a concatenated, real-newline double-quoted segment at the
     // very end of the body word (mirrors the extra `-m` used for commits). Never
     // touch the body's internals, so no quote inside it can misplace the notice.
-    const seg = `"\n\n${NOTICE}"`
-    return { action: "change", cmd: cmd.slice(0, end) + seg + cmd.slice(end) }
+    return { action: "change", cmd: cmd.slice(0, end) + `"\n\n${NOTICE}"` + cmd.slice(end) }
 }
 
 const DENY_MSG =

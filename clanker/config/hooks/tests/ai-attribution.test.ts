@@ -1,5 +1,5 @@
 import { test, expect, describe } from "bun:test"
-import { ensureNotice, stripBranded, commandView, rewriteCommand, run } from "../ai-attribution"
+import { ensureNotice, stripBranded, scanCommand, rewriteCommand, run } from "../ai-attribution"
 
 const NOTICE = "🤖 Generated with AI"
 
@@ -40,9 +40,13 @@ describe("rewriteCommand", () => {
     test("file-based commit (-F) → deny", () => {
         expect(rewriteCommand("git commit -F msg.txt").action).toBe("deny")
     })
-    test("branded text UNQUOTED in the command view → deny", () => {
+    test("branded text UNQUOTED in the COMMIT itself → deny", () => {
         // outside quotes it survives the structural view → treated as a real trailer
-        expect(rewriteCommand("git commit -m x && echo generated with claude code").action).toBe("deny")
+        expect(rewriteCommand("git commit -m x --trailer generated with claude code").action).toBe("deny")
+    })
+    test("branded text in a SIBLING command of the chain → not the commit's problem", () => {
+        // was deny: the whole-chain scan blocked a commit over text going nowhere near it
+        expect(rewriteCommand("git commit -m x && echo generated with claude code").action).toBe("change")
     })
     test("branded text inside a quoted -m message → change (view drops quotes; prose isn't a trailer)", () => {
         // faithful to the original: CMD_BRANDED scans the structural view, so a
@@ -147,9 +151,16 @@ describe("gh body: notice is a strict suffix, never mid-body (real-shell decode)
     }
 })
 
-describe("commandView", () => {
-    test("drops quoted strings so embedded keywords aren't seen", () => {
-        expect(commandView(`echo "git commit -m x"`)).not.toContain("commit")
+describe("scanCommand mask", () => {
+    test("blanks quoted strings so embedded keywords aren't seen", () => {
+        expect(scanCommand(`echo "git commit -m x"`)?.mask).not.toContain("commit")
+    })
+    test("mask is the same length as the command, so match indices map back 1:1", () => {
+        const cmd = `gh pr create --title "uses --body flag" --body "real"`
+        const scan = scanCommand(cmd)
+        expect(scan?.mask.length).toBe(cmd.length)
+        // the only surviving --body is the real flag, at its true index
+        expect(scan?.mask.indexOf("--body")).toBe(cmd.lastIndexOf("--body"))
     })
 })
 
@@ -360,5 +371,37 @@ describe("segment scoping: checks must not read the whole chain", () => {
         const t0 = performance.now()
         rewriteCommand(cmd)
         expect(performance.now() - t0).toBeLessThan(100)
+    })
+})
+
+// The gh branch read the whole chain for its --body flag, so the FIRST -b anywhere
+// won — including another command's. Verified in bash: the notice concatenated onto
+// the branch name and the PR body shipped unattributed.
+describe("gh: body flag is found on the gh segment only", () => {
+    test("a preceding `git checkout -b` is not mistaken for the body flag", () => {
+        const r = rewriteCommand(`git checkout -b "feat/x" && gh pr create --body "text"`)
+        expect(r.action).toBe("change")
+        if (r.action !== "change") return
+        expect(r.cmd).toBe(`git checkout -b "feat/x" && gh pr create --body "text""\n\n${NOTICE}"`)
+        expect(r.cmd).toContain(`-b "feat/x" &&`) // branch name untouched
+    })
+    test("a preceding `curl -b` cookie is not mistaken for the body flag", () => {
+        const r = rewriteCommand(`curl -b "session=abc" https://x && gh pr comment 1 --body "note"`)
+        expect(r.action).toBe("change")
+        if (r.action !== "change") return
+        expect(r.cmd).toContain(`curl -b "session=abc" https://x &&`)
+        expect(r.cmd).toContain(`--body "note""\n\n${NOTICE}"`)
+    })
+    test("`--body` inside a quoted title does not swallow the real flag", () => {
+        const r = rewriteCommand(`gh pr create --title "uses --body flag" --body "real"`)
+        expect(r.action).toBe("change")
+        if (r.action !== "change") return
+        expect(r.cmd).toBe(`gh pr create --title "uses --body flag" --body "real""\n\n${NOTICE}"`)
+    })
+    test("a later `grep -F` no longer false-denies the gh post", () => {
+        expect(rewriteCommand(`gh pr comment 1 --body "hi" && grep -F x file`).action).toBe("change")
+    })
+    test("a later `grep -F` no longer false-denies the commit", () => {
+        expect(rewriteCommand(`git commit -m "fix" && grep -rn co-authored-by: .`).action).toBe("change")
     })
 })
