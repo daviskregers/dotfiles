@@ -26,6 +26,16 @@ const DANGER: [RegExp, string][] = [
     [/\bterraform\s+destroy\b/i, "terraform destroy"],
     [/\bdocker\s+system\s+prune\b|\bdocker\s+volume\s+rm\b/i, "docker destructive prune / volume rm"],
     [/(?:^|[\s;&|(\\`])(?:\S*\/)?aws(?=\s|$)/i, "the AWS CLI — disallowed for the agent (run it yourself if needed)"],
+    [
+        /(?:^|[\s;&|(\\`])(?:\S*\/)?kubectl(?=\s|$)/i,
+        "the kubectl CLI — disallowed for the agent (run it yourself if needed)",
+    ],
+    // Cluster credentials reached without kubectl: a kubeconfig read/pipe, KUBECONFIG
+    // pointed at one, or the in-pod service-account token mount.
+    [
+        /\.kube\/config|\.kubeconfig\b|\bKUBECONFIG=|\/var\/run\/secrets\/kubernetes\.io/i,
+        "Kubernetes cluster credentials (kubeconfig / service-account token)",
+    ],
     [/:\(\)\s*\{\s*:\s*\|\s*:\s*&\s*\}\s*;\s*:/, "fork bomb"],
 ]
 
