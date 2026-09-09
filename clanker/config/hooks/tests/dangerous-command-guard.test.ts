@@ -21,6 +21,12 @@ const DENY = [
     "terraform destroy",
     "docker system prune -af",
     "aws s3 rb s3://bucket --force",
+    "kubectl get pods",
+    "kubectl get secret db-creds -o yaml",
+    "/usr/local/bin/kubectl delete pod web-1",
+    "kubectl --context prod exec -it web-1 -- sh",
+    "cat ~/.kube/config",
+    "KUBECONFIG=/tmp/prod.kubeconfig helm get values app",
     ":(){ :|:& };:",
     "echo hi && git push --force",
 ]
@@ -37,6 +43,8 @@ const ALLOW = [
     "chmod 644 file",
     "git commit -m 'note: rm -rf is dangerous'",
     "gh pr create --title 'aws migration'",
+    "gh pr create --title 'kubectl rollout notes'",
+    "git commit -m 'document the kubeconfig setup'",
 ]
 
 test.each(DENY)("denies: %s", async (cmd) => {
