@@ -19,6 +19,18 @@ const NOTICE = "🤖 Generated with AI"
 const BRANDED_LINE = /^[ \t>]*(?:co-authored-by:.*|.*generated with (?:claude code|opencode).*)\s*$/gim
 // Branded text anywhere in a single-line command.
 const CMD_BRANDED = /co-authored-by:|generated with (?:claude code|opencode)/i
+// A `git commit` invocation: optional VAR=value assignments, then git's own global
+// flags (`git -C dir commit`). One source, two anchorings — whole-command detection
+// needs a separator boundary, per-segment matching starts at the segment.
+// CMD_IS_COMMIT is the LOOSER of the two: it also fires inside `(…)` and backticks,
+// which splitSegments never splits on, so those detect as a commit and then find no
+// segment — `none`, not an attribution.
+// A flag's optional VALUE must not itself start with `-`, or `-a -b -c …` can be
+// carved up two ways per token and the match goes exponential (a 44-token run took
+// ~9s, hanging the tool call).
+const GIT_COMMIT = String.raw`(?:\w+=\S*\s+)*git\s+(?:-\S+\s+(?:[^-\s]\S*\s+)?)*commit\b`
+const CMD_IS_COMMIT = new RegExp(String.raw`(?:^|[\n;&|(\`])\s*` + GIT_COMMIT)
+const SEG_IS_COMMIT = new RegExp(String.raw`^\s*` + GIT_COMMIT)
 // A notice line already present, in either the bare or "(model)" form.
 const NOTICE_PRESENT = new RegExp(`^[ \\t>]*${NOTICE}\\b`, "im")
 // --body / -b flag (value follows). The value is scanned with bodyWordEnd rather
@@ -105,6 +117,77 @@ function bodyWordEnd(cmd: string, start: number): number {
     return i
 }
 
+// Top-level segment spans of a command line, split on UNQUOTED separators
+// (; && || | & newline). Quoting/escaping is followed as in bodyWordEnd, and
+// `(`/`)` nest so a separator inside $(…) doesn't split. Returns null on
+// unterminated quoting — the caller then leaves the command untouched.
+//
+// Needed because commandView is not index-preserving (it rewrites spans to a
+// single space), so its offsets can't be mapped back onto the raw command.
+function splitSegments(cmd: string): Array<{ start: number; end: number }> | null {
+    const out: Array<{ start: number; end: number }> = []
+    const n = cmd.length
+    let start = 0
+    let i = 0
+    let depth = 0
+    while (i < n) {
+        const c = cmd[i]
+        if (c === "<" && cmd[i + 1] === "<" && cmd[i + 2] !== "<") {
+            return null // unquoted heredoc: the body is data, and splitting inside it wrote the flag into a FILE
+        } else if (c === "#" && (i === 0 || /\s/.test(cmd[i - 1]))) {
+            return null // a comment swallows the rest of the line — the flag would land inside it, silently dropped
+        } else if (c === "'" || c === "`") {
+            const close = cmd.indexOf(c, i + 1) // literal to the matching mark
+            if (close < 0) return null
+            i = close + 1
+        } else if (c === '"') {
+            i++
+            let closed = false
+            while (i < n) {
+                if (cmd[i] === "\\") i += 2
+                else if (cmd[i] === '"') {
+                    i++
+                    closed = true
+                    break
+                } else i++
+            }
+            if (!closed) return null
+        } else if (c === "\\") {
+            i += 2
+        } else if (c === "(") {
+            depth++
+            i++
+        } else if (c === ")") {
+            if (depth > 0) depth--
+            i++
+        } else if (depth === 0 && (c === ";" || c === "\n" || c === "|" || (c === "&" && !isRedirectAmp(cmd, i)))) {
+            out.push({ start, end: i })
+            while (i < n && ";\n&|".includes(cmd[i])) i++ // consume the whole separator
+            start = i
+        } else i++
+    }
+    if (depth !== 0) return null // unbalanced parens — we misread the structure, don't guess
+    out.push({ start, end: n })
+    return out
+}
+
+// True when the `&` at `i` belongs to a redirection (`2>&1`, `>&2`) rather than
+// separating commands. Splitting there spliced the flag between `2>` and `1`, which
+// bash reads as a redirect to a file literally named `-m`.
+function isRedirectAmp(cmd: string, i: number): boolean {
+    const prev = cmd[i - 1]
+    return prev === ">" || prev === "<"
+}
+
+// Span of the `git commit` invocation inside a possibly-chained command. An
+// unrecognised shape yields null → no attribution, rather than a flag appended to
+// whatever command happens to come last.
+function commitSegment(cmd: string): { start: number; end: number } | null {
+    const segs = splitSegments(cmd)
+    if (!segs) return null
+    return segs.find((s) => SEG_IS_COMMIT.test(commandView(cmd.slice(s.start, s.end)))) ?? null
+}
+
 // Structure-only view for DETECTION: drop heredoc bodies + quoted strings so
 // `git commit` / `gh pr …` appearing as data (a message, heredoc, or another
 // command's args) isn't mistaken for the real command being invoked.
@@ -125,17 +208,36 @@ type Rewrite = { action: "none" } | { action: "deny" } | { action: "change"; cmd
 function rewriteCommand(cmd: string): Rewrite {
     if (cmd.includes(NOTICE)) return { action: "none" }
     const view = commandView(cmd)
-    const isCommit = /(?:^|[\n;&|(`])\s*git\s+commit\b/.test(view)
+    const isCommit = CMD_IS_COMMIT.test(view)
     const isGhPost = /(?:^|[\n;&|(`])\s*gh\s+pr\s+(?:create|comment|edit)\b/.test(view)
     if (!isCommit && !isGhPost) return { action: "none" }
     if (CMD_BRANDED.test(view)) return { action: "deny" } // scan structural view — prose mentioning it isn't a trailer
 
     if (isCommit) {
-        // scan `view` (not raw) so -F/--file in a message don't false-deny; bare -C dropped
-        // (collides with git's global `-C <dir>` flag; --reuse-message covers it).
-        if (/(?:^|\s)(?:-F|--file|--reuse-message|--reedit-message)\b/.test(view)) return { action: "deny" }
-        if (!/(?:^|\s)(?:-m|--message)\b/.test(cmd)) return { action: "none" }
-        return { action: "change", cmd: cmd.replace(/\s+$/, "") + ` -m "${NOTICE}"` }
+        // Work on the commit's OWN segment, never the whole chain. Appending to the raw
+        // string put the flag on the last command of a chain; and scanning the whole
+        // chain for flags let a later command's `-m` qualify an editor-driven commit
+        // (turning it non-interactive with the notice as its entire message) and a
+        // later `grep -F` false-deny the commit.
+        const seg = commitSegment(cmd)
+        if (!seg) return { action: "none" }
+        const segRaw = cmd.slice(seg.start, seg.end)
+        // scan the segment's view (not raw) so -F/--file inside a message don't false-deny;
+        // bare -C dropped (collides with git's global `-C <dir>`; --reuse-message covers it).
+        const segView = commandView(segRaw)
+        if (/(?:^|\s)(?:-F|--file|--reuse-message|--reedit-message)\b/.test(segView)) return { action: "deny" }
+        // `-[a-z]*m` also catches the combined short forms (-am, -sm). Scan the VIEW:
+        // on raw, a quoted arg containing " -m " (`--author="Foo -m Bar <x@y>"`)
+        // qualifies an editor-driven --amend and overwrites its message with the notice.
+        if (!/(?:^|\s)(?:-[a-zA-Z]*m|--message)\b/.test(segView)) return { action: "none" }
+        let e = seg.end
+        while (e > seg.start && /\s/.test(cmd[e - 1])) {
+            let b = e - 1
+            while (b > seg.start && cmd[b - 1] === "\\") b--
+            if ((e - 1 - b) % 2 === 1) break // backslash-escaped space — part of the word, not padding
+            e-- // keep the separator's spacing intact
+        }
+        return { action: "change", cmd: cmd.slice(0, e) + ` -m "${NOTICE}"` + cmd.slice(e) }
     }
 
     if (/--body-file|(?:^|\s)-F\b|<</.test(view)) return { action: "deny" }

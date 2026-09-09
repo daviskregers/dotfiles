@@ -153,6 +153,126 @@ describe("commandView", () => {
     })
 })
 
+// The notice must land on the `git commit` segment, not at the end of a chain —
+// appending to the raw string put the flag on the LAST command, so the commit went
+// out unattributed and the trailing command died on an unknown switch.
+describe("chained commit: notice attaches to the commit, not the chain", () => {
+    const chained: Array<[string, string, string]> = [
+        // [label, command, text expected immediately after the inserted notice]
+        ["&& follows", `git commit -m "x" && git log`, " && git log"],
+        ["; follows", `git commit -m "x" ; echo done`, " ; echo done"],
+        ["|| follows", `git commit -m "x" || true`, " || true"],
+        ["newline follows", `git commit -m "x"\ngit push`, "\ngit push"],
+        [
+            "two commands follow",
+            `git commit -m "x" && git log && git status --short`,
+            " && git log && git status --short",
+        ],
+        ["leading cd, trailing status", `cd /tmp && git commit -m "y" && git status`, " && git status"],
+    ]
+    for (const [label, cmd, tail] of chained) {
+        test(label, () => {
+            const r = rewriteCommand(cmd)
+            expect(r.action).toBe("change")
+            if (r.action !== "change") return
+            expect(r.cmd).toBe(cmd.slice(0, cmd.length - tail.length) + ` -m "${NOTICE}"` + tail)
+        })
+    }
+
+    test("a separator inside the message does not split the segment", () => {
+        const r = rewriteCommand(`git commit -m "fix a && b" && git log`)
+        expect(r.action).toBe("change")
+        if (r.action !== "change") return
+        expect(r.cmd).toBe(`git commit -m "fix a && b" -m "${NOTICE}" && git log`)
+    })
+
+    test("a separator inside $() does not split the segment", () => {
+        const r = rewriteCommand(`git commit -m "$(echo a && echo b)" && git log`)
+        expect(r.action).toBe("change")
+        if (r.action !== "change") return
+        expect(r.cmd).toBe(`git commit -m "$(echo a && echo b)" -m "${NOTICE}" && git log`)
+    })
+
+    test("unterminated quoting → left untouched rather than corrupted", () => {
+        expect(rewriteCommand(`git commit -m "x && git log`).action).toBe("none")
+    })
+
+    // A `&` that belongs to a redirection is not a segment separator. Splitting there
+    // cut `2>&1` in half and spliced the flag between `2>` and `1`, which bash reads as
+    // a redirect to a file named `-m`, backgrounds the commit, and passes the notice to
+    // git as a pathspec instead of a message.
+    test("redirection &  does not split the segment", () => {
+        const r = rewriteCommand(`git commit -m "x" 2>&1 | tee log`)
+        expect(r.action).toBe("change")
+        if (r.action !== "change") return
+        expect(r.cmd).toBe(`git commit -m "x" 2>&1 -m "${NOTICE}" | tee log`)
+    })
+
+    // The -m presence check ran on the whole chain, so a stray -m on a LATER command
+    // qualified an editor-driven commit — turning it non-interactive with the notice as
+    // its entire message. --amend variants rewrote a real commit's message.
+    test("editor commit with -m only on a later command → none", () => {
+        expect(rewriteCommand(`git add -A && git commit && git log -1 -m`).action).toBe("none")
+    })
+    test("--amend --no-edit with -m only on a later command → none", () => {
+        expect(rewriteCommand(`git commit --amend --no-edit && git show -m HEAD`).action).toBe("none")
+    })
+
+    // Heredoc bodies are data, not segments. The first `git commit` inside one used to
+    // match, so the flag was written into the FILE. An unquoted heredoc anywhere in the
+    // chain now bails: no attribution, but nothing corrupted.
+    test("git commit inside a heredoc body is never rewritten", () => {
+        const cmd = `cat <<EOF > notes.txt\ngit commit -m fake\nEOF\ngit commit -m real`
+        expect(rewriteCommand(cmd).action).toBe("none")
+    })
+    test("a heredoc inside a quoted -m still attributes normally", () => {
+        const cmd = `git commit -m "$(cat <<'EOF'\nbody\nEOF\n)"`
+        const r = rewriteCommand(cmd)
+        expect(r.action).toBe("change")
+        if (r.action === "change") expect(r.cmd).toBe(`${cmd} -m "${NOTICE}"`)
+    })
+
+    test("unbalanced paren outside quotes → left untouched", () => {
+        expect(rewriteCommand(`git commit -m \${p//(/-} && echo done`).action).toBe("none")
+    })
+
+    test("escaped trailing space is not walked back over", () => {
+        const r = rewriteCommand(`git commit -m x\\ && echo done`)
+        // the escaped space stays inside the message word; the notice follows as its own -m
+        if (r.action === "change") expect(r.cmd).toBe(`git commit -m x\\  -m "${NOTICE}"&& echo done`)
+    })
+
+    // -F/--file denies scanned the whole chain, blocking any later command using -F.
+    test("grep -F later in the chain does not deny the commit", () => {
+        const r = rewriteCommand(`git commit -m "x" && grep -F foo file`)
+        expect(r.action).toBe("change")
+        if (r.action !== "change") return
+        expect(r.cmd).toBe(`git commit -m "x" -m "${NOTICE}" && grep -F foo file`)
+    })
+
+    test("combined short flags (-am, -sm) still get attributed", () => {
+        for (const flag of ["-am", "-sm"]) {
+            const r = rewriteCommand(`git commit ${flag} "x"`)
+            expect(r.action).toBe("change")
+            if (r.action === "change") expect(r.cmd).toBe(`git commit ${flag} "x" -m "${NOTICE}"`)
+        }
+    })
+
+    test("git -C <dir> commit still gets attributed", () => {
+        const r = rewriteCommand(`git -C /tmp commit -m "x" && echo done`)
+        expect(r.action).toBe("change")
+        if (r.action !== "change") return
+        expect(r.cmd).toBe(`git -C /tmp commit -m "x" -m "${NOTICE}" && echo done`)
+    })
+
+    test("unchained commit still appends at the end", () => {
+        const r = rewriteCommand(`git commit -m "x"`)
+        expect(r.action).toBe("change")
+        if (r.action !== "change") return
+        expect(r.cmd).toBe(`git commit -m "x" -m "${NOTICE}"`)
+    })
+})
+
 describe("run — structured tools (FIELD_MAP, exact tool names)", () => {
     test("claude custom-tools update_pr_info (hyphenated) gets attributed", async () => {
         const r = await run(
@@ -218,5 +338,27 @@ describe("run — Bash", () => {
     })
     test("innocuous command → none", async () => {
         expect((await run({ tool: "Bash", command: "ls" }, { directory: "." })).kind).toBe("none")
+    })
+})
+
+// Regressions found by adversarial review of the segment-scoping change itself.
+describe("segment scoping: checks must not read the whole chain", () => {
+    test("quoted ' -m ' in --author does not qualify an editor-driven amend", () => {
+        const cmd = `git commit --amend --no-edit --author="Foo -m Bar <x@y>"`
+        expect(rewriteCommand(cmd).action).toBe("none")
+    })
+    test("an unquoted # comment bails rather than inserting into the comment", () => {
+        expect(rewriteCommand(`git commit -m x # do it later\ngit push`).action).toBe("none")
+    })
+    test("a # inside the message is not a comment", () => {
+        const r = rewriteCommand(`git commit -m "fix #123"`)
+        expect(r.action).toBe("change")
+        if (r.action === "change") expect(r.cmd).toBe(`git commit -m "fix #123" -m "${NOTICE}"`)
+    })
+    test("long run of dash flags matches in linear time, not exponential", () => {
+        const cmd = "git " + "-a ".repeat(44) + "status"
+        const t0 = performance.now()
+        rewriteCommand(cmd)
+        expect(performance.now() - t0).toBeLessThan(100)
     })
 })
