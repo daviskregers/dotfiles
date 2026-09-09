@@ -46,12 +46,12 @@ I review every change locally before it is committed, so a diff I can't read blo
 
 # Tickets and PRs
 
-Applies to every Linear body, not just issues — projects, milestones, documents, status updates, comments. A colleague reads these on a phone between meetings. They will not scroll.
+Every Linear body — issue, project, milestone, document, status update, comment — gets read on a phone between meetings.
 
-- Human-facing part ≈ one screen, ~200 words max: what's being decided or asked for, and what "done" looks like. Nothing else. A ticket nobody finishes reading conveys nothing.
-- Detail an agent needs and a human doesn't — `file:line` evidence, traces, ruled-out alternatives, prior attempts, schema dumps — goes in ONE collapsible block, last section of the body, titled `AI Context`. Never inline above it, never a second block.
-- Linear's collapsible: `>>> AI Context` on its own line, blank line, body, blank line, bare `>>>` to close. Not `<details>` — that renders as literal text. GitHub PR bodies are the reverse: `<details><summary>AI Context</summary>`.
-- Cutting for length is not deleting the detail — it's moving it into `AI Context`. If something genuinely doesn't belong in either, it wasn't worth writing.
+- Human-facing part: ~200 words. What's being decided or asked for, and what "done" looks like.
+- Everything else goes in ONE collapsible block at the end, titled `AI Context` — exhaustive `file:line` evidence, tool output, ruled-out alternatives, prior attempts. Keep the entrypoint → hops → line route for the one or two coordinates the decision rests on; those stay in the human part, per "Pointing at code".
+- More `AI Context` than fits a screen → put it in `.dk-notes/<ID>-<slug>/notes.md` and link that instead.
+- Linear's collapsible is `>>> AI Context` on its own line, blank line, body, blank line, bare `>>>` to close. GitHub PR bodies use `<details><summary>AI Context</summary>`.
 - PR test plan enumerates the cross-product, one `- [ ]` per case. 3 formats × 2 scopes = 6 lines, not one line naming both dimensions.
 - Impl drifts from the ticket spec? Comment the drift on the issue before continuing — what it said, what you're doing, why. Short. Then resume.
 
