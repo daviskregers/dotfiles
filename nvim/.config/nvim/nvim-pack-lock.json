@@ -1,11 +1,11 @@
 {
   "plugins": {
     "blink.cmp": {
-      "rev": "101d71861f6a012f2be80e4100720874330d86aa",
+      "rev": "473c928d8b9b5b3f638cd085a01899972cf205c6",
       "src": "https://github.com/saghen/blink.cmp"
     },
     "blink.lib": {
-      "rev": "c8fdc12c8a2fab6cf786dd7141a283f8079f902b",
+      "rev": "fd9a48ebbe6ec30d5dfcc5b42c243941ccdca1aa",
       "src": "https://github.com/saghen/blink.lib"
     },
     "codecompanion-history.nvim": {
@@ -13,7 +13,7 @@
       "src": "https://github.com/ravitemer/codecompanion-history.nvim"
     },
     "codecompanion.nvim": {
-      "rev": "fd07e440c115e318031c5f3f8c746f01eb4cac56",
+      "rev": "e9dd704197ffb6969477d53cdf79772b92e717c9",
       "src": "https://github.com/olimorris/codecompanion.nvim",
       "version": "19.0.0 - 20.0.0"
     },
@@ -22,11 +22,11 @@
       "src": "https://github.com/sindrets/diffview.nvim"
     },
     "friendly-snippets": {
-      "rev": "6cd7280adead7f586db6fccbd15d2cac7e2188b9",
+      "rev": "b4d01b0fdf3c9a549961c2f9ffe8dc09be166219",
       "src": "https://github.com/rafamadriz/friendly-snippets"
     },
     "gitsigns.nvim": {
-      "rev": "5be654f2232c10ddcad19c1607a67b6b4b78fc29",
+      "rev": "fd36f038e52ad8409fbf9926ae4a0a514cca04d8",
       "src": "https://github.com/lewis6991/gitsigns.nvim"
     },
     "harpoon": {
@@ -35,11 +35,11 @@
       "version": "'harpoon2'"
     },
     "indent-blankline.nvim": {
-      "rev": "d28a3f70721c79e3c5f6693057ae929f3d9c0a03",
+      "rev": "f1e186e44d3b7f9ae918008e2c28ce37c6023d2d",
       "src": "https://github.com/lukas-reineke/indent-blankline.nvim"
     },
     "kulala.nvim": {
-      "rev": "232a9939919fe9bc88d573bce92de50f2f160c60",
+      "rev": "dcad056448773ae5b54cadbfdbd188a599cfebd3",
       "src": "https://github.com/mistweaverco/kulala.nvim"
     },
     "lazydev.nvim": {
@@ -51,7 +51,7 @@
       "src": "https://github.com/mason-org/mason.nvim"
     },
     "mermaid.nvim": {
-      "rev": "01779e3c9f77ce0741f4992536fd0a81b9fb9fef",
+      "rev": "bbc6ded8faf74bcbf75372168c4da0bd17d94131",
       "src": "https://github.com/kevalin/mermaid.nvim"
     },
     "mini.icons": {
@@ -83,7 +83,7 @@
       "src": "https://github.com/nvim-lua/plenary.nvim"
     },
     "render-markdown.nvim": {
-      "rev": "4663eb3ecd538bd5062628fb6d95bbe6bdca78f6",
+      "rev": "a778444a73080301a50c4a6f58c90d7e094dd59e",
       "src": "https://github.com/MeanderingProgrammer/render-markdown.nvim"
     },
     "snacks.nvim": {
@@ -103,7 +103,7 @@
       "src": "https://github.com/folke/todo-comments.nvim"
     },
     "tree-sitter-manager.nvim": {
-      "rev": "023590c8f068788a0513a4409bf37ff7f9d1deff",
+      "rev": "1425eacb78bfee34face0fe06a8384ac3c4d9c8e",
       "src": "https://github.com/romus204/tree-sitter-manager.nvim"
     },
     "which-key.nvim": {
