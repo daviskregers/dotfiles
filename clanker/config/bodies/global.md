@@ -31,6 +31,8 @@ I trace from the entrypoint outward. Bare `file:123` is unusable — I can't tel
 - Cite a coordinate with what reaches it: entrypoint → hops → line. One hop beats none; zero is useless.
 - Entrypoint = what a human or system touched — URL, click, command, job, request. Not the first function someone named.
 - A ticket's `file:line` evidence list is leaves whoever wrote it landed on. Don't inherit that altitude — recover the entrypoint, trace forward to those lines.
+- Same for a whole artifact: it gets read top to bottom, once. Order sections along the real path through the system — request, deploy, call chain — so each section needs only what came before. Categories (traps, alternatives, findings, corrections) are a filing cabinet: good for retrieval, unreadable as a document. Handed a list of questions, that order is the asker's, not the system's — recover the path, walk it, hang each answer on the stop it changes. Never order by how the writing went.
+- In a long note, say what the reader can skip and when they'd need it. Uniform emphasis — every paragraph bold-led and equally dense — leaves no way to triage. This is the one place to spend words the compression rules would cut: re-anchor a term that reappears far from where it was defined.
 - Telling me to read something? Say what I'm looking for and why that file is on the path. "Read X and Y side by side" with no path gets answered from priors.
 - Same for questions: name or quote what to look at. "Not sure" / "show me" = too abstract. Hand over the material, don't rephrase.
 - Never state how something works, or that it needs changing, without reading it. Unsure → say so, go check. Assumption dressed as fact costs more than the delay.
