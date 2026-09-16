@@ -1,7 +1,52 @@
 {
+  "enabledPlugins": {
+    "edurio-core@edurio-plugins": true,
+    "edurio-dev@edurio-plugins": true,
+    "skill-creator@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true
+  },
   "env": {
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "DISABLE_AUTOUPDATER": "1"
+  },
+  "extraKnownMarketplaces": {
+    "edurio-plugins": {
+      "source": {
+        "repo": "edurio-dev/claude-plugins",
+        "source": "github"
+      }
+    }
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "command": "bun \"$HOME/.claude/hooks/dangerous-command-guard.ts\"",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash"
+      },
+      {
+        "hooks": [
+          {
+            "command": "bun \"$HOME/.claude/hooks/ai-attribution.ts\"",
+            "type": "command"
+          }
+        ],
+        "matcher": "Bash|mcp__claude_ai_Linear__save_comment|mcp__claude_ai_Linear__save_issue|mcp__custom-tools__resolve_pr_thread"
+      },
+      {
+        "hooks": [
+          {
+            "command": "bun \"$HOME/.claude/hooks/comprehension-nudge.ts\"",
+            "type": "command"
+          }
+        ],
+        "matcher": "Edit|Write|NotebookEdit"
+      }
+    ]
   },
   "includeCoAuthoredBy": false,
   "permissions": {
@@ -15,66 +60,10 @@
       "mcp__claude_ai_Linear__list_issues"
     ]
   },
-  "hooks": {
-    "Notification": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "afplay /System/Library/Sounds/Glass.aiff"
-          }
-        ]
-      }
-    ],
-    "PreToolUse": [
-      {
-        "matcher": "Bash",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun \"$HOME/.claude/hooks/dangerous-command-guard.ts\""
-          }
-        ]
-      },
-      {
-        "matcher": "Bash|mcp__claude_ai_Linear__save_comment|mcp__claude_ai_Linear__save_issue|mcp__custom-tools__resolve_pr_thread",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun \"$HOME/.claude/hooks/ai-attribution.ts\""
-          }
-        ]
-      },
-      {
-        "matcher": "Edit|Write|NotebookEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bun \"$HOME/.claude/hooks/comprehension-nudge.ts\""
-          }
-        ]
-      }
-    ]
-  },
   "statusLine": {
-    "type": "command",
-    "command": "bash \"$HOME/.claude/statusline.sh\""
+    "command": "bash \"$HOME/.claude/statusline.sh\"",
+    "type": "command"
   },
-  "enabledPlugins": {
-    "edurio-core@edurio-plugins": true,
-    "edurio-dev@edurio-plugins": true,
-    "skill-creator@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
-  },
-  "extraKnownMarketplaces": {
-    "edurio-plugins": {
-      "source": {
-        "source": "github",
-        "repo": "edurio-dev/claude-plugins"
-      }
-    }
-  },
-  "tui": "fullscreen",
-  "theme": "dark"
+  "theme": "dark",
+  "tui": "fullscreen"
 }
