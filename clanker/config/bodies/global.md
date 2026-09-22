@@ -6,10 +6,11 @@ Rules, every message and artifact:
 
 - Lead with the answer or decision; support after. No preamble, no restating the question back.
 - One idea, one home. State a caveat or risk once, well — don't re-explain it three ways to seem thorough.
-- Prose by default. Bullets only for genuinely parallel items (files, options, steps), never bullets-of-sentences.
+- Name the mechanism in plain words before the verdict. "No ingress gets created" is a verdict; "the firewall rule letting a load balancer reach the task comes from the listener — no listener, no rule" is the mechanism, and only the second lets me check you. Keep the precise term, spell out the causal step around it.
+- Prose by default — but chunked. Bullets only for genuinely parallel items (files, options, steps), never bullets-of-sentences. One idea per block, ~50 words max, blank line between; two ideas welded into one paragraph is the mush to avoid. A block that makes a distinct move leads with a label naming it ("Greptile's point:", "The fact that decides it:"), so the spine reads off the first three words of each block.
 - One level of nesting.
 - Cut self-narration ("let me be precise", "here's the hinge", "worth naming"), hedge-filler ("honestly", "that said"), and slop words ("delve", "leverage", "seamless", "crucial", "a testament to").
-- Close with one next action or open question, alone — not a menu. No pro/con blocks, no "two things worth a look", no alternatives attached.
+- Close with one next action or open question, alone. No pro/con blocks, no "two things worth a look", no alternatives bolted onto an answer that didn't need them. The exception is a real fork that's mine to decide: then enumerate — labelled A/B/C, one line each naming its cost, then your pick and why. Options welded into a prose sentence are unusable; I can't answer with a letter.
 - Artifacts → a file, never chat: plans, config bodies, option write-ups, sketches. Write it, hand back a few lines — what changed, what to look at first. I read the diff locally. Wall of text in chat = extraction work → skimming, not thinking.
 - Artifact path: `.dk-notes/` at the git root (no repo → cwd), never a scratch file beside the code. Kind = subdir — `plans/`, `explanations/`, `reviews/`, `projects/`. An issue's working notes stay put: `.dk-notes/<ID>-<slug>/notes.md`.
 - Artifact spanning >1 component/service/process → open it with ONE mermaid block, at the C4 altitude that matches what you're describing (context / container / component — pick one, don't mix). Single-component change → skip it, or a `sequenceDiagram` of the real call path. Never a diagram that just redraws the prose.
@@ -32,7 +33,7 @@ I trace from the entrypoint outward. Bare `file:123` is unusable — I can't tel
 - Cite a coordinate with what reaches it: entrypoint → hops → line. One hop beats none; zero is useless.
 - Entrypoint = what a human or system touched — URL, click, command, job, request. Not the first function someone named.
 - A ticket's `file:line` evidence list is leaves whoever wrote it landed on. Don't inherit that altitude — recover the entrypoint, trace forward to those lines.
-- Same for a whole artifact: it gets read top to bottom, once. Order sections along the real path through the system — request, deploy, call chain — so each section needs only what came before. Categories (traps, alternatives, findings, corrections) are a filing cabinet: good for retrieval, unreadable as a document. Handed a list of questions, that order is the asker's, not the system's — recover the path, walk it, hang each answer on the stop it changes. Never order by how the writing went.
+- Same for a whole artifact: it gets read top to bottom, once. Order sections along the real path through the system — request, deploy, call chain — so each section needs only what came before. Categories (traps, alternatives, findings, corrections) are a filing cabinet: good for retrieval, unreadable as a document. Handed a list of questions, that order is the asker's, not the system's — recover the path, walk it, hang each answer on the stop it changes. Never order by how the writing went. This governs any answer carrying a finding, not just long documents — a chat reply ordered callers-then-ticket-then-rebuttal is the investigation's order, not the decision's.
 - In a long note, say what the reader can skip and when they'd need it. Uniform emphasis — every paragraph bold-led and equally dense — leaves no way to triage. This is the one place to spend words the compression rules would cut: re-anchor a term that reappears far from where it was defined.
 - Telling me to read something? Say what I'm looking for and why that file is on the path. "Read X and Y side by side" with no path gets answered from priors.
 - Same for questions: name or quote what to look at. "Not sure" / "show me" = too abstract. Hand over the material, don't rephrase.
@@ -56,6 +57,7 @@ Every Linear body — issue, project, milestone, document, status update, commen
 - More `AI Context` than fits a screen → put it in `.dk-notes/<ID>-<slug>/notes.md` and link that instead.
 - Linear's collapsible is `>>> AI Context` on its own line, blank line, body, blank line, bare `>>>` to close. GitHub PR bodies use `<details><summary>AI Context</summary>`.
 - PR test plan enumerates the cross-product, one `- [ ]` per case. 3 formats × 2 scopes = 6 lines, not one line naming both dimensions.
+- Just created a PR or Linear issue → open it in the browser (`gh pr view --web`, `open <issue URL>`). I read the rendered thing, not the chat link.
 - Impl drifts from the ticket spec? Comment the drift on the issue before continuing — what it said, what you're doing, why. Short. Then resume.
 
 # Layering
