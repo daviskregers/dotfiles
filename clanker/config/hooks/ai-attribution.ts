@@ -1,11 +1,16 @@
 import type { HookResult, HookCtx, HookInput } from "./hook-utils"
+import { readFileSync, writeFileSync } from "node:fs"
+import { homedir } from "node:os"
+import { isAbsolute, join } from "node:path"
 
 // Enforce AI attribution on commits + externally-posted content (EU AI Act Art. 50
 // transparency). Appends `🤖 Generated with AI` to structured tool bodies and to
-// git commit -m / gh pr create|comment|edit --body; strips tool-branded forms
-// (Co-Authored-By, "Generated with Claude Code/opencode"). Denies only when the
-// body is file/heredoc-based (can't safely edit) or carries an unstrippable brand.
-// allow → target mutates the tool args; deny → blocks. FAIL-OPEN on any bug.
+// git commit -m / gh pr create|comment|edit|review --body; a gh --body-file is
+// attributed in the file itself. Strips tool-branded forms (Co-Authored-By,
+// "Generated with Claude Code/opencode"). Denies only when the body is unreachable
+// (commit message file, heredoc, a body-file path we can't resolve) or carries an
+// unstrippable brand. allow → target mutates the tool args; deny → blocks.
+// FAIL-OPEN on any bug.
 
 const NOTICE = "🤖 Generated with AI"
 
@@ -19,7 +24,7 @@ const CMD_BRANDED = /co-authored-by:|generated with (?:claude code|opencode)/i
 // carved up two ways per token and the match goes exponential (a 44-token run took
 // ~9s, hanging the tool call).
 const SEG_IS_COMMIT = /^\s*(?:\w+=\S*\s+)*git\s+(?:-\S+\s+(?:[^-\s]\S*\s+)?)*commit\b/
-const SEG_IS_GH = /^\s*gh\s+pr\s+(?:create|comment|edit)\b/
+const SEG_IS_GH = /^\s*gh\s+pr\s+(?:create|comment|edit|review)\b/
 // A notice line already present, in either the bare or "(model)" form.
 const NOTICE_PRESENT = new RegExp(`^[ \\t>]*${NOTICE}\\b`, "im")
 // The --body / -b flag TOKEN only; the separator is a lookahead so nothing past the
@@ -30,6 +35,10 @@ const NOTICE_PRESENT = new RegExp(`^[ \\t>]*${NOTICE}\\b`, "im")
 // the notice into the MIDDLE of any body containing one (an escaped '\'' apostrophe
 // in a single-quoted body, an unescaped " in a double-quoted one).
 const BODY_FLAG_RE = /(?:^|\s)(?:--body|-b)(?==|\s)/
+// The file-valued body flag. Matched on the mask like BODY_FLAG_RE, and deliberately
+// separate from it: BODY_FLAG_RE's lookahead refuses `--body-file` so it can never
+// consume a path as if it were prose.
+const FILE_FLAG_RE = /(?:^|\s)(?:--body-file|-F)(?==|\s)/
 
 // Structured tool name → field holding the postable body. Merged across targets:
 // claude MCP names + opencode names. Names never collide, so each target matches
@@ -104,6 +113,46 @@ export function bodyWordEnd(cmd: string, start: number): number {
         }
     }
     return i
+}
+
+// The literal string a shell would pass for the WORD `w`, following the same quoting
+// rules as bodyWordEnd. Returns null when the value cannot be known statically — an
+// expansion (`$TMP/pr.md`, `$(mktemp)`) or unterminated quoting. The caller denies
+// rather than guessing, because attributing the wrong file writes into an unrelated
+// one and still posts the real body unattributed.
+export function unquoteWord(w: string): string | null {
+    let out = ""
+    let i = 0
+    while (i < w.length) {
+        const c = w[i]
+        if (c === "'") {
+            const close = w.indexOf("'", i + 1)
+            if (close < 0) return null
+            out += w.slice(i + 1, close)
+            i = close + 1
+        } else if (c === '"') {
+            i++
+            let closed = false
+            while (i < w.length) {
+                if (w[i] === "\\") {
+                    out += w[i + 1] ?? ""
+                    i += 2
+                } else if (w[i] === '"') {
+                    i++
+                    closed = true
+                    break
+                } else if (w[i] === "$" || w[i] === "`") return null
+                else out += w[i++]
+            }
+            if (!closed) return null
+        } else if (c === "\\") {
+            out += w[i + 1] ?? ""
+            i += 2
+        } else if (c === "$" || c === "`") {
+            return null
+        } else out += w[i++]
+    }
+    return out
 }
 
 export type Scan = { segments: Array<{ start: number; end: number }>; mask: string }
@@ -196,7 +245,23 @@ export function targetSegment(cmd: string): Target | null {
     return null
 }
 
-type Rewrite = { action: "none" } | { action: "deny" } | { action: "change"; cmd: string }
+// A plan, not an effect: rewriteCommand stays pure so every shape above is unit-
+// testable. `attributeFile` is the one case the caller executes as IO — the notice
+// goes into the file gh will read, and the command itself runs untouched.
+type Rewrite =
+    | { action: "none" }
+    | { action: "deny"; reason: string }
+    | { action: "change"; cmd: string }
+    | { action: "attributeFile"; path: string }
+
+// Start of the value belonging to a flag matched at `m` on the segment's masked view,
+// as an index into the RAW command. Handles both `--flag=value` and `--flag value`.
+function flagValueStart(cmd: string, t: Target, m: RegExpExecArray): number {
+    let v = t.start + m.index + m[0].length
+    if (cmd[v] === "=") return v + 1
+    while (v < t.end && /\s/.test(cmd[v])) v++
+    return v
+}
 
 export function rewriteCommand(cmd: string): Rewrite {
     if (cmd.includes(NOTICE)) return { action: "none" }
@@ -206,11 +271,13 @@ export function rewriteCommand(cmd: string): Rewrite {
     // flags and branded text appearing as DATA (inside a message, a title, a sibling
     // command's args) can neither qualify the rewrite nor trigger a deny.
     const view = t.mask.slice(t.start, t.end)
-    if (CMD_BRANDED.test(view)) return { action: "deny" }
+    if (CMD_BRANDED.test(view)) return { action: "deny", reason: DENY_MSG }
 
     if (t.kind === "commit") {
         // bare -C dropped (collides with git's global `-C <dir>`; --reuse-message covers it).
-        if (/(?:^|\s)(?:-F|--file|--reuse-message|--reedit-message)\b/.test(view)) return { action: "deny" }
+        if (/(?:^|\s)(?:-F|--file|--reuse-message|--reedit-message)\b/.test(view)) {
+            return { action: "deny", reason: DENY_MSG }
+        }
         // `-[a-z]*m` also catches the combined short forms (-am, -sm).
         if (!/(?:^|\s)(?:-[a-zA-Z]*m|--message)\b/.test(view)) return { action: "none" }
         let e = t.end
@@ -224,13 +291,20 @@ export function rewriteCommand(cmd: string): Rewrite {
     }
 
     // Heredoc bodies never reach here — scanCommand bails on them.
-    if (/--body-file|(?:^|\s)-F\b/.test(view)) return { action: "deny" }
+    // A file body is attributed in the FILE, since there is nothing on the command line
+    // to append to. The path has to be resolvable from the command text alone.
+    const ffm = FILE_FLAG_RE.exec(view)
+    if (ffm) {
+        const vs = flagValueStart(cmd, t, ffm)
+        const ve = bodyWordEnd(cmd, vs)
+        if (ve < 0 || ve > t.end || ve === vs) return { action: "deny", reason: DENY_PATH }
+        const path = unquoteWord(cmd.slice(vs, ve))
+        if (!path || path === "-") return { action: "deny", reason: DENY_PATH } // `-` is stdin
+        return { action: "attributeFile", path }
+    }
     const fm = BODY_FLAG_RE.exec(view)
     if (!fm) return { action: "none" }
-    // Walk from the end of the flag NAME to the start of its value, on the raw command.
-    let valStart = t.start + fm.index + fm[0].length
-    if (cmd[valStart] === "=") valStart++
-    else while (valStart < t.end && /\s/.test(cmd[valStart])) valStart++
+    const valStart = flagValueStart(cmd, t, fm)
     const q = cmd[valStart]
     if (q !== '"' && q !== "'") return { action: "none" } // only quoted bodies are safely editable
     const end = bodyWordEnd(cmd, valStart)
@@ -244,9 +318,26 @@ export function rewriteCommand(cmd: string): Rewrite {
 const DENY_MSG =
     `AI attribution required: re-issue with an inline message/body ending in "${NOTICE}", ` +
     `and drop any Co-Authored-By / "Generated with Claude Code/opencode" lines. ` +
-    `(Hook cannot safely edit file-based or heredoc bodies.)`
+    `(Hook cannot safely edit a commit-message file or a heredoc body.)`
 
-export async function run(input: HookInput, _ctx: HookCtx): Promise<HookResult> {
+const DENY_PATH =
+    `AI attribution required: the body file's path must be a literal the hook can read — ` +
+    `not a variable, a command substitution, or stdin ("-"). ` +
+    `Write the body to a real path and pass that, or pass it inline with --body.`
+
+// Write the notice into the body file gh is about to read. Idempotent (ensureNotice
+// no-ops on an already-attributed body) and FAIL-OPEN: an unreadable or missing path
+// is left alone — gh fails on its own, and a hook bug must never block a tool.
+function attributeFile(path: string, dir: string): void {
+    const abs = path.startsWith("~/") ? join(homedir(), path.slice(2)) : isAbsolute(path) ? path : join(dir, path)
+    try {
+        const text = readFileSync(abs, "utf-8")
+        const next = ensureNotice(text)
+        if (next !== text) writeFileSync(abs, next, "utf-8")
+    } catch {}
+}
+
+export async function run(input: HookInput, ctx: HookCtx): Promise<HookResult> {
     const tool = input.tool ?? ""
     const ti = (input.toolInput ?? {}) as Record<string, any>
 
@@ -263,7 +354,9 @@ export async function run(input: HookInput, _ctx: HookCtx): Promise<HookResult> 
         if (typeof cmd !== "string") return { kind: "none" }
         const r = rewriteCommand(cmd)
         if (r.action === "change") return { kind: "allow", updatedInput: { ...ti, command: r.cmd } }
-        if (r.action === "deny") return { kind: "deny", reason: DENY_MSG }
+        if (r.action === "deny") return { kind: "deny", reason: r.reason }
+        // The command is already correct — only the file it points at needs the notice.
+        if (r.action === "attributeFile") attributeFile(r.path, input.cwd ?? ctx.directory)
     }
     return { kind: "none" }
 }

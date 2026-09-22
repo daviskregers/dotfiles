@@ -1,5 +1,8 @@
 import { test, expect, describe } from "bun:test"
-import { ensureNotice, stripBranded, scanCommand, rewriteCommand, run } from "../ai-attribution"
+import { mkdtempSync, readFileSync, writeFileSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
+import { ensureNotice, stripBranded, scanCommand, rewriteCommand, unquoteWord, run } from "../ai-attribution"
 
 const NOTICE = "🤖 Generated with AI"
 
@@ -82,8 +85,13 @@ describe("rewriteCommand", () => {
         expect(r.action).toBe("change")
         if (r.action === "change") expect(r.cmd).toBe(`gh pr create --body "sum""\n\n${NOTICE}" --label bug`)
     })
-    test("gh pr create --body-file → deny", () => {
-        expect(rewriteCommand("gh pr create --body-file body.md").action).toBe("deny")
+    test("gh pr review --body → notice appended (review posts prose like create/comment)", () => {
+        const r = rewriteCommand('gh pr review 1 --approve --body "looks good"')
+        expect(r.action).toBe("change")
+        if (r.action === "change") expect(r.cmd).toBe(`gh pr review 1 --approve --body "looks good""\n\n${NOTICE}"`)
+    })
+    test("gh pr review with no body flag → none", () => {
+        expect(rewriteCommand("gh pr review 1 --approve").action).toBe("none")
     })
     test("non-commit / non-gh command → none", () => {
         expect(rewriteCommand("ls -la").action).toBe("none")
@@ -403,5 +411,96 @@ describe("gh: body flag is found on the gh segment only", () => {
     })
     test("a later `grep -F` no longer false-denies the commit", () => {
         expect(rewriteCommand(`git commit -m "fix" && grep -rn co-authored-by: .`).action).toBe("change")
+    })
+})
+
+// `--body-file` is the path for anything longer than a couple of paragraphs, which is
+// exactly the prose most worth attributing. It used to deny; the notice is now written
+// into the FILE before gh reads it, so the body posts attributed and the command runs
+// untouched.
+describe("gh file bodies: the notice goes into the file, not the command", () => {
+    const fileCases: Array<[string, string, string]> = [
+        // [label, command, resolved path]
+        ["--body-file", `gh pr create --body-file /tmp/pr.md`, "/tmp/pr.md"],
+        ["-F short form", `gh pr create -F /tmp/pr.md`, "/tmp/pr.md"],
+        ["--body-file=path", `gh pr create --body-file=/tmp/pr.md`, "/tmp/pr.md"],
+        ["quoted path with a space", `gh pr comment 1 --body-file "/tmp/my pr.md"`, "/tmp/my pr.md"],
+        ["review body file", `gh pr review 1 --request-changes -F notes.md`, "notes.md"],
+    ]
+    for (const [label, cmd, path] of fileCases) {
+        test(label, () => {
+            const r = rewriteCommand(cmd)
+            expect(r.action).toBe("attributeFile")
+            if (r.action === "attributeFile") expect(r.path).toBe(path)
+        })
+    }
+
+    test("path built from a variable → deny (we cannot know which file gh will read)", () => {
+        expect(rewriteCommand(`gh pr create --body-file "$TMP/pr.md"`).action).toBe("deny")
+    })
+    test("body from stdin → deny (no file to attribute)", () => {
+        expect(rewriteCommand(`gh pr create --body-file -`).action).toBe("deny")
+    })
+    test("git commit -F still denies — a commit message file is out of scope here", () => {
+        expect(rewriteCommand("git commit -F msg.txt").action).toBe("deny")
+    })
+})
+
+describe("unquoteWord", () => {
+    const words: Array<[string, string | null]> = [
+        ["/tmp/pr.md", "/tmp/pr.md"],
+        [`"/tmp/my pr.md"`, "/tmp/my pr.md"],
+        [`'/tmp/my pr.md'`, "/tmp/my pr.md"],
+        [`/tmp/my\\ pr.md`, "/tmp/my pr.md"],
+        [`"/tmp/"'pr.md'`, "/tmp/pr.md"], // adjacent segments concatenate
+        [`"$TMP/pr.md"`, null], // expansion — value unknowable
+        ["$(mktemp)", null],
+        ["`mktemp`", null],
+        [`"unterminated`, null],
+    ]
+    for (const [w, want] of words) {
+        test(JSON.stringify(w), () => expect(unquoteWord(w)).toBe(want as any))
+    }
+})
+
+// The file rewrite is the only IO this hook does, so it is exercised against real
+// files: the command must be left alone and the file must carry the notice once.
+describe("run — gh body file is attributed on disk", () => {
+    const dir = mkdtempSync(join(tmpdir(), "ai-attr-"))
+    const write = (name: string, text: string) => {
+        const p = join(dir, name)
+        writeFileSync(p, text, "utf-8")
+        return p
+    }
+    const post = async (p: string) =>
+        run({ tool: "Bash", command: `gh pr create --body-file ${p}`, toolInput: {} }, { directory: dir })
+
+    test("plain body gains the notice; the command is not rewritten", async () => {
+        const p = write("plain.md", "## Summary\n\nDoes the thing.")
+        expect((await post(p)).kind).toBe("none")
+        expect(readFileSync(p, "utf-8")).toBe(`## Summary\n\nDoes the thing.\n\n${NOTICE}`)
+    })
+    test("already-attributed body is left byte-identical", async () => {
+        const text = `## Summary\n\nDoes the thing.\n\n${NOTICE}`
+        const p = write("done.md", text)
+        await post(p)
+        expect(readFileSync(p, "utf-8")).toBe(text)
+    })
+    test("branded trailer is stripped, then the neutral notice added", async () => {
+        const p = write("branded.md", "body\n\n🤖 Generated with Claude Code")
+        await post(p)
+        expect(readFileSync(p, "utf-8")).toBe(`body\n\n${NOTICE}`)
+    })
+    test("missing file → none, not a throw (gh fails on its own)", async () => {
+        expect((await post(join(dir, "nope.md"))).kind).toBe("none")
+    })
+    test("relative path resolves against the session directory", async () => {
+        write("rel.md", "body")
+        const r = await run(
+            { tool: "Bash", command: "gh pr create --body-file rel.md", toolInput: {} },
+            { directory: dir },
+        )
+        expect(r.kind).toBe("none")
+        expect(readFileSync(join(dir, "rel.md"), "utf-8")).toBe(`body\n\n${NOTICE}`)
     })
 })
