@@ -2,6 +2,7 @@
   "enabledPlugins": {
     "edurio-core@edurio-plugins": true,
     "edurio-dev@edurio-plugins": true,
+    "php-lsp@claude-plugins-official": true,
     "skill-creator@claude-plugins-official": true,
     "typescript-lsp@claude-plugins-official": true
   },
