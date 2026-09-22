@@ -1,7 +1,7 @@
 {
   "plugins": {
     "blink.cmp": {
-      "rev": "473c928d8b9b5b3f638cd085a01899972cf205c6",
+      "rev": "8219b58f1c11a2fb1644d3c7116c509fa8348ec0",
       "src": "https://github.com/saghen/blink.cmp"
     },
     "blink.lib": {
@@ -13,7 +13,7 @@
       "src": "https://github.com/ravitemer/codecompanion-history.nvim"
     },
     "codecompanion.nvim": {
-      "rev": "e9dd704197ffb6969477d53cdf79772b92e717c9",
+      "rev": "3d83aaa78ed125ea403fe8c975e51f07cf0c49b0",
       "src": "https://github.com/olimorris/codecompanion.nvim",
       "version": "19.0.0 - 20.0.0"
     },
@@ -26,7 +26,7 @@
       "src": "https://github.com/rafamadriz/friendly-snippets"
     },
     "gitsigns.nvim": {
-      "rev": "fd36f038e52ad8409fbf9926ae4a0a514cca04d8",
+      "rev": "8d79f2410c76e62b92e51c28c82e28c1c5a3daeb",
       "src": "https://github.com/lewis6991/gitsigns.nvim"
     },
     "harpoon": {
@@ -51,7 +51,7 @@
       "src": "https://github.com/mason-org/mason.nvim"
     },
     "mermaid.nvim": {
-      "rev": "bbc6ded8faf74bcbf75372168c4da0bd17d94131",
+      "rev": "4da12693b3b4d63b67d07bafe8340b4abc265c70",
       "src": "https://github.com/kevalin/mermaid.nvim"
     },
     "mini.icons": {
@@ -83,7 +83,7 @@
       "src": "https://github.com/nvim-lua/plenary.nvim"
     },
     "render-markdown.nvim": {
-      "rev": "a778444a73080301a50c4a6f58c90d7e094dd59e",
+      "rev": "640a3ec6d538bad17c328be373c7cad0293d9589",
       "src": "https://github.com/MeanderingProgrammer/render-markdown.nvim"
     },
     "snacks.nvim": {
