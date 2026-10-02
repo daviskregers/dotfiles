@@ -67,6 +67,9 @@ vim.api.nvim_create_autocmd("TextYankPost", {
     end,
 })
 
+-- leave insert mode, matching the terminal-mode <C-q> in plugins/terminal.lua
+vim.keymap.set("i", "<C-q>", "<Esc>", { desc = "Leave insert mode" })
+
 -- disable arrows
 vim.keymap.set({ "n", "v", "x" }, "<Down>", "<nop>")
 vim.keymap.set({ "n", "v", "x" }, "<Left>", "<nop>")
