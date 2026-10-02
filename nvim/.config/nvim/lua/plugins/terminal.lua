@@ -47,7 +47,7 @@ end
 
 local function toggle_scratch_terminal()
     if not vim.api.nvim_win_is_valid(state.scratch.win) then
-        state.scratch = create_window { buf = state.scratch.buf, width = 80 }
+        state.scratch = create_window { buf = state.scratch.buf, width = 100 }
         if vim.bo[state.scratch.buf].buftype ~= "terminal" then
             vim.cmd.term()
         end
