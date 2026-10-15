@@ -1,7 +1,8 @@
 {
   "$schema": "https://opencode.ai/v2/cli.json",
   "diffs": {
-    "wrap": "word"
+    "wrap": "word",
+    "view": "auto"
   },
   "session": {
     "sidebar": "auto",
@@ -9,10 +10,18 @@
     "thinking": "hide",
     "verbosity": "low",
     "new_location": "launch",
-    "permissions": "autoaccept"
+    "permissions": "prompt"
   },
   "animations": false,
   "theme": {
     "name": "system"
+  },
+  "tabs": {
+    "mode": "off",
+    "scope": "cwd"
+  },
+  "attention": {
+    "notifications": true,
+    "sound": true
   }
 }
