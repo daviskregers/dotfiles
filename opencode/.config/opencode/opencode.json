@@ -53,30 +53,14 @@
     "@mohak34/opencode-notifier@0.2.1"
   ],
   "provider": {
-    "lmstudio": {
-      "models": {
-        "google/gemma-4-26b-a4b": {
-          "limit": {
-            "context": 124300,
-            "output": 8192
-          },
-          "name": "Gemma 4 26B A4B"
-        }
-      },
-      "name": "LM Studio (local)",
-      "npm": "@ai-sdk/openai-compatible",
-      "options": {
-        "baseURL": "http://127.0.0.1:1234/v1"
-      }
-    },
     "ollama": {
       "models": {
-        "qwen3.6:27b-opencode": {
+        "qwen3.6:27b": {
           "limit": {
             "context": 65536,
             "output": 8192
           },
-          "name": "Qwen 3.6 27B (OpenCode)"
+          "name": "Qwen 3.6 27B (local)"
         }
       },
       "name": "Ollama (local)",
