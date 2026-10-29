@@ -1,4 +1,4 @@
--- Hyprland config (Lua, 0.55+) — mirrors i3 keybindings from ~/.dotfiles/i3/.config/i3/config
+-- Hyprland config (Lua, 0.55+) — keybindings carried over from the old i3 setup
 -- Reference: https://wiki.hypr.land/Configuring/  (hyprlang deprecated in favor of Lua since 0.55)
 
 local mainMod = "SUPER" -- was $mod = Mod4 in i3
