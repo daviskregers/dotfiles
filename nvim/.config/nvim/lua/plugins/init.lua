@@ -24,7 +24,6 @@ require("plugins.neogit")
 require("plugins.gitsigns")
 require("plugins.colorscheme")
 require("plugins.http")
-require("plugins.codecompanion")
 require("plugins.obsidian")
 
 vim.api.nvim_create_user_command("PackUpdate", ":lua vim.pack.update()<CR>", {})

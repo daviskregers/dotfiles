@@ -1,4 +1,4 @@
-.PHONY: all bootstrap install-packages
+.PHONY: all install-packages
 
 all:
 	git submodule update --init --recursive
@@ -13,8 +13,3 @@ install-packages:
 		network-manager-applet power-profiles-daemon python-gobject imv mpv \
 		gnome-calendar dunst pipewire pipewire-pulse wireplumber fzf
 	paru -S --needed hyprshade wlogout oh-my-zsh-git ttf-firacode-nerd rofi-calc
-
-# Build the Docker image for sandboxed AI chat (CodeCompanion + opencode/claude code).
-bootstrap:
-	@command -v docker >/dev/null || { echo "MISSING docker — chat container won't work"; exit 1; }
-	docker build -f nvim/.config/nvim/docker/Dockerfile.chat -t dk-chat nvim/.config/nvim/docker/
