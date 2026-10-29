@@ -18,7 +18,7 @@
     separator_color = "#2a2a2c"
     frame_width = 1
     frame_color = "#2a2a2c"
-    dmenu = /usr/bin/dmenu -p dunst:
+    dmenu = dmenu -p dunst:
     browser = /usr/bin/firefox -new-tab
 
 [urgency_low]

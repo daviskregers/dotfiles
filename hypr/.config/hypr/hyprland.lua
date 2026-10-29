@@ -43,6 +43,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("hypridle")
     hl.exec_cmd("waybar")
     hl.exec_cmd("hyprshade-ctl init")
+    hl.exec_cmd("dunst")
     hl.exec_cmd("nm-applet --indicator")
     hl.exec_cmd("wob --config /dev/null") -- wob IPC socket at $XDG_RUNTIME_DIR/wob.sock
     -- GNOME Online Accounts daemon (gnome-calendar Nextcloud sync)
