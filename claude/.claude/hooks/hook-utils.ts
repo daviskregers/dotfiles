@@ -71,50 +71,62 @@ export function serializeClaudeResult(event: string, r: HookResult): string {
     }
 }
 
-// ---- opencode adapters: extract HookInput from a plugin event, apply HookResult ----
+// ---- opencode adapters: map a V2 plugin event → HookInput, and HookResult → that
+// event's mutable surface. V2 registers each hook on the domain that owns it and
+// hands the callback ONE mutable event, so there is no input/output pair to bridge.
 
-export const extractOpencodeBefore = (input: any, output: any): HookInput => ({
-    tool: input.tool,
-    command: output.args?.command,
-    toolInput: output.args,
+export const extractOpencodeBefore = (event: any): HookInput => ({
+    tool: event.tool,
+    command: event.input?.command,
+    toolInput: event.input,
 })
 
-export const extractOpencodeAfter = (input: any, output: any): HookInput => ({
-    tool: input.tool,
-    command: input.args?.command,
-    filePath: input.args?.filePath ?? input.args?.file_path,
-    toolResponse: output.output,
+export const extractOpencodeAfter = (event: any): HookInput => ({
+    tool: event.tool,
+    command: event.input?.command,
+    filePath: event.input?.filePath ?? event.input?.file_path,
+    toolResponse: event.result?.content,
 })
 
-export const extractOpencodeMessage = (_input: any, output: any): HookInput => ({
-    prompt: (output.parts ?? [])
-        .filter((p: any) => p.type === "text")
-        .map((p: any) => p.text)
-        .join(""),
+// session.hook("prompt"): the hook owns a mutable draft of the prompt being admitted.
+export const extractOpencodePrompt = (event: any): HookInput => ({
+    prompt: event.prompt?.text ?? "",
 })
 
-// tool.execute.before: deny blocks the tool (throw), allow rewrites its args.
-export function applyOpencodeBefore(output: any, r: HookResult): void {
+// tool.hook("execute.before"): deny blocks the tool by throwing; allow rewrites the
+// event's tool input in place.
+export function applyOpencodeBefore(event: any, r: HookResult): void {
     if (r.kind === "deny") throw new Error(r.reason)
-    if (r.kind === "allow" && r.updatedInput) Object.assign(output.args ?? {}, r.updatedInput)
+    if (r.kind === "allow" && r.updatedInput) Object.assign(event.input ?? {}, r.updatedInput)
 }
 
-// tool.execute.after: context appends to the tool's output.
-export function applyOpencodeAfter(output: any, r: HookResult): void {
-    if (r.kind === "context") output.output = (output.output ?? "") + "\n\n" + r.text
+// tool.hook("execute.after"): the tool result is structured, so a nudge joins its
+// model-visible content — a string, a Content array, or nothing at all. An errored
+// call carries no result, so there is nowhere to append and the hook stays a no-op.
+export function applyOpencodeAfter(event: any, r: HookResult): void {
+    if (r.kind !== "context") return
+    const result = event?.result
+    if (!result) return
+    const content = result.content
+    if (typeof content === "string") result.content = content + "\n\n" + r.text
+    else if (Array.isArray(content)) content.push({ type: "text", text: r.text })
+    else result.content = r.text
 }
 
-// chat.message: context appends a text part to the message.
-export function applyOpencodeMessage(output: any, r: HookResult): void {
-    if (r.kind === "context") output.parts.push({ type: "text", text: r.text })
+// session.hook("prompt"): V2 exposes no typed rejection on admission — the hook
+// transforms input — so only a context result does anything here.
+export function applyOpencodePrompt(event: any, r: HookResult): void {
+    if (r.kind !== "context") return
+    event.prompt.text = `${event.prompt.text ?? ""}\n\n${r.text}`
 }
 
-// session.idle: opencode can't block the turn end, so a block/context result is
-// delivered by injecting a prompt via the SDK client — which re-activates the turn
-// so the agent addresses it. Returns whether it injected (for testing).
-export async function injectOnIdle(client: any, sessionID: string, r: HookResult): Promise<boolean> {
+// session.idle arrives on the event stream, which can neither block nor mutate the turn
+// that already ended — so a block/context result is injected as a prompt, which
+// re-activates the turn so the agent addresses it. Returns whether it injected (for
+// testing).
+export async function injectOnIdle(ctx: any, sessionID: string, r: HookResult): Promise<boolean> {
     const text = r.kind === "block" ? r.reason : r.kind === "context" ? r.text : ""
     if (!text) return false
-    await client.session.prompt({ path: { id: sessionID }, body: { parts: [{ type: "text", text }] } })
+    await ctx.session.prompt({ sessionID, text })
     return true
 }

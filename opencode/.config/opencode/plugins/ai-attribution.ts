@@ -368,7 +368,11 @@ async function run(input: HookInput, ctx: HookCtx): Promise<HookResult> {
     return { kind: "none" }
 }
 
-export const aiAttribution = async ({ directory }: { directory: string }) => ({
-    "tool.execute.before": async (input: any, output: any) =>
-        applyOpencodeBefore(output, await run(extractOpencodeBefore(input, output), { directory })),
-})
+export default {
+    id: "ai-attribution",
+    async setup(ctx: any) {
+        await ctx.tool.hook("execute.before", async (event: any) => {
+            applyOpencodeBefore(event, await run(extractOpencodeBefore(event), { directory: ctx.location.directory }))
+        })
+    },
+}

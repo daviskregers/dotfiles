@@ -199,7 +199,11 @@ async function run(input: HookInput, ctx: HookCtx): Promise<HookResult> {
     return { kind: "context", text: nudgeText(lines, files.length) }
 }
 
-export const comprehensionNudge = async ({ directory }: { directory: string }) => ({
-    "tool.execute.after": async (input: any, output: any) =>
-        applyOpencodeAfter(output, await run(extractOpencodeAfter(input, output), { directory })),
-})
+export default {
+    id: "comprehension-nudge",
+    async setup(ctx: any) {
+        await ctx.tool.hook("execute.after", async (event: any) => {
+            applyOpencodeAfter(event, await run(extractOpencodeAfter(event), { directory: ctx.location.directory }))
+        })
+    },
+}

@@ -109,7 +109,11 @@ async function run(input: HookInput, _ctx: HookCtx): Promise<HookResult> {
     return { kind: "none" }
 }
 
-export const dangerousCommandGuard = async ({ directory }: { directory: string }) => ({
-    "tool.execute.before": async (input: any, output: any) =>
-        applyOpencodeBefore(output, await run(extractOpencodeBefore(input, output), { directory })),
-})
+export default {
+    id: "dangerous-command-guard",
+    async setup(ctx: any) {
+        await ctx.tool.hook("execute.before", async (event: any) => {
+            applyOpencodeBefore(event, await run(extractOpencodeBefore(event), { directory: ctx.location.directory }))
+        })
+    },
+}

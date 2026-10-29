@@ -14,17 +14,28 @@ export async function run(_input: HookInput, _ctx: HookCtx): Promise<HookResult>
     return { kind: "none" }
 }`
 
+func TestRenderOpencodeHook_isV2Definition(t *testing.T) {
+	out, ok := target.RenderOpencodeHook(spec.Hook{Name: "sample", OpencodeEvent: spec.ToolExecuteBefore, Core: sampleCore})
+	if !ok {
+		t.Fatal("ok=false, want true")
+	}
+	for _, want := range []string{"export default {", `id: "sample"`, "async setup(ctx: any)"} {
+		if !strings.Contains(out.Content, want) {
+			t.Errorf("missing %q in:\n%s", want, out.Content)
+		}
+	}
+}
+
 func TestRenderOpencodeHook_perEvent(t *testing.T) {
 	cases := []struct {
 		event       spec.OpencodeEvent
 		wantImport  string
-		wantFactory string
 		wantHandler string
 	}{
-		{spec.ToolExecuteBefore, "extractOpencodeBefore, applyOpencodeBefore", "{ directory }", `"tool.execute.before"`},
-		{spec.ToolExecuteAfter, "extractOpencodeAfter, applyOpencodeAfter", "{ directory }", `"tool.execute.after"`},
-		{spec.ChatMessage, "extractOpencodeMessage, applyOpencodeMessage", "{ directory }", `"chat.message"`},
-		{spec.SessionIdle, "injectOnIdle", "{ directory, client }", "event:"},
+		{spec.ToolExecuteBefore, "extractOpencodeBefore, applyOpencodeBefore", `ctx.tool.hook("execute.before"`},
+		{spec.ToolExecuteAfter, "extractOpencodeAfter, applyOpencodeAfter", `ctx.tool.hook("execute.after"`},
+		{spec.ChatMessage, "extractOpencodePrompt, applyOpencodePrompt", `ctx.session.hook("prompt"`},
+		{spec.SessionIdle, "injectOnIdle", "ctx.event.subscribe("},
 	}
 	for _, c := range cases {
 		out, ok := target.RenderOpencodeHook(spec.Hook{Name: "sample", OpencodeEvent: c.event, Core: sampleCore})
@@ -40,15 +51,24 @@ func TestRenderOpencodeHook_perEvent(t *testing.T) {
 		if !strings.Contains(out.Content, `from "../hook-lib/hook-utils"`) {
 			t.Errorf("%s: import must point outside plugins/ (../hook-lib)", c.event)
 		}
-		if !strings.Contains(out.Content, c.wantFactory) {
-			t.Errorf("%s: missing factory params %q", c.event, c.wantFactory)
-		}
 		if !strings.Contains(out.Content, c.wantHandler) {
-			t.Errorf("%s: missing handler %q", c.event, c.wantHandler)
+			t.Errorf("%s: missing handler %q in:\n%s", c.event, c.wantHandler, out.Content)
 		}
 		if strings.Contains(out.Content, "export async function run") {
 			t.Errorf("%s: core run not de-exported", c.event)
 		}
+	}
+}
+
+// The idle subscription outlives the call that registered it, so setup must hand back
+// the cleanup that aborts it — otherwise the plugin owns a live stream past unload.
+func TestRenderOpencodeHook_sessionIdleAbortsOnUnload(t *testing.T) {
+	out, ok := target.RenderOpencodeHook(spec.Hook{Name: "sample", OpencodeEvent: spec.SessionIdle, Core: sampleCore})
+	if !ok {
+		t.Fatal("session.idle: ok=false, want true")
+	}
+	if !strings.Contains(out.Content, "return () => controller.abort()") {
+		t.Errorf("session.idle: subscription not aborted by the setup cleanup, got:\n%s", out.Content)
 	}
 }
 

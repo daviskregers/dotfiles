@@ -4,10 +4,10 @@ import {
     serializeClaudeResult,
     extractOpencodeBefore,
     extractOpencodeAfter,
-    extractOpencodeMessage,
+    extractOpencodePrompt,
     applyOpencodeBefore,
     applyOpencodeAfter,
-    applyOpencodeMessage,
+    applyOpencodePrompt,
     injectOnIdle,
     type HookResult,
 } from "../hook-utils"
@@ -77,98 +77,127 @@ describe("serializeClaudeResult", () => {
     })
 })
 
-describe("extractOpencode*", () => {
-    test("before: command from output.args", () => {
-        expect(extractOpencodeBefore({ tool: "bash" }, { args: { command: "rm x" } })).toEqual({
+describe("extractOpencodeBefore", () => {
+    test("before: tool + command + toolInput from the one event", () => {
+        expect(extractOpencodeBefore({ tool: "bash", input: { command: "rm x" } })).toEqual({
             tool: "bash",
             command: "rm x",
             toolInput: { command: "rm x" },
         })
     })
-    test("after: command from input.args, response from output.output", () => {
-        expect(extractOpencodeAfter({ tool: "bash", args: { command: "ls" } }, { output: "res" })).toEqual({
+    test("before: an event carrying no input does not throw", () => {
+        expect(extractOpencodeBefore({ tool: "bash" })).toEqual({
+            tool: "bash",
+            command: undefined,
+            toolInput: undefined,
+        })
+    })
+})
+
+describe("extractOpencodeAfter", () => {
+    test("after: tool + command from input, response from the result content", () => {
+        expect(extractOpencodeAfter({ tool: "bash", input: { command: "ls" }, result: { content: "res" } })).toEqual({
             tool: "bash",
             command: "ls",
             filePath: undefined,
             toolResponse: "res",
         })
     })
-    test("after: filePath from opencode camelCase args", () => {
-        expect(extractOpencodeAfter({ tool: "edit", args: { filePath: "src/a.ts" } }, { output: "" }).filePath).toBe(
-            "src/a.ts",
-        )
+    test("after: an errored call carries no result, so nothing to report", () => {
+        expect(extractOpencodeAfter({ tool: "bash", error: { message: "boom" } }).toolResponse).toBeUndefined()
     })
-    test("message: concatenates text parts, ignores non-text", () => {
-        const output = { parts: [{ type: "text", text: "a" }, { type: "file" }, { type: "text", text: "b" }] }
-        expect(extractOpencodeMessage({}, output)).toEqual({ prompt: "ab" })
-    })
-    test("message: missing parts → empty prompt", () => {
-        expect(extractOpencodeMessage({}, {})).toEqual({ prompt: "" })
+    test("after: filePath from opencode camelCase input", () => {
+        expect(extractOpencodeAfter({ tool: "edit", input: { filePath: "src/a.ts" } }).filePath).toBe("src/a.ts")
     })
 })
 
 describe("applyOpencodeBefore", () => {
     test("deny throws with reason", () => {
-        expect(() => applyOpencodeBefore({ args: {} }, { kind: "deny", reason: "blocked" })).toThrow("blocked")
+        expect(() => applyOpencodeBefore({ input: {} }, { kind: "deny", reason: "blocked" })).toThrow("blocked")
     })
-    test("allow merges updatedInput into args", () => {
-        const output = { args: { command: "old", keep: 1 } }
-        applyOpencodeBefore(output, { kind: "allow", updatedInput: { command: "new" } })
-        expect(output.args).toEqual({ command: "new", keep: 1 })
+    test("allow merges updatedInput into the event's tool input", () => {
+        const event = { input: { command: "old", keep: 1 } }
+        applyOpencodeBefore(event, { kind: "allow", updatedInput: { command: "new" } })
+        expect(event.input).toEqual({ command: "new", keep: 1 })
     })
     test("none is a no-op", () => {
-        const output = { args: { command: "x" } }
-        expect(() => applyOpencodeBefore(output, { kind: "none" })).not.toThrow()
-        expect(output.args).toEqual({ command: "x" })
+        const event = { input: { command: "x" } }
+        expect(() => applyOpencodeBefore(event, { kind: "none" })).not.toThrow()
+        expect(event.input).toEqual({ command: "x" })
     })
 })
 
 describe("applyOpencodeAfter", () => {
-    test("context appends to output", () => {
-        const output = { output: "orig" }
-        applyOpencodeAfter(output, { kind: "context", text: "extra" })
-        expect(output.output).toBe("orig\n\nextra")
+    test("context appends to a string result content", () => {
+        const event = { result: { content: "orig" } }
+        applyOpencodeAfter(event, { kind: "context", text: "extra" })
+        expect(event.result.content).toBe("orig\n\nextra")
     })
-    test("none leaves output untouched", () => {
-        const output = { output: "orig" }
-        applyOpencodeAfter(output, { kind: "none" })
-        expect(output.output).toBe("orig")
+    test("context pushes a text block onto array content", () => {
+        const event = { result: { content: [{ type: "text", text: "orig" }] } }
+        applyOpencodeAfter(event, { kind: "context", text: "extra" })
+        expect(event.result.content).toEqual([
+            { type: "text", text: "orig" },
+            { type: "text", text: "extra" },
+        ])
+    })
+    test("context supplies content when the tool returned none", () => {
+        const event: any = { result: {} }
+        applyOpencodeAfter(event, { kind: "context", text: "extra" })
+        expect(event.result.content).toBe("extra")
+    })
+    test("an errored call has no result to append to", () => {
+        const event: any = { error: { message: "boom" } }
+        expect(() => applyOpencodeAfter(event, { kind: "context", text: "extra" })).not.toThrow()
+        expect(event).toEqual({ error: { message: "boom" } })
+    })
+    test("none leaves content untouched", () => {
+        const event = { result: { content: "orig" } }
+        applyOpencodeAfter(event, { kind: "none" })
+        expect(event.result.content).toBe("orig")
     })
 })
 
-describe("applyOpencodeMessage", () => {
-    test("context pushes a text part", () => {
-        const output: { parts: any[] } = { parts: [] }
-        applyOpencodeMessage(output, { kind: "context", text: "note" })
-        expect(output.parts).toEqual([{ type: "text", text: "note" }])
+describe("extractOpencodePrompt", () => {
+    test("prompt: takes the draft's text", () => {
+        expect(extractOpencodePrompt({ prompt: { text: "hey" } })).toEqual({ prompt: "hey" })
     })
-    test("none pushes nothing", () => {
-        const output: { parts: any[] } = { parts: [] }
-        applyOpencodeMessage(output, { kind: "none" })
-        expect(output.parts).toEqual([])
+    test("prompt: a draft with no text yields an empty prompt", () => {
+        expect(extractOpencodePrompt({})).toEqual({ prompt: "" })
+    })
+})
+
+describe("applyOpencodePrompt", () => {
+    test("context appends to the draft's text", () => {
+        const event = { prompt: { text: "hey" } }
+        applyOpencodePrompt(event, { kind: "context", text: "note" })
+        expect(event.prompt.text).toBe("hey\n\nnote")
+    })
+    test("none leaves the draft untouched", () => {
+        const event = { prompt: { text: "hey" } }
+        applyOpencodePrompt(event, { kind: "none" })
+        expect(event.prompt.text).toBe("hey")
     })
 })
 
 describe("injectOnIdle", () => {
-    const mkClient = () => {
+    const mkCtx = () => {
         const calls: any[] = []
         return { calls, session: { prompt: async (opts: any) => calls.push(opts) } }
     }
     test("block injects the reason as a prompt to the session", async () => {
-        const c = mkClient()
-        expect(await injectOnIdle(c, "sess-1", { kind: "block", reason: "checkpoint" })).toBe(true)
-        expect(c.calls).toHaveLength(1)
-        expect(c.calls[0].path.id).toBe("sess-1")
-        expect(c.calls[0].body.parts).toEqual([{ type: "text", text: "checkpoint" }])
+        const ctx = mkCtx()
+        expect(await injectOnIdle(ctx, "sess-1", { kind: "block", reason: "checkpoint" })).toBe(true)
+        expect(ctx.calls).toEqual([{ sessionID: "sess-1", text: "checkpoint" }])
     })
     test("context injects its text", async () => {
-        const c = mkClient()
-        expect(await injectOnIdle(c, "s", { kind: "context", text: "note" })).toBe(true)
-        expect(c.calls[0].body.parts[0].text).toBe("note")
+        const ctx = mkCtx()
+        expect(await injectOnIdle(ctx, "s", { kind: "context", text: "note" })).toBe(true)
+        expect(ctx.calls[0].text).toBe("note")
     })
     test("none injects nothing", async () => {
-        const c = mkClient()
-        expect(await injectOnIdle(c, "s", { kind: "none" })).toBe(false)
-        expect(c.calls).toHaveLength(0)
+        const ctx = mkCtx()
+        expect(await injectOnIdle(ctx, "s", { kind: "none" })).toBe(false)
+        expect(ctx.calls).toHaveLength(0)
     })
 })

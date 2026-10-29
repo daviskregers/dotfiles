@@ -32,10 +32,12 @@ func (Opencode) RenderHooks(hooks []spec.Hook, hookUtils string) []OutputFile {
 // RenderRegistrations is empty for opencode — plugins are auto-discovered from plugins/.
 func (Opencode) RenderRegistrations([]spec.Hook) []ConfigMerge { return nil }
 
-// RenderOpencodeHook emits an opencode plugin for a dual-targetable hook: an import
-// of the shared runtime + the neutral core (de-exported, inlined) + a plugin factory
-// wiring the core to the mapped event and translating HookResult (deny→throw,
-// allow→mutate args, context→append, idle→client inject). ok=false → claude-only.
+// RenderOpencodeHook emits an opencode V2 plugin for a dual-targetable hook: an
+// import of the shared runtime + the neutral core (de-exported, inlined) + a
+// Plugin.define-shaped default export whose setup registers the mapped hook.
+// V2 registers each hook on the domain that owns it and hands the callback one
+// mutable event, so the adapter translates that event instead of an input/output
+// pair. ok=false → claude-only.
 func RenderOpencodeHook(h spec.Hook) (OutputFile, bool) {
 	body, ok := opencodeHookHandler(h.OpencodeEvent)
 	if !ok {
@@ -44,9 +46,11 @@ func RenderOpencodeHook(h spec.Hook) (OutputFile, bool) {
 	var b strings.Builder
 	b.WriteString(`import { ` + opencodeAdapterImports(h.OpencodeEvent) + `, type HookResult, type HookCtx, type HookInput } from "../hook-lib/hook-utils"` + "\n\n")
 	b.WriteString(inlineCore(h.Core))
-	b.WriteString("\nexport const " + camel(strings.ReplaceAll(h.Name, "-", "_")) + " = async (" + opencodeFactoryParams(h.OpencodeEvent) + ") => ({\n")
+	b.WriteString("\nexport default {\n")
+	b.WriteString("    id: \"" + h.Name + "\",\n")
+	b.WriteString("    async setup(ctx: any) {\n")
 	b.WriteString(body)
-	b.WriteString("})\n")
+	b.WriteString("    },\n}\n")
 	return OutputFile{RelPath: Opencode{}.PluginDir() + "/" + h.Name + ".ts", Content: b.String()}, true
 }
 
@@ -58,7 +62,7 @@ func opencodeAdapterImports(ev spec.OpencodeEvent) string {
 	case spec.ToolExecuteAfter:
 		return "extractOpencodeAfter, applyOpencodeAfter"
 	case spec.ChatMessage:
-		return "extractOpencodeMessage, applyOpencodeMessage"
+		return "extractOpencodePrompt, applyOpencodePrompt"
 	case spec.SessionIdle:
 		return "injectOnIdle"
 	default:
@@ -66,40 +70,41 @@ func opencodeAdapterImports(ev spec.OpencodeEvent) string {
 	}
 }
 
-// opencodeHookHandler is the event-handler body: thin plumbing delegating extraction
-// and result-application to the (tested) adapters.
+// opencodeHookHandler is the event-registration body: thin plumbing delegating
+// extraction and result-application to the (tested) adapters. Indentation is
+// prettier's problem — gen formats every emitted .ts.
 func opencodeHookHandler(ev spec.OpencodeEvent) (string, bool) {
 	switch ev {
 	case spec.ToolExecuteBefore:
-		return `    "tool.execute.before": async (input: any, output: any) =>
-        applyOpencodeBefore(output, await run(extractOpencodeBefore(input, output), { directory })),
+		return `        await ctx.tool.hook("execute.before", async (event: any) => {
+            applyOpencodeBefore(event, await run(extractOpencodeBefore(event), { directory: ctx.location.directory }))
+        })
 `, true
 	case spec.ToolExecuteAfter:
-		return `    "tool.execute.after": async (input: any, output: any) =>
-        applyOpencodeAfter(output, await run(extractOpencodeAfter(input, output), { directory })),
+		return `        await ctx.tool.hook("execute.after", async (event: any) => {
+            applyOpencodeAfter(event, await run(extractOpencodeAfter(event), { directory: ctx.location.directory }))
+        })
 `, true
 	case spec.ChatMessage:
-		return `    "chat.message": async (input: any, output: any) =>
-        applyOpencodeMessage(output, await run(extractOpencodeMessage(input, output), { directory })),
+		return `        await ctx.session.hook("prompt", async (event: any) => {
+            applyOpencodePrompt(event, await run(extractOpencodePrompt(event), { directory: ctx.location.directory }))
+        })
 `, true
 	case spec.SessionIdle:
-		// The `event` hook can't block or mutate — so on session.idle we run the core
-		// and inject any block/context result as a prompt via the client.
-		return `    event: async (input: any) => {
-        if (input.event?.type !== "session.idle") return
-        await injectOnIdle(client, input.event.properties.sessionID, await run({}, { directory }))
-    },
+		// session.idle arrives on the event stream, which cannot block or mutate the
+		// turn that already ended — so a block/context result is injected as a prompt,
+		// which re-activates the turn so the agent addresses it. setup returns the
+		// cleanup that aborts the subscription on unload.
+		return `        const controller = new AbortController()
+        void (async () => {
+            for await (const event of ctx.event.subscribe({ signal: controller.signal })) {
+                if (event.type !== "session.idle") continue
+                await injectOnIdle(ctx, event.properties.sessionID, await run({}, { directory: ctx.location.directory }))
+            }
+        })()
+        return () => controller.abort()
 `, true
 	default: // NoOpencodeEvent → claude-only
 		return "", false
 	}
-}
-
-// opencodeFactoryParams is the plugin factory's destructured PluginInput — session.idle
-// hooks need the SDK `client` to inject; the rest need only `directory`.
-func opencodeFactoryParams(ev spec.OpencodeEvent) string {
-	if ev == spec.SessionIdle {
-		return "{ directory, client }: { directory: string; client: any }"
-	}
-	return "{ directory }: { directory: string }"
 }

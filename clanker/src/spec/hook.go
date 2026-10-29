@@ -11,18 +11,21 @@ const (
 	Stop             HookEvent = "Stop"
 )
 
-// OpencodeEvent is the opencode plugin event a hook maps to. Empty = claude-only
-// (no opencode plugin emitted).
+// OpencodeEvent is the opencode plugin hook a hook registers with. Empty = claude-only
+// (no opencode plugin emitted). V2 registers each hook on the domain that owns it:
+// Tool* on ctx.tool, ChatMessage on ctx.session, SessionIdle as an event subscription.
 type OpencodeEvent string
 
 const (
 	NoOpencodeEvent   OpencodeEvent = ""
 	ToolExecuteBefore OpencodeEvent = "tool.execute.before"
 	ToolExecuteAfter  OpencodeEvent = "tool.execute.after"
-	ChatMessage       OpencodeEvent = "chat.message"
-	// SessionIdle maps to the fire-and-forget `event` hook filtered to session.idle.
-	// It can't block (idle already fired) or mutate output — so a block/context result
-	// is delivered by injecting a prompt via the SDK client (re-activates the turn).
+	// ChatMessage registers the session prompt hook (V2's successor to V1's
+	// chat.message); the name is retained from the event it replaced.
+	ChatMessage OpencodeEvent = "session.prompt"
+	// SessionIdle subscribes to the event stream filtered to session.idle. Idle has
+	// already fired, so the hook can neither block nor mutate that turn — a
+	// block/context result is injected as a prompt, which re-activates the turn.
 	SessionIdle OpencodeEvent = "session.idle"
 )
 
