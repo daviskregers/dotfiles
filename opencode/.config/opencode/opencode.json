@@ -49,8 +49,7 @@
   "model": "github-copilot/claude-sonnet",
   "plugin": [
     "@plannotator/opencode@latest",
-    "opencode-claude-bridge@latest",
-    "@mohak34/opencode-notifier@0.2.1"
+    "@mohak34/opencode-notifier@1.0.0"
   ],
   "provider": {
     "ollama": {

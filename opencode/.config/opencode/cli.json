@@ -7,12 +7,12 @@
   "session": {
     "sidebar": "auto",
     "scrollbar": true,
-    "thinking": "show",
+    "thinking": "hide",
     "verbosity": "low",
     "new_location": "launch",
     "permissions": "prompt"
   },
-  "animations": false,
+  "animations": true,
   "theme": {
     "name": "vesper",
     "mode": "dark"
