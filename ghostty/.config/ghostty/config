@@ -12,8 +12,9 @@ window-padding-x = 0
 window-padding-y = 0
 window-padding-balance = true
 
-# Left option composes; right option acts as Alt (matched the wezterm send_composed_key_* pair).
-macos-option-as-alt = right
+# Left option acts as Alt (tmux/emacs Meta); right option composes for symbols like € and –.
+# Latvian letters use the apostrophe dead key, so they're unaffected.
+macos-option-as-alt = left
 
 # Shift+Enter → ESC+CR (meta-enter), as in the wezterm keybind.
 keybind = shift+enter=text:\x1b\r
