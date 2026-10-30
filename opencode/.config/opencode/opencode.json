@@ -48,7 +48,6 @@
   },
   "model": "github-copilot/claude-sonnet",
   "plugin": [
-    "@plannotator/opencode@latest",
     "@mohak34/opencode-notifier@1.0.0"
   ],
   "provider": {

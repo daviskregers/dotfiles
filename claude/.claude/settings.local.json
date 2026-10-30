@@ -1,7 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Skill(plannotator-annotate)",
       "Bash(ls ~/.claude/*.json)"
     ]
   }

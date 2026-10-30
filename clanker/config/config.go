@@ -53,10 +53,6 @@ func body(name string) string {
 // HookUtils is the shared hook types module, inlined into each generated hook.
 var HookUtils = hookFile("hook-utils.ts")
 
-// nudgeCore is referenced twice: as comprehension-nudge's own source, and as the origin of
-// the churn threshold that global.md and start.md quote (see withChurnLimit).
-var nudgeCore = hookFile("comprehension-nudge.ts")
-
 // Hooks retained through the blank-slate wipe: dangerous-command-guard (blocks
 // reflexive destructive shell — e.g. rm -rf) and ai-attribution (stamps the
 // AI-generated marker on commits/PRs, mandated by EU AI Act Art. 50). ai-attribution's
@@ -77,17 +73,6 @@ var Hooks = []spec.Hook{
 		OpencodeEvent: spec.ToolExecuteBefore,
 		Core:          hookFile("ai-attribution.ts"),
 	},
-	// comprehension-nudge is the one restored (not retained) hook, and the only advisory
-	// one: it reports uncommitted churn before a file write so work comes back in
-	// reviewable slices. opencode maps to tool.execute.AFTER because its before-hooks
-	// can't carry non-blocking context — only throw or rewrite args.
-	{
-		Name:          "comprehension-nudge",
-		Event:         spec.PreToolUse,
-		Matcher:       "Edit|Write|NotebookEdit",
-		OpencodeEvent: spec.ToolExecuteAfter,
-		Core:          nudgeCore,
-	},
 }
 
 // ToolUtils are the shared helper modules emitted into the tool dir and imported by
@@ -97,10 +82,8 @@ var ToolUtils = []spec.ToolUtil{
 	{Name: "pr-utils.ts", Content: toolFile("pr-utils.ts")},
 }
 
-// Tools is the custom-tool set clanker generates. The PR-triage subset restored from
-// b941ea6 to back the /pr-comments command: list (fetch the triage queue), read (diff
-// context per comment), resolve (reply + resolve a thread), submit (top-level reply).
-// create_stacked_pr backs /stacked-pr: opens a PR against the current branch's parent.
+// Tools is the custom-tool set clanker generates: PR triage (list, read, resolve,
+// submit) backing /pr-comments, and create_stacked_pr backing /stacked-pr.
 var Tools = []spec.Tool{
 	{
 		Name:        "list_pr_comments",
@@ -139,14 +122,6 @@ var Tools = []spec.Tool{
 		Core: toolFile("submit-pr-comment.ts"),
 	},
 	{
-		Name:        "open_nvim_window",
-		Description: "Open a new detached tmux window running nvim at a directory, to review an agent's changes. Call once per distinct directory; requires running inside tmux. Path may be relative to the cwd or absolute.",
-		Args: []spec.ToolArg{
-			{Name: "path", Type: spec.ArgString, Describe: "Directory to open nvim in (relative to cwd or absolute)"},
-		},
-		Core: toolFile("open-nvim-window.ts"),
-	},
-	{
 		Name:        "create_stacked_pr",
 		Description: "Open a PR targeting the branch the current branch was stacked on (closest-ancestor parent, overridable), not the default branch. Pushes the branch, stamps AI attribution, and creates the PR.",
 		Args: []spec.ToolArg{
@@ -162,43 +137,8 @@ var Tools = []spec.Tool{
 // Agents is the set clanker generates. Wiped to a blank slate — redefine here.
 var Agents = []spec.Agent{}
 
-// Commands is the set clanker generates. The Socratic pair — user holds the pen,
-// the assistant only asks the questions that lead them to their own understanding
-// (distilled from a real EDU-6483 investigation session). `learn` is the general
-// tutor; `investigate` layers the artifact→hypothesis→verify-in-code→root-cause arc
-// on top. Both are self-contained interactive commands (NOT subagents — the value is
-// turn-by-turn dialogue with the user, which a subagent can't do) and bake in the
-// user-owns-the-writeup review loop.
+// Commands is the set clanker generates.
 var Commands = []spec.Command{
-	{
-		Name:        "learn",
-		Description: "Socratic learning buddy — leads you to understand a topic by questions, never hands the answer",
-		Body:        body("learn.md"),
-	},
-	{
-		Name:        "investigate",
-		Description: "Socratic root-cause investigation — you drive from artifact to verified root cause, unbiased by existing theories",
-		Body:        body("investigate.md"),
-	},
-	{
-		Name:        "start",
-		Description: "Start a piece of work — will you own it, and what do you want out of it; then trace, enumerate, slice, and explain the diff before it commits",
-		Body:        withChurnLimit(body("start.md"), nudgeCore),
-	},
-	{
-		// Only claims 1 and 3 are testable: claim 2 is a caller inventory, which a
-		// test can only assert about grep's output. Claim 1's test must be written
-		// blind — reading the implementation first yields a test that passes by
-		// construction and scores nothing.
-		Name:        "claims",
-		Description: "Test the Predictions you wrote in an issue's notes file — claim 1 as a blind executable test, claim 3 pinned as characterization — then score them",
-		Body:        body("claims.md"),
-	},
-	{
-		Name:        "practice",
-		Description: "Coached practice — the agent directs and reviews while you implement (hints, never code); rebuild a skill by doing. Ships if you want it to",
-		Body:        body("practice.md"),
-	},
 	{
 		Name:        "pr-comments",
 		Description: "Socratic PR-comment triage — understand each review comment against the code before deciding, then reply/resolve and fan agreed fixes out to background subagents",
@@ -209,17 +149,9 @@ var Commands = []spec.Command{
 		Description: "Open a PR targeting the branch the current branch was stacked on, not the default branch",
 		Body:        body("stacked-pr.md"),
 	},
-	{
-		Name:        "nvim",
-		Description: "Open a tmux window with nvim at the directory an agent worked in, to review its changes",
-		Body:        body("nvim.md"),
-	},
 }
 
 // Docs is the shared global rules document, rendered to CLAUDE.md / AGENTS.md.
-// global.md is a communication-style rule: kill restatement, lead with the
-// decision, one idea per home — applies to chat AND external artifacts (PRs,
-// Linear, commit bodies). Target-neutral, so no {{if}} spans.
 var Docs = []spec.Doc{
-	{Body: withChurnLimit(body("global.md"), nudgeCore)},
+	{Body: body("global.md")},
 }
