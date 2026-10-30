@@ -1,4 +1,4 @@
-.PHONY: all install-packages
+.PHONY: all install-packages install-packages-mac
 
 all:
 	git submodule update --init --recursive
@@ -13,3 +13,10 @@ install-packages:
 		network-manager-applet power-profiles-daemon python-gobject imv mpv \
 		gnome-calendar dunst pipewire pipewire-pulse wireplumber fzf
 	paru -S --needed hyprshade wlogout oh-my-zsh-git ttf-firacode-nerd rofi-calc
+
+# Install macOS packages referenced by the dotfiles (WM, keyboard, terminal, CLI).
+# karabiner-elements runs a pkg installer, so brew will ask for the sudo password.
+install-packages-mac:
+	brew install --cask nikitabobko/tap/aerospace karabiner-elements ghostty \
+		font-fira-code-nerd-font 1password claude-code@latest
+	brew install stow tmux neovim fzf ripgrep zsh tree-sitter-cli opencode
