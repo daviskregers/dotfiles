@@ -170,3 +170,14 @@
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  )
+
+;; <leader>pv
+;; <leader>ps
+;; C-p
+;; toggle comments
+;; git
+;; lsp
+;; theme
+;; snippets
+;; run commands
+;; clank
