@@ -23,6 +23,14 @@ Full working setup preserved at commit **`b941ea6`** (last before the wipe): 13 
 - Per-target divergence goes in `Overlay`; zero-valued field inherits shared. `model` is NOT neutral — always per-target overlay (no anthropic on opencode).
 - Reconcile trivial drift (typos, wording) to one canonical value; represent INTENTIONAL divergence as an overlay (keep round-trip byte-faithful).
 
+## Global doc (`bodies/global.md`) — keep it task-neutral
+
+Renders to `CLAUDE.md` / `AGENTS.md` → loaded EVERY session, both agents, every repo — incl. learning/question-only projects. Model reads always-loaded content as "what sessions are for": the pre-2026-10 version was mostly implementation rules (test-first, diff budgets, PR/ticket format) → agents took over implementation when user only wanted to learn/ask. Wiped for that reason.
+
+- Belongs: facts about the user + their setup the agent can't infer (terminal quirks, approval boundaries, where rules live), interaction defaults. Answering ≠ editing — default to explain, change files only on explicit request.
+- Doesn't belong: how-to-build rules → a skill (loads on demand, e.g. `tdd`) or the shipping repo's own `AGENTS.md`. Project facts → that project.
+- Add a line only after observing the failure it fixes. Prose only nudges; a hard "don't edit" = plan mode (claude) / `plan` agent (opencode).
+
 ## Adding a target
 
 New file in `src/target` implementing `Target` + one line in `Registry()`. Targets are struct FIELDS in `spec.Overlays` (not map keys) — so adding one is a compile error until every consumer handles it. That's the pluggable seam; keep it.
@@ -58,7 +66,7 @@ go run ./src -out ..     # from clanker/
 ## Conventions
 
 - Comments: load-bearing "why" only; never restate code.
-- Bodies (`config/bodies/*.md`) load into context every session — write them compressed. Drop articles and filler, use fragments and arrows, keep technical substance and structure. Prose register is for chat, not for these.
+- Bodies (`config/bodies/*.md`) load into context every session, so keep them short — but write them the way the user does: plain, complete sentences in first person ("I prefer…", "We abide by…"), no arrows or fragment shorthand. `global.md` is in the user's own voice; propose wording, don't rewrite it in yours.
 - Commit BOTH source and generated output (`claude/`, `opencode/`) — generated files must work for people who don't run clanker.
 - Never hand-edit generated output, and never hand-replicate a change into the second target. Edit `config/`, then `go run ./src -out ..`.
 - `clanker` is excluded from stow (build tool, not `$HOME` config).
