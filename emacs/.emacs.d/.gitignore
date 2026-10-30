@@ -1,0 +1,6 @@
+# Emacs writes runtime state into this dir (elpa/, caches, auto-saves,
+# projects.eld, backups). Ignore everything, track only the config.
+*
+!.gitignore
+!init.el
+!early-init.el
