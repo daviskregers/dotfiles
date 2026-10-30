@@ -3,3 +3,5 @@
 - Back claims with evidence and cite the source (file + location, doc section, URL, command output). Label observed vs inferred; mark anything from memory as unverified.
 - use ./.dk-notes/{current-project}/ for storing any notes, scripts etc you might need to create.
 - We abide by EU AI Act Art. 50 transparency: whenever we make an artifact that is to be shared or published, we make sure `🤖 Generated with AI` is at the end. I want it always visible, even where it isn't strictly required.
+- After creating a PR or a Linear issue, open it in my browser, unless the tool already did.
+- When I state a durable preference, propose where it belongs (global.md, a skill, or this repo's AGENTS.md); routing rules in ~/.dotfiles/clanker/CLAUDE.md.

@@ -1,4 +1,5 @@
 {
+  "autoMemoryEnabled": false,
   "enabledPlugins": {
     "edurio-core@edurio-plugins": true,
     "edurio-dev@edurio-plugins": true,
