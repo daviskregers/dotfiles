@@ -70,6 +70,7 @@ gaps.outer.right =      0
 # - Arrows.         left, down, up, right
 
 # All possible modifiers: cmd, alt, ctrl, shift
+# ctrl-alt-cmd is sent by Karabiner for fn+<key> (see karabiner/), keeping alt free for tmux/emacs.
 
 # All possible commands: https://nikitabobko.github.io/AeroSpace/commands.html
 
@@ -77,68 +78,68 @@ gaps.outer.right =      0
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#exec-and-forget
 # alt-enter = 'exec-and-forget open -n /System/Applications/Utilities/Terminal.app'
 
-alt-shift-p = 'exec-and-forget open -n /Applications/1Password.app'
-alt-shift-enter = 'exec-and-forget open -n /Applications/WezTerm.app'
+ctrl-alt-cmd-shift-p = 'exec-and-forget open -n /Applications/1Password.app'
+ctrl-alt-cmd-shift-enter = 'exec-and-forget open -n /Applications/WezTerm.app'
 #alt-shift-f = 'exec-and-forget open -n ~'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#layout
-alt-slash = 'layout tiles horizontal vertical'
-alt-comma = 'layout accordion horizontal vertical'
+ctrl-alt-cmd-slash = 'layout tiles horizontal vertical'
+ctrl-alt-cmd-comma = 'layout accordion horizontal vertical'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#focus
-alt-h = 'focus left'
-alt-j = 'focus down'
-alt-k = 'focus up'
-alt-l = 'focus right'
+ctrl-alt-cmd-h = 'focus left'
+ctrl-alt-cmd-j = 'focus down'
+ctrl-alt-cmd-k = 'focus up'
+ctrl-alt-cmd-l = 'focus right'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#move
-alt-shift-h = 'move left'
-alt-shift-j = 'move down'
-alt-shift-k = 'move up'
-alt-shift-l = 'move right'
+ctrl-alt-cmd-shift-h = 'move left'
+ctrl-alt-cmd-shift-j = 'move down'
+ctrl-alt-cmd-shift-k = 'move up'
+ctrl-alt-cmd-shift-l = 'move right'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#resize
-alt-shift-minus = 'resize smart -50'
-alt-shift-equal = 'resize smart +50'
+ctrl-alt-cmd-shift-minus = 'resize smart -50'
+ctrl-alt-cmd-shift-equal = 'resize smart +50'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#workspace
-alt-a = 'workspace dev'
-alt-s = 'workspace dev-2'
-alt-d = 'workspace dev-3'
-alt-f = 'workspace http'
-alt-w = 'workspace www'
-alt-e = 'workspace www2'
-alt-z = 'workspace todo'
-alt-x = 'workspace db'
-alt-c = 'workspace comms'
-alt-v = 'workspace 7'
-alt-b = 'workspace 8'
-alt-n = 'workspace notes'
-alt-m = 'workspace music'
+ctrl-alt-cmd-a = 'workspace dev'
+ctrl-alt-cmd-s = 'workspace dev-2'
+ctrl-alt-cmd-d = 'workspace dev-3'
+ctrl-alt-cmd-f = 'workspace http'
+ctrl-alt-cmd-w = 'workspace www'
+ctrl-alt-cmd-e = 'workspace www2'
+ctrl-alt-cmd-z = 'workspace todo'
+ctrl-alt-cmd-x = 'workspace db'
+ctrl-alt-cmd-c = 'workspace comms'
+ctrl-alt-cmd-v = 'workspace 7'
+ctrl-alt-cmd-b = 'workspace 8'
+ctrl-alt-cmd-n = 'workspace notes'
+ctrl-alt-cmd-m = 'workspace music'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#move-node-to-workspace
-alt-shift-a = 'move-node-to-workspace dev'
-alt-shift-s = 'move-node-to-workspace dev-2'
-alt-shift-d = 'move-node-to-workspace dev-3'
-alt-shift-f = 'move-node-to-workspace http'
-alt-shift-w = 'move-node-to-workspace www'
-alt-shift-e = 'move-node-to-workspace www2'
-alt-shift-z = 'move-node-to-workspace todo'
-alt-shift-x = 'move-node-to-workspace db'
-alt-shift-c = 'move-node-to-workspace comms'
-alt-shift-v = 'move-node-to-workspace 7'
-alt-shift-b = 'move-node-to-workspace 8'
-alt-shift-n = 'move-node-to-workspace notes'
-alt-shift-m = 'move-node-to-workspace music'
+ctrl-alt-cmd-shift-a = 'move-node-to-workspace dev'
+ctrl-alt-cmd-shift-s = 'move-node-to-workspace dev-2'
+ctrl-alt-cmd-shift-d = 'move-node-to-workspace dev-3'
+ctrl-alt-cmd-shift-f = 'move-node-to-workspace http'
+ctrl-alt-cmd-shift-w = 'move-node-to-workspace www'
+ctrl-alt-cmd-shift-e = 'move-node-to-workspace www2'
+ctrl-alt-cmd-shift-z = 'move-node-to-workspace todo'
+ctrl-alt-cmd-shift-x = 'move-node-to-workspace db'
+ctrl-alt-cmd-shift-c = 'move-node-to-workspace comms'
+ctrl-alt-cmd-shift-v = 'move-node-to-workspace 7'
+ctrl-alt-cmd-shift-b = 'move-node-to-workspace 8'
+ctrl-alt-cmd-shift-n = 'move-node-to-workspace notes'
+ctrl-alt-cmd-shift-m = 'move-node-to-workspace music'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#workspace-back-and-forth
-alt-tab = 'workspace-back-and-forth'
+ctrl-alt-cmd-tab = 'workspace-back-and-forth'
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#move-workspace-to-monitor
-alt-shift-tab = 'move-workspace-to-monitor --wrap-around next'
+ctrl-alt-cmd-shift-tab = 'move-workspace-to-monitor --wrap-around next'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#mode
-alt-shift-semicolon = 'mode service'
-alt-shift-slash = 'mode join'
+ctrl-alt-cmd-shift-semicolon = 'mode service'
+ctrl-alt-cmd-shift-slash = 'mode join'
 
 # 'service' binding mode declaration.
 # See: https://nikitabobko.github.io/AeroSpace/guide.html#binding-modes
@@ -152,9 +153,9 @@ esc = ['reload-config', 'mode main']
 # 'join' binding mode declaration
 # See: https://nikitabobko.github.io/AeroSpace/guide.html#binding-modes
 [mode.join.binding]
-alt-shift-h = ['join-with left', 'mode main']
-alt-shift-j = ['join-with down', 'mode main']
-alt-shift-k = ['join-with up', 'mode main']
-alt-shift-l = ['join-with right', 'mode main']
+ctrl-alt-cmd-shift-h = ['join-with left', 'mode main']
+ctrl-alt-cmd-shift-j = ['join-with down', 'mode main']
+ctrl-alt-cmd-shift-k = ['join-with up', 'mode main']
+ctrl-alt-cmd-shift-l = ['join-with right', 'mode main']
 esc = 'mode main'
 
