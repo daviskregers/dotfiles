@@ -44,7 +44,7 @@ install:
 	@$(DOTCTL) install --module "$(MODULE)" --profile "$(PROFILE)" \
 		--platform "$(OS)" --platforms "$(PLATFORMS)" \
 		--profiles "$(PROFILES)" --skip "$(EFFECTIVE_SKIP)" \
-		--home "$(HOME)"
+		--home "$(HOME)" $(if $(FORCE),--force)
 	@if [ -n "$(ACTIVE)" ]; then $(MAKE) post-install; fi
 
 uninstall:

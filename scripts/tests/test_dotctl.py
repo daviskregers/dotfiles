@@ -245,6 +245,43 @@ class InstallTest(unittest.TestCase):
             self.assertFalse((home / ".claude").is_symlink())
             self.assertIn("skip", output.getvalue())
 
+    def test_install_force_backs_up_real_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            module = Path(d) / "git"
+            make_module(module, {".gitconfig": "x"})
+            home = Path(d) / "home"
+            home.mkdir()
+            target = home / ".gitconfig"
+            target.write_text("real")
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                rc = dotctl.install(
+                    "git", module, home, "linux", "personal", "", "", "", force=True
+                )
+            self.assertEqual(rc, 0)
+            self.assertTrue(target.is_symlink())
+            backups = list((home / ".dotfiles-backup").glob("*/.gitconfig"))
+            self.assertEqual(len(backups), 1)
+            self.assertEqual(backups[0].read_text(), "real")
+
+    def test_install_force_refuses_parent_symlink(self):
+        with tempfile.TemporaryDirectory() as d:
+            module = Path(d) / "swappy"
+            make_module(module, {".config/swappy/config": "x"})
+            home = Path(d) / "home"
+            home.mkdir()
+            (home / ".config").mkdir()
+            (home / ".config" / "swappy").symlink_to(module / ".config" / "swappy")
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                rc = dotctl.install(
+                    "swappy", module, home, "linux", "personal", "", "", "", force=True
+                )
+            self.assertEqual(rc, 1)
+            self.assertTrue((module / ".config/swappy/config").exists())
+            self.assertTrue((home / ".config/swappy").is_symlink())
+            self.assertFalse((home / ".dotfiles-backup").exists())
+
     def test_uninstall_removes_link(self):
         with tempfile.TemporaryDirectory() as d:
             module = Path(d) / "swappy"

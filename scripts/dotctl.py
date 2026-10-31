@@ -12,6 +12,7 @@ import subprocess
 import sys
 from collections import Counter
 from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
 
 
@@ -196,6 +197,11 @@ def display_path(path: Path, home: Path) -> str:
         return str(path)
 
 
+def backup_path(home: Path, rel: str) -> Path:
+    stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    return home / ".dotfiles-backup" / stamp / rel
+
+
 def status(
     module: str,
     module_dir: Path,
@@ -326,8 +332,27 @@ def install(
             target.symlink_to(source)
             linked += 1
         else:
-            conflicts += 1
-            print(f"  conflict   {display_path(target, home)} ({state})")
+            blocker = blocking_symlink(target, home)
+            if blocker is not None:
+                conflicts += 1
+                print(
+                    f"  conflict   {display_path(target, home)} "
+                    f"(parent symlink {display_path(blocker, home)})"
+                )
+                continue
+            if force:
+                backup = backup_path(home, rel)
+                backup.parent.mkdir(parents=True, exist_ok=True)
+                target.rename(backup)
+                target.symlink_to(source)
+                linked += 1
+                print(
+                    f"  backed up  {display_path(target, home)} "
+                    f"-> {display_path(backup, home)}"
+                )
+            else:
+                conflicts += 1
+                print(f"  conflict   {display_path(target, home)} ({state})")
     if conflicts:
         print(f"{module}: linked {linked}, ok {ok}, conflicts {conflicts}")
         return 1
@@ -484,6 +509,7 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("install", help="link the module's targets")
     add_module_args(p)
     p.add_argument("--home", default=str(Path.home()))
+    p.add_argument("--force", action="store_true")
 
     p = sub.add_parser("uninstall", help="remove the module's own links")
     add_module_args(p)
@@ -526,6 +552,7 @@ def main(argv: list[str] | None = None) -> int:
         return install(
             module_dir=Path.cwd(),
             home=Path(args.home).expanduser(),
+            force=args.force,
             **common,
         )
     if args.command == "uninstall":
