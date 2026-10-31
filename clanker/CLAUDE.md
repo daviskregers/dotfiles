@@ -60,7 +60,7 @@ go run ./src -out ..     # from clanker/
 
 - `make doctor` — verify `bun` + `go` are on PATH. Missing `bun` silently disables ALL generated hooks (incl. dangerous-command-guard, which fails OPEN).
 - `make bootstrap` — `bun install` the gitignored deps (MCP server runtime + hook/tool test deps).
-- `make check` — regenerate, fail on any diff vs committed, then test (what CI runs).
+- `make check` — regenerate, fail on any diff vs committed, then test (run locally; no CI).
 - **MCP registration** is single-sourced as a generated fragment (`mcp-tools/mcp-registration.json`) and applied by `make install-mcp` (run by `bootstrap`). opencode auto-discovers `tools/`; claude has no committed-global MCP config (settings.json can't hold servers, a committed `.mcp.json` is project-scoped only), so the fragment is merged into `~/.claude.json` — the sole global location — with `$HOME` expanded to an absolute path (MCP args aren't shell-expanded at spawn). One server bundles every tool; a `spec.MCPServer` type is only warranted if varied servers ever appear.
 
 ## Conventions
@@ -69,4 +69,4 @@ go run ./src -out ..     # from clanker/
 - Bodies (`config/bodies/*.md`) load into context every session, so keep them short — but write them the way the user does: plain, complete sentences in first person ("I prefer…", "We abide by…"), no arrows or fragment shorthand. `global.md` is in the user's own voice; propose wording, don't rewrite it in yours.
 - Commit BOTH source and generated output (`claude/`, `opencode/`) — generated files must work for people who don't run clanker.
 - Never hand-edit generated output, and never hand-replicate a change into the second target. Edit `config/`, then `go run ./src -out ..`.
-- `clanker` is excluded from stow (build tool, not `$HOME` config).
+- `clanker` is not a deploy module (`NON_MODULES`); it is a build tool, not `$HOME` config.

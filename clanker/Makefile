@@ -1,13 +1,15 @@
-.PHONY: gen test test-go test-ts check lint lint-go lint-ts doctor bootstrap install-mcp
+.PHONY: gen test test-go test-ts check lint lint-go lint-ts doctor bootstrap deps install-mcp
 
 # Install the TS dependencies that are gitignored out of the repo: the claude MCP
 # server's runtime deps (without which the custom-tools server fails to launch and
 # every mcp__custom-tools__* tool silently vanishes) + the hook/tool test deps.
 # Run once after cloning.
-bootstrap:
+deps:
 	cd config/hooks && bun install
 	cd config/tools && bun install
 	cd ../claude/.claude/mcp-tools && bun install
+
+bootstrap: deps
 	$(MAKE) install-mcp
 
 # Merge the generated MCP registration into ~/.claude.json (the only global location
@@ -27,12 +29,12 @@ doctor:
 gen:
 	go run ./src -out ..
 
-# Drift gate (CI runs this on a clean checkout): lint, regenerate, fail if committed
+# Drift gate (run by the dotfiles `make check`): lint, regenerate, fail if committed
 # output differs, then test. Guarantees "generated == committed" — the promise that
 # clanker's output works for people who don't run it. Run locally only on a clean tree.
-check: lint gen
+check: deps lint gen
 	@git -C .. diff --exit-code -- claude opencode clanker/generated-manifest.json \
-		|| { echo "ERROR: generated output is stale — run 'make gen' and commit the result"; exit 1; }
+		|| { echo "ERROR: claude/opencode differ from committed — run 'make gen' and commit, or commit/stash local edits"; exit 1; }
 	$(MAKE) test
 
 # Lint both languages. Go: vet + gofmt. TS: typecheck (tsc) + format-check (prettier,

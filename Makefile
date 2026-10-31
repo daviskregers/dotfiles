@@ -18,25 +18,18 @@ NEED_GEN    := $(filter claude opencode,$(TARGETS))
 EFFECTIVE_SKIP := $(if $(MODULE),,$(SKIP))
 export PROFILE EFFECTIVE_SKIP FORCE APPLY
 
-.PHONY: all stow-all install uninstall deps setup list status plan legacy doctor install-packages install-packages-mac
+.PHONY: all stow-all install uninstall deps setup gen check list status plan legacy doctor install-packages install-packages-mac
 .NOTPARALLEL:
 
-all: stow-all
+all: install
 
-# Temporary Phase 2 installer. A targeted MODULE= run uses the new
-# per-module install; a full `make install` still runs stow until Phase 5.
-install:
-	@if [ -n "$(MODULE)" ]; then \
-		$(MAKE) -C $(MODULE) install; \
-	else \
-		$(MAKE) stow-all; \
-	fi
+install: $(if $(NEED_GEN),gen)
+	@for m in $(TARGETS); do $(MAKE) -C $$m install || exit 1; done
 
 uninstall:
 	@for m in $(TARGETS); do $(MAKE) -C $$m uninstall || exit 1; done
 
-# Temporary Phase 1 installer. Stow stays in charge until the module
-# migration reaches it; this still over-deploys docs/.dk-notes.
+# Manual rollback to the old stow layout. Not part of the normal flow.
 stow-all:
 	git submodule update --init --recursive
 	find . -maxdepth 1 -mindepth 1 -type d -not -name .git -not -name clanker -exec basename {} \; | xargs -I {} stow -vv --ignore='\.DS_Store' {}
@@ -67,7 +60,15 @@ deps:
 	@if [ -z "$(MODULE)" ]; then $(MAKE) -C clanker bootstrap; fi
 	@for m in $(TARGETS); do $(MAKE) -C $$m deps || exit 1; done
 
+gen:
+	@command -v go >/dev/null || { echo "MISSING go — cannot regenerate; run make doctor"; exit 1; }
+	$(MAKE) -C clanker gen
+
 setup: doctor deps install
+
+check: status
+	$(MAKE) -C clanker check
+	@python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 
 # Install Arch packages referenced by the dotfiles (WM, bar, apps). Requires sudo.
 # hyprshade and wlogout are AUR-only; paru handles those.
@@ -84,4 +85,4 @@ install-packages:
 install-packages-mac:
 	brew install --cask nikitabobko/tap/aerospace karabiner-elements ghostty \
 		font-fira-code-nerd-font 1password claude-code@latest
-	brew install stow tmux neovim fzf ripgrep zsh tree-sitter-cli opencode
+	brew install tmux neovim fzf ripgrep zsh tree-sitter-cli opencode

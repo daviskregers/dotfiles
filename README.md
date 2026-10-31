@@ -5,12 +5,17 @@ My dotfiles.
 ## Install
 
 ```console
-sudo pacman -S stow
 git clone --recurse-submodules git@github.com:daviskregers/dotfiles.git ~/.dotfiles
 cd .dotfiles
 git config submodule.recurse true
-make
+make doctor
+make setup
+make status
 ```
+
+`make doctor` checks the toolchain, `make setup` installs dependencies and
+deploys, and `make status` verifies the links. `make check` is the local drift
+gate.
 
 ## Submodules
 

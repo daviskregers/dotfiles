@@ -51,7 +51,7 @@ Generated output is **committed** — it works for people who don't run clanker.
 make gen        # regenerate both trees into the dotfiles root
 make test       # go test ./... + bun tests (hook & tool cores)
 make lint       # go vet + gofmt, tsc + prettier
-make check      # lint + gen + fail on any drift vs committed + test  (what CI runs)
+make check      # lint + gen + fail on any drift vs committed + test  (run locally)
 ```
 
 ### Fresh machine
