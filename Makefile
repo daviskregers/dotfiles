@@ -2,11 +2,12 @@ OS      ?= $(shell uname -s | tr '[:upper:]' '[:lower:]')
 PROFILE ?= personal
 SKIP    ?=
 -include config.mk
+-include packages/packages.mk
 
 MAKEFLAGS += --no-print-directory
 
 NON_MODULES := clanker
-INFRA       := mk scripts
+INFRA       := mk scripts packages
 ALL         := $(patsubst %/Makefile,%,$(wildcard */Makefile))
 DEPLOYABLE  := $(filter-out $(NON_MODULES),$(ALL))
 MODULES     := $(filter-out $(SKIP),$(DEPLOYABLE))
@@ -18,7 +19,7 @@ NEED_GEN    := $(filter claude opencode,$(TARGETS))
 EFFECTIVE_SKIP := $(if $(MODULE),,$(SKIP))
 export PROFILE EFFECTIVE_SKIP FORCE APPLY
 
-.PHONY: all stow-all install uninstall deps setup gen check list status plan legacy doctor install-packages install-packages-mac
+.PHONY: all stow-all install uninstall deps setup gen check list status plan legacy packages doctor install-packages install-packages-mac
 .NOTPARALLEL:
 
 all: install
@@ -72,19 +73,20 @@ check: status
 	@python3 -m unittest discover -s scripts/tests -p 'test_*.py'
 	@bash scripts/check-home.sh
 
+packages:
+	@echo "arch: $(PKGS_ARCH)"
+	@echo "aur: $(PKGS_AUR)"
+	@echo "mac: $(PKGS_MAC)"
+	@echo "mac-cask: $(PKGS_MAC_CASK)"
+
 # Install Arch packages referenced by the dotfiles (WM, bar, apps). Requires sudo.
 # hyprshade and wlogout are AUR-only; paru handles those.
 install-packages:
-	sudo pacman -S --needed hyprland hypridle hyprlock hyprpaper waybar \
-		wob hyprshot grim slurp swappy wl-clipboard \
-		ghostty rofi nautilus playerctl pavucontrol brightnessctl \
-		network-manager-applet power-profiles-daemon python-gobject imv mpv \
-		gnome-calendar dunst pipewire pipewire-pulse wireplumber fzf
-	paru -S --needed hyprshade wlogout oh-my-zsh-git ttf-firacode-nerd rofi-calc
+	sudo pacman -S --needed $(PKGS_ARCH)
+	paru -S --needed $(PKGS_AUR)
 
 # Install macOS packages referenced by the dotfiles (WM, keyboard, terminal, CLI).
 # karabiner-elements runs a pkg installer, so brew will ask for the sudo password.
 install-packages-mac:
-	brew install --cask nikitabobko/tap/aerospace karabiner-elements ghostty \
-		font-fira-code-nerd-font 1password claude-code@latest
-	brew install tmux neovim fzf ripgrep zsh tree-sitter-cli opencode
+	brew install --cask $(PKGS_MAC_CASK)
+	brew install $(PKGS_MAC)
