@@ -203,6 +203,41 @@ class InstallTest(unittest.TestCase):
             self.assertFalse((home / ".claude").exists())
             self.assertIn("skip", output.getvalue())
 
+    def test_install_inactive_removes_leaf_link(self):
+        with tempfile.TemporaryDirectory() as d:
+            module = Path(d) / "claude"
+            make_module(module, {".claude/settings.json": "x"})
+            home = Path(d) / "home"
+            home.mkdir()
+            (home / ".claude").mkdir()
+            target = home / ".claude" / "settings.json"
+            target.symlink_to((module / ".claude/settings.json").resolve())
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                rc = dotctl.install(
+                    "claude", module, home, "linux", "personal", "", "work", ""
+                )
+            self.assertEqual(rc, 0)
+            self.assertFalse(target.exists())
+            self.assertFalse((home / ".claude").exists())
+            self.assertIn("skip", output.getvalue())
+
+    def test_install_inactive_removes_dir_link(self):
+        with tempfile.TemporaryDirectory() as d:
+            module = Path(d) / "claude"
+            make_module(module, {".claude/settings.json": "x"})
+            home = Path(d) / "home"
+            home.mkdir()
+            (home / ".claude").symlink_to(module / ".claude")
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                rc = dotctl.install(
+                    "claude", module, home, "linux", "personal", "", "work", ""
+                )
+            self.assertEqual(rc, 0)
+            self.assertFalse((home / ".claude").is_symlink())
+            self.assertIn("skip", output.getvalue())
+
     def test_uninstall_removes_link(self):
         with tempfile.TemporaryDirectory() as d:
             module = Path(d) / "swappy"
@@ -305,6 +340,25 @@ class LegacyTest(unittest.TestCase):
             )
             self.assertEqual(dotctl.remove_legacy([entry]), 1)
             self.assertFalse(path.is_symlink())
+
+
+class StatusTest(unittest.TestCase):
+    def test_inactive_reports_stale(self):
+        with tempfile.TemporaryDirectory() as d:
+            module = Path(d) / "claude"
+            make_module(module, {".claude/settings.json": "x"})
+            home = Path(d) / "home"
+            home.mkdir()
+            (home / ".claude").mkdir()
+            target = home / ".claude" / "settings.json"
+            target.symlink_to((module / ".claude/settings.json").resolve())
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                rc = dotctl.status(
+                    "claude", module, home, "linux", "personal", "", "work", ""
+                )
+            self.assertEqual(rc, 1)
+            self.assertIn("stale", output.getvalue())
 
 
 if __name__ == "__main__":

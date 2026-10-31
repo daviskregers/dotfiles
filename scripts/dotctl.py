@@ -208,8 +208,14 @@ def status(
 ) -> int:
     reason = skip_reason(module, os_name, profile, platforms, profiles, skip)
     if reason:
-        print(f"{module}: skip ({reason})")
-        return 0
+        stale = _owned_links(module_dir, home)
+        if not stale:
+            print(f"{module}: skip ({reason})")
+            return 0
+        print(f"{module}: stale ({len(stale)} links, {reason})")
+        for path in stale:
+            print(f"  stale        {display_path(path, home)}")
+        return 1
 
     results = [
         (rel, classify(home / rel, module_dir / rel, home))
@@ -240,13 +246,52 @@ def plan(
 ) -> int:
     reason = skip_reason(module, os_name, profile, platforms, profiles, skip)
     if reason:
-        print(f"{module}: skip ({reason})")
+        stale = _owned_links(module_dir, home)
+        if not stale:
+            print(f"{module}: skip ({reason})")
+        else:
+            for path in stale:
+                print(f"  stale        {display_path(path, home)}")
         return 0
 
     for rel in deploy_entries(module_dir):
         state = classify(home / rel, module_dir / rel, home)
         print(f"  {state:<12} {display_path(home / rel, home)}")
     return 0
+
+
+def _owned_links(module_dir: Path, home: Path) -> list[Path]:
+    """Links in `home` that belong to this module, including old dir links."""
+    root = module_dir.resolve()
+    found: set[Path] = set()
+    for rel in deploy_entries(module_dir):
+        source = (module_dir / rel).resolve()
+        target = home / rel
+        blocker = blocking_symlink(target, home)
+        if blocker is not None:
+            if blocker.resolve(strict=False).is_relative_to(root):
+                found.add(blocker)
+            continue
+        if target.is_symlink() and target.resolve(strict=False) == source:
+            found.add(target)
+    return sorted(found)
+
+
+def remove_owned(module_dir: Path, home: Path) -> int:
+    root = module_dir.resolve()
+    removed = 0
+    for path in _owned_links(module_dir, home):
+        if not path.is_symlink():
+            continue
+        if not path.resolve(strict=False).is_relative_to(root):
+            continue
+        path.unlink()
+        removed += 1
+        parent = path.parent
+        while parent != home and parent.is_dir() and not any(parent.iterdir()):
+            parent.rmdir()
+            parent = parent.parent
+    return removed
 
 
 def install(
@@ -262,7 +307,9 @@ def install(
 ) -> int:
     reason = skip_reason(module, os_name, profile, platforms, profiles, skip)
     if reason:
-        print(f"{module}: skip ({reason})")
+        removed = remove_owned(module_dir, home)
+        suffix = f"; removed {removed}" if removed else ""
+        print(f"{module}: skip ({reason}){suffix}")
         return 0
 
     linked = 0
