@@ -1,5 +1,6 @@
 OS      ?= $(shell uname -s | tr '[:upper:]' '[:lower:]')
-PROFILE ?= personal
+DEFAULT_PROFILE := personal
+PROFILE ?= $(DEFAULT_PROFILE)
 SKIP    ?=
 -include config.mk
 -include packages/packages.mk
@@ -19,7 +20,7 @@ NEED_GEN    := $(filter claude opencode,$(TARGETS))
 EFFECTIVE_SKIP := $(if $(MODULE),,$(SKIP))
 export PROFILE EFFECTIVE_SKIP FORCE APPLY
 
-.PHONY: all stow-all install uninstall deps setup gen check list status plan legacy packages doctor install-packages install-packages-mac
+.PHONY: all stow-all install uninstall deps setup gen check list profiles status plan legacy packages doctor install-packages install-packages-mac
 .NOTPARALLEL:
 
 all: install
@@ -40,6 +41,9 @@ list:
 	@for m in $(DEPLOYABLE); do $(MAKE) -C $$m describe || exit 1; done
 	@echo "non-modules: $(NON_MODULES)"
 	@echo "ignored: $(IGNORED)"
+
+profiles:
+	@printf '%s\n' $(DEFAULT_PROFILE) $(shell grep -hE '^PROFILES[[:space:]]*:=' */Makefile | sed 's/.*:= *//') | tr ' ' '\n' | sed '/^$$/d' | sort -u
 
 status:
 	@fail=0; for m in $(TARGETS); do \
