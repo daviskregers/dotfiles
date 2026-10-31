@@ -17,3 +17,6 @@ tmux/.bin/*
 __pycache__/
 
 .DS_Store
+
+# Per-machine deploy config (see config.example.mk)
+/config.mk

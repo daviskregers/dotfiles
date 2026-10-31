@@ -1,8 +1,42 @@
-.PHONY: all install-packages install-packages-mac
+OS      ?= $(shell uname -s | tr '[:upper:]' '[:lower:]')
+PROFILE ?= personal
+SKIP    ?=
+-include config.mk
 
-all:
+MAKEFLAGS += --no-print-directory
+
+NON_MODULES := clanker
+INFRA       := mk scripts
+ALL         := $(patsubst %/Makefile,%,$(wildcard */Makefile))
+DEPLOYABLE  := $(filter-out $(NON_MODULES),$(ALL))
+MODULES     := $(filter-out $(SKIP),$(DEPLOYABLE))
+IGNORED     := $(filter-out $(ALL) $(INFRA),$(patsubst %/,%,$(wildcard */)))
+TARGETS     := $(if $(MODULE),$(MODULE),$(DEPLOYABLE))
+NEED_GEN    := $(filter claude opencode,$(TARGETS))
+
+# A targeted MODULE= run ignores SKIP.
+EFFECTIVE_SKIP := $(if $(MODULE),,$(SKIP))
+export PROFILE EFFECTIVE_SKIP FORCE APPLY
+
+.PHONY: all stow-all list doctor install-packages install-packages-mac
+.NOTPARALLEL:
+
+all: stow-all
+
+# Temporary Phase 1 installer. Stow stays in charge until the module
+# migration reaches it; this still over-deploys docs/.dk-notes.
+stow-all:
 	git submodule update --init --recursive
 	find . -maxdepth 1 -mindepth 1 -type d -not -name .git -not -name clanker -exec basename {} \; | xargs -I {} stow -vv --ignore='\.DS_Store' {}
+
+list:
+	@echo "profile=$(PROFILE) os=$(OS)"
+	@for m in $(DEPLOYABLE); do $(MAKE) -C $$m describe || exit 1; done
+	@echo "non-modules: $(NON_MODULES)"
+	@echo "ignored: $(IGNORED)"
+
+doctor:
+	$(MAKE) -C clanker doctor
 
 # Install Arch packages referenced by the dotfiles (WM, bar, apps). Requires sudo.
 # hyprshade and wlogout are AUR-only; paru handles those.
