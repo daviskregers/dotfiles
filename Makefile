@@ -18,7 +18,7 @@ NEED_GEN    := $(filter claude opencode,$(TARGETS))
 EFFECTIVE_SKIP := $(if $(MODULE),,$(SKIP))
 export PROFILE EFFECTIVE_SKIP FORCE APPLY
 
-.PHONY: all stow-all install uninstall list status plan legacy doctor install-packages install-packages-mac
+.PHONY: all stow-all install uninstall deps setup list status plan legacy doctor install-packages install-packages-mac
 .NOTPARALLEL:
 
 all: stow-all
@@ -62,6 +62,12 @@ legacy:
 
 doctor:
 	$(MAKE) -C clanker doctor
+
+deps:
+	@if [ -z "$(MODULE)" ]; then $(MAKE) -C clanker bootstrap; fi
+	@for m in $(TARGETS); do $(MAKE) -C $$m deps || exit 1; done
+
+setup: doctor deps install
 
 # Install Arch packages referenced by the dotfiles (WM, bar, apps). Requires sudo.
 # hyprshade and wlogout are AUR-only; paru handles those.

@@ -188,6 +188,21 @@ class InstallTest(unittest.TestCase):
             self.assertEqual(target.read_text(), "real")
             self.assertIn("conflict", output.getvalue())
 
+    def test_install_skips_inactive(self):
+        with tempfile.TemporaryDirectory() as d:
+            module = Path(d) / "claude"
+            make_module(module, {".claude/settings.json": "x"})
+            home = Path(d) / "home"
+            home.mkdir()
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                rc = dotctl.install(
+                    "claude", module, home, "linux", "personal", "", "work", ""
+                )
+            self.assertEqual(rc, 0)
+            self.assertFalse((home / ".claude").exists())
+            self.assertIn("skip", output.getvalue())
+
     def test_uninstall_removes_link(self):
         with tempfile.TemporaryDirectory() as d:
             module = Path(d) / "swappy"

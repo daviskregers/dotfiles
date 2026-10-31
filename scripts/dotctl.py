@@ -260,6 +260,11 @@ def install(
     skip: str,
     force: bool = False,
 ) -> int:
+    reason = skip_reason(module, os_name, profile, platforms, profiles, skip)
+    if reason:
+        print(f"{module}: skip ({reason})")
+        return 0
+
     linked = 0
     ok = 0
     conflicts = 0
