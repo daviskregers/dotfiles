@@ -53,12 +53,12 @@
   "provider": {
     "ollama": {
       "models": {
-        "qwen3.6:27b": {
+        "qwen3.8:27b": {
           "limit": {
-            "context": 65536,
-            "output": 8192
+            "context": 131072,
+            "output": 32768
           },
-          "name": "Qwen 3.6 27B (local)"
+          "name": "Qwen 3.8 27B (local)"
         }
       },
       "name": "Ollama (local)",
