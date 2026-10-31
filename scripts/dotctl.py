@@ -249,6 +249,71 @@ def plan(
     return 0
 
 
+def install(
+    module: str,
+    module_dir: Path,
+    home: Path,
+    os_name: str,
+    profile: str,
+    platforms: str,
+    profiles: str,
+    skip: str,
+    force: bool = False,
+) -> int:
+    linked = 0
+    ok = 0
+    conflicts = 0
+    for rel in deploy_entries(module_dir):
+        source = (module_dir / rel).resolve()
+        target = home / rel
+        state = classify(target, source, home)
+        if state == "ok":
+            ok += 1
+        elif state == "missing":
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.symlink_to(source)
+            linked += 1
+        else:
+            conflicts += 1
+            print(f"  conflict   {display_path(target, home)} ({state})")
+    if conflicts:
+        print(f"{module}: linked {linked}, ok {ok}, conflicts {conflicts}")
+        return 1
+    if linked:
+        print(f"{module}: linked {linked}, ok {ok}")
+    else:
+        print(f"{module}: ok ({ok})")
+    return 0
+
+
+def uninstall(
+    module: str,
+    module_dir: Path,
+    home: Path,
+    os_name: str,
+    profile: str,
+    platforms: str,
+    profiles: str,
+    skip: str,
+) -> int:
+    removed = 0
+    kept = 0
+    for rel in deploy_entries(module_dir):
+        source = (module_dir / rel).resolve()
+        target = home / rel
+        if target.is_symlink() and target.resolve(strict=False) == source:
+            target.unlink()
+            removed += 1
+            parent = target.parent
+            while parent != home and parent.is_dir() and not any(parent.iterdir()):
+                parent.rmdir()
+                parent = parent.parent
+        elif target.is_symlink() or target.exists():
+            kept += 1
+    print(f"{module}: removed {removed}, kept {kept}")
+    return 0
+
+
 def legacy(
     repo_root: Path,
     home: Path,
@@ -321,6 +386,14 @@ def main(argv: list[str] | None = None) -> int:
     add_module_args(p)
     p.add_argument("--home", default=str(Path.home()))
 
+    p = sub.add_parser("install", help="link the module's targets")
+    add_module_args(p)
+    p.add_argument("--home", default=str(Path.home()))
+
+    p = sub.add_parser("uninstall", help="remove the module's own links")
+    add_module_args(p)
+    p.add_argument("--home", default=str(Path.home()))
+
     p = sub.add_parser("legacy", help="find links into the repo that no module owns")
     p.add_argument("--repo-root", default=".")
     p.add_argument("--home", default=str(Path.home()))
@@ -345,6 +418,18 @@ def main(argv: list[str] | None = None) -> int:
         "skip": args.skip,
     }
 
+    if args.command == "install":
+        return install(
+            module_dir=Path.cwd(),
+            home=Path(args.home).expanduser(),
+            **common,
+        )
+    if args.command == "uninstall":
+        return uninstall(
+            module_dir=Path.cwd(),
+            home=Path(args.home).expanduser(),
+            **common,
+        )
     if args.command == "describe":
         describe(**common)
         return 0

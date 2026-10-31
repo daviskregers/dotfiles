@@ -18,10 +18,22 @@ NEED_GEN    := $(filter claude opencode,$(TARGETS))
 EFFECTIVE_SKIP := $(if $(MODULE),,$(SKIP))
 export PROFILE EFFECTIVE_SKIP FORCE APPLY
 
-.PHONY: all stow-all list status plan legacy doctor install-packages install-packages-mac
+.PHONY: all stow-all install uninstall list status plan legacy doctor install-packages install-packages-mac
 .NOTPARALLEL:
 
 all: stow-all
+
+# Temporary Phase 2 installer. A targeted MODULE= run uses the new
+# per-module install; a full `make install` still runs stow until Phase 5.
+install:
+	@if [ -n "$(MODULE)" ]; then \
+		$(MAKE) -C $(MODULE) install; \
+	else \
+		$(MAKE) stow-all; \
+	fi
+
+uninstall:
+	@for m in $(TARGETS); do $(MAKE) -C $$m uninstall || exit 1; done
 
 # Temporary Phase 1 installer. Stow stays in charge until the module
 # migration reaches it; this still over-deploys docs/.dk-notes.

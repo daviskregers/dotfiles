@@ -1,3 +1,5 @@
+import contextlib
+import io
 import subprocess
 import sys
 import tempfile
@@ -7,6 +9,15 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 import dotctl
+
+
+def make_module(root: Path, files: dict[str, str]) -> None:
+    for rel, content in files.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+    subprocess.run(["git", "init", "-q"], cwd=root, check=True)
+    subprocess.run(["git", "add", "-A"], cwd=root, check=True)
 
 
 class SkipReasonTest(unittest.TestCase):
@@ -130,6 +141,82 @@ class DeployEntriesTest(unittest.TestCase):
                 dotctl.deploy_entries(root),
                 [".config/foo", "nested/AGENTS.md", "new.conf"],
             )
+
+
+class InstallTest(unittest.TestCase):
+    def test_install_links_missing(self):
+        with tempfile.TemporaryDirectory() as d:
+            module = Path(d) / "git"
+            make_module(module, {".gitconfig": "x"})
+            home = Path(d) / "home"
+            home.mkdir()
+            rc = dotctl.install("git", module, home, "linux", "personal", "", "", "")
+            self.assertEqual(rc, 0)
+            target = home / ".gitconfig"
+            self.assertTrue(target.is_symlink())
+            self.assertEqual(target.resolve(), (module / ".gitconfig").resolve())
+
+    def test_install_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as d:
+            module = Path(d) / "git"
+            make_module(module, {".gitconfig": "x"})
+            home = Path(d) / "home"
+            home.mkdir()
+            dotctl.install("git", module, home, "linux", "personal", "", "", "")
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                rc = dotctl.install(
+                    "git", module, home, "linux", "personal", "", "", ""
+                )
+            self.assertEqual(rc, 0)
+            self.assertIn("git: ok (1)", output.getvalue())
+
+    def test_install_refuses_real_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            module = Path(d) / "git"
+            make_module(module, {".gitconfig": "x"})
+            home = Path(d) / "home"
+            home.mkdir()
+            target = home / ".gitconfig"
+            target.write_text("real")
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                rc = dotctl.install(
+                    "git", module, home, "linux", "personal", "", "", ""
+                )
+            self.assertEqual(rc, 1)
+            self.assertEqual(target.read_text(), "real")
+            self.assertIn("conflict", output.getvalue())
+
+    def test_uninstall_removes_link(self):
+        with tempfile.TemporaryDirectory() as d:
+            module = Path(d) / "swappy"
+            make_module(module, {".config/swappy/config": "x"})
+            home = Path(d) / "home"
+            home.mkdir()
+            dotctl.install("swappy", module, home, "linux", "personal", "", "", "")
+            target = home / ".config/swappy/config"
+            self.assertTrue(target.is_symlink())
+            rc = dotctl.uninstall(
+                "swappy", module, home, "linux", "personal", "", "", ""
+            )
+            self.assertEqual(rc, 0)
+            self.assertFalse(target.exists())
+            self.assertFalse((home / ".config/swappy").exists())
+
+    def test_uninstall_keeps_real_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            module = Path(d) / "git"
+            make_module(module, {".gitconfig": "x"})
+            home = Path(d) / "home"
+            home.mkdir()
+            target = home / ".gitconfig"
+            target.write_text("real")
+            rc = dotctl.uninstall(
+                "git", module, home, "linux", "personal", "", "", ""
+            )
+            self.assertEqual(rc, 0)
+            self.assertEqual(target.read_text(), "real")
 
 
 class LegacyTest(unittest.TestCase):
