@@ -18,7 +18,7 @@ NEED_GEN    := $(filter claude opencode,$(TARGETS))
 EFFECTIVE_SKIP := $(if $(MODULE),,$(SKIP))
 export PROFILE EFFECTIVE_SKIP FORCE APPLY
 
-.PHONY: all stow-all list doctor install-packages install-packages-mac
+.PHONY: all stow-all list status plan doctor install-packages install-packages-mac
 .NOTPARALLEL:
 
 all: stow-all
@@ -34,6 +34,16 @@ list:
 	@for m in $(DEPLOYABLE); do $(MAKE) -C $$m describe || exit 1; done
 	@echo "non-modules: $(NON_MODULES)"
 	@echo "ignored: $(IGNORED)"
+
+status:
+	@fail=0; for m in $(TARGETS); do \
+		out=$$($(MAKE) -C $$m status 2>&1); rc=$$?; \
+		printf '%s\n' "$$out" | grep -v '^make\[[0-9]*\]: \*\*\*'; \
+		[ $$rc -eq 0 ] || fail=1; \
+	done; exit $$fail
+
+plan:
+	@for m in $(TARGETS); do $(MAKE) -C $$m plan || exit 1; done
 
 doctor:
 	$(MAKE) -C clanker doctor

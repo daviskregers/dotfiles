@@ -4,9 +4,21 @@ PROFILE ?= personal
 EFFECTIVE_SKIP ?=
 DOTCTL := python3 ../scripts/dotctl.py
 
-.PHONY: describe
+.PHONY: describe status plan
 
 describe:
 	@$(DOTCTL) describe --module "$(MODULE)" --profile "$(PROFILE)" \
 		--platform "$(OS)" --platforms "$(PLATFORMS)" \
 		--profiles "$(PROFILES)" --skip "$(EFFECTIVE_SKIP)"
+
+status:
+	@$(DOTCTL) status --module "$(MODULE)" --profile "$(PROFILE)" \
+		--platform "$(OS)" --platforms "$(PLATFORMS)" \
+		--profiles "$(PROFILES)" --skip "$(EFFECTIVE_SKIP)" \
+		--home "$(HOME)"
+
+plan:
+	@$(DOTCTL) plan --module "$(MODULE)" --profile "$(PROFILE)" \
+		--platform "$(OS)" --platforms "$(PLATFORMS)" \
+		--profiles "$(PROFILES)" --skip "$(EFFECTIVE_SKIP)" \
+		--home "$(HOME)"
