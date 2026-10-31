@@ -9,13 +9,15 @@
 #   --subagents   include opencode subagent sessions (those with a parentID; skipped by default)
 #   -n/--dry-run  list what would be written, write nothing
 # Vault root: ~/.config/capture-dir  →  <root>/Conversations/<project>/<date> <title> (<id>).md
-# Sources: Claude Code (~/.claude/projects/*/*.jsonl) and opencode (~/.local/share/opencode/storage).
+# Sources: Claude Code (~/.claude/projects/*/*.jsonl) and opencode (SQLite: ~/.local/share/opencode/opencode.db).
 
-import argparse, json, os, re, sys, time
+import argparse, json, os, re, sqlite3, sys, time
 from pathlib import Path
 
+# NOTE: opencode dropped its JSON file store (~/.local/share/opencode/storage) in 2026; sessions now live in
+# the DB's `session_v2` + `session_message` tables (v1 `session`/`message`/`part` are frozen legacy).
 CLAUDE_PROJECTS = Path.home() / ".claude" / "projects"
-OPENCODE_STORAGE = Path.home() / ".local" / "share" / "opencode" / "storage"
+OPENCODE_DB = Path.home() / ".local" / "share" / "opencode" / "opencode.db"
 POINTER = Path.home() / ".config" / "capture-dir"
 
 USER_HEAD = "## 👤 User"
@@ -157,61 +159,87 @@ def render_claude(jsonl, full):
                jsonl.stem, jsonl.stem[:8], "claude", out)
 
 
-def render_oc(sfile, full, subagents):
-    try:
-        s = json.loads(sfile.read_text())
-    except Exception:
+def oc_connect():
+    """Read-only handle on the live opencode DB (WAL-safe — never writes to it)."""
+    if not OPENCODE_DB.is_file():
+        die(f"opencode database not found: {OPENCODE_DB}")
+    con = sqlite3.connect(f"file:{OPENCODE_DB}?mode=ro", uri=True, timeout=10)
+    con.row_factory = sqlite3.Row
+    return con
+
+
+def oc_result(state, full):
+    """Tool result body: v2 carries it in state.content[], older rows in state.output."""
+    body = state.get("content")
+    if isinstance(body, list):
+        body = "\n".join(b.get("text", "") for b in body if isinstance(b, dict))
+    if not body:
+        body = state.get("output") or state.get("error") or ""
+    body = str(body)
+    if not body.strip():
         return None
-    if s.get("parentID") and not subagents:
-        return None
-    sid = s.get("id", sfile.stem)
-    project = os.path.basename(s.get("directory", "")).lstrip(".") or "unknown"
-    date = entry_date(s.get("time", {}).get("created"))
-    msgdir = OPENCODE_STORAGE / "message" / sid
-    if not msgdir.is_dir():
-        return None
-    msgs = []
-    for mf in msgdir.glob("*.json"):
+    return blockquote(body if full else trunc(body, 200))
+
+
+def render_oc(con, s, full):
+    sid = s["id"]
+    out = []
+    msgs = con.execute(
+        "select type, data from session_message where session_id=?"
+        " order by time_created, seq, id", (sid,))
+    for m in msgs:
         try:
-            msgs.append(json.loads(mf.read_text()))
+            d = json.loads(m["data"])
         except Exception:
             continue
-    msgs.sort(key=lambda m: (m.get("time", {}).get("created", 0), m.get("id", "")))
-
-    out = []
-    for m in msgs:
-        pdir = OPENCODE_STORAGE / "part" / m.get("id", "")
+        t = m["type"]
         parts = []
-        if pdir.is_dir():
-            for pf in sorted(pdir.glob("*.json")):  # part ids are time-sortable
-                try:
-                    p = json.loads(pf.read_text())
-                except Exception:
+        if t == "assistant":
+            head = ASSISTANT_HEAD
+            for b in d.get("content") or []:
+                if not isinstance(b, dict):
                     continue
-                pt = p.get("type")
-                if pt == "text":
-                    parts.append(p.get("text", ""))
-                elif pt == "reasoning":
+                bt = b.get("type")
+                if bt == "text":
+                    parts.append(b.get("text", ""))
+                elif bt == "reasoning":
                     if full:
-                        parts.append("> 💭 _thinking_\n" + blockquote(p.get("text", "")))
-                elif pt == "tool":
-                    st = p.get("state", {}) or {}
+                        parts.append("> 💭 _thinking_\n" + blockquote(b.get("text", "")))
+                elif bt == "tool":
+                    st = b.get("state", {}) or {}
                     inp = st.get("input", {})
                     inp = json.dumps(inp, ensure_ascii=False) if isinstance(inp, (dict, list)) else str(inp)
-                    parts.append(f"> 🔧 `{p.get('tool', '?')}` {trunc(inp, 200)}")
-                    if st.get("output"):
-                        parts.append("> ↳ _result_\n" + blockquote(
-                            st["output"] if full else trunc(str(st["output"]), 200)))
-        text = "\n\n".join(x for x in parts if x and x.strip())
+                    parts.append(f"> 🔧 `{b.get('name', '?')}` {trunc(inp, 200)}")
+                    res = oc_result(st, full)
+                    if res:
+                        parts.append("> ↳ _result_\n" + res)
+        elif t == "user":
+            parts.append(d.get("text", ""))
+            head = USER_HEAD
+        elif t == "shell":              # user-typed `!command`, run by the harness
+            parts.append(f"$ {d.get('command', '')}")
+            if d.get("output"):
+                parts.append("> ↳ _result_\n" + blockquote(
+                    d["output"] if full else trunc(d["output"], 200)))
+            head = SYS_HEAD
+        elif t == "compaction":         # auto-summary of earlier turns
+            parts.append(d.get("summary", ""))
+            head = SYS_HEAD
+        elif t in ("system", "synthetic"):   # harness injections, not human prose
+            parts.append(d.get("text", ""))
+            head = SYS_HEAD
+        else:                           # idle / model-switched / location-switched / agent-switched
+            continue
+        text = "\n\n".join(p for p in parts if p and p.strip())
         if not text.strip():
             continue
-        if m.get("role") == "user":
-            head = SYS_HEAD if is_automated_prose(text) else USER_HEAD
-        else:
-            head = ASSISTANT_HEAD
+        if head == USER_HEAD and is_automated_prose(text):
+            head = SYS_HEAD
         out.append(f"{head}\n\n{text}\n")
 
-    return doc(project, date, s.get("title"), sid, sid.replace("ses_", "")[:8], "opencode", out)
+    project = os.path.basename(s["directory"] or "").lstrip(".") or "unknown"
+    return doc(project, entry_date(s["time_created"]), s["title"], sid,
+               sid.replace("ses_", "")[:8], "opencode", out)
 
 
 def blockquote(s):
@@ -244,13 +272,24 @@ def sources(tool, full, subagents, cutoff):
             if r:
                 yield r, mtime
     if tool in ("opencode", "all"):
-        for sfile in sorted(OPENCODE_STORAGE.glob("session/*/*.json")):
-            mtime = sfile.stat().st_mtime
-            if cutoff and mtime < cutoff:
-                continue
-            r = render_oc(sfile, full, subagents)
-            if r:
-                yield r, mtime
+        con = oc_connect()
+        try:
+            q = "select id, title, directory, time_created, time_updated from session_v2"
+            if not subagents:
+                q += " where parent_id is null"
+            try:
+                rows = con.execute(q + " order by time_updated").fetchall()
+            except sqlite3.OperationalError as e:
+                die(f"cannot read opencode sessions ({e}) — is this an opencode v2 store?")
+            for s in rows:
+                mtime = s["time_updated"] / 1000
+                if cutoff and mtime < cutoff:
+                    continue
+                r = render_oc(con, s, full)
+                if r:
+                    yield r, mtime
+        finally:
+            con.close()
 
 
 def main():
