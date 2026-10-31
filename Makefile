@@ -18,7 +18,7 @@ NEED_GEN    := $(filter claude opencode,$(TARGETS))
 EFFECTIVE_SKIP := $(if $(MODULE),,$(SKIP))
 export PROFILE EFFECTIVE_SKIP FORCE APPLY
 
-.PHONY: all stow-all list status plan doctor install-packages install-packages-mac
+.PHONY: all stow-all list status plan legacy doctor install-packages install-packages-mac
 .NOTPARALLEL:
 
 all: stow-all
@@ -44,6 +44,9 @@ status:
 
 plan:
 	@for m in $(TARGETS); do $(MAKE) -C $$m plan || exit 1; done
+
+legacy:
+	@python3 scripts/dotctl.py legacy --repo-root "$(CURDIR)" --home "$(HOME)" --non-modules "$(NON_MODULES)" $(if $(APPLY),--apply)
 
 doctor:
 	$(MAKE) -C clanker doctor

@@ -11,6 +11,7 @@ import argparse
 import subprocess
 import sys
 from collections import Counter
+from dataclasses import dataclass
 from pathlib import Path
 
 
@@ -75,6 +76,78 @@ def classify(target: Path, source: Path, home: Path) -> str:
 
         return "wrong-target"
     return "real-file"
+
+
+@dataclass(frozen=True)
+class LegacyLink:
+    path: Path
+    target: Path
+    repo_root: Path
+    state: str
+
+
+def _walk_links(root: Path, max_depth: int):
+    if not root.is_dir() or root.is_symlink():
+        return
+    stack = [(root, 0)]
+    while stack:
+        current, depth = stack.pop()
+        if depth >= max_depth:
+            continue
+        try:
+            entries = list(current.iterdir())
+        except OSError:
+            continue
+        for entry in entries:
+            if entry.is_symlink():
+                yield entry
+            elif entry.is_dir():
+                stack.append((entry, depth + 1))
+
+
+def scan_legacy(
+    repo_root: Path,
+    home: Path,
+    owned: set[Path],
+    roots: list[tuple[Path, int]] | None = None,
+) -> list[LegacyLink]:
+    repo = repo_root.resolve()
+    if roots is None:
+        roots = [
+            (home, 1),
+            (home / ".config", 3),
+            (home / ".local" / "bin", 1),
+            (home / ".claude", 2),
+            (home / ".tmux", 2),
+        ]
+
+    found = []
+    for root, depth in roots:
+        for path in _walk_links(root, depth):
+            target = path.resolve(strict=False)
+            if not target.is_relative_to(repo):
+                continue
+            if path in owned:
+                continue
+            state = "live" if target.exists() else "dangling"
+            found.append(LegacyLink(path, target, repo, state))
+    return sorted(found, key=lambda item: str(item.path))
+
+
+def remove_legacy(entries: list[LegacyLink]) -> int:
+    """Remove only links that still point inside the repo.
+
+    Never touches a real file.
+    """
+    removed = 0
+    for entry in entries:
+        if not entry.path.is_symlink():
+            continue
+        if not entry.path.resolve(strict=False).is_relative_to(entry.repo_root):
+            continue
+        entry.path.unlink()
+        removed += 1
+    return removed
 
 
 def deploy_entries(module_dir: Path) -> list[str]:
@@ -176,6 +249,39 @@ def plan(
     return 0
 
 
+def legacy(
+    repo_root: Path,
+    home: Path,
+    non_modules: set[str],
+    apply: bool,
+) -> int:
+    owned = set()
+    for module_dir in sorted(repo_root.iterdir()):
+        if not module_dir.is_dir() or module_dir.name in non_modules:
+            continue
+        if not (module_dir / "Makefile").is_file():
+            continue
+        for rel in deploy_entries(module_dir):
+            owned.add(home / rel)
+
+    found = scan_legacy(repo_root, home, owned)
+    if not found:
+        print("legacy: none")
+        return 0
+
+    dangling = sum(1 for item in found if item.state == "dangling")
+    live = len(found) - dangling
+    print(f"legacy: {len(found)} links ({dangling} dangling, {live} live)")
+    for item in found:
+        print(f"  {item.state:<9} {display_path(item.path, home)} -> {item.target}")
+
+    if apply:
+        removed = remove_legacy(found)
+        print(f"removed {removed}")
+        return 0
+    return 1
+
+
 def describe(
     module: str,
     os_name: str,
@@ -215,7 +321,21 @@ def main(argv: list[str] | None = None) -> int:
     add_module_args(p)
     p.add_argument("--home", default=str(Path.home()))
 
+    p = sub.add_parser("legacy", help="find links into the repo that no module owns")
+    p.add_argument("--repo-root", default=".")
+    p.add_argument("--home", default=str(Path.home()))
+    p.add_argument("--non-modules", default="clanker")
+    p.add_argument("--apply", action="store_true")
+
     args = parser.parse_args(argv)
+    if args.command == "legacy":
+        return legacy(
+            repo_root=Path(args.repo_root).resolve(),
+            home=Path(args.home).expanduser(),
+            non_modules=set(args.non_modules.split()),
+            apply=args.apply,
+        )
+
     common = {
         "module": args.module,
         "os_name": normalize_os(args.platform),

@@ -132,5 +132,78 @@ class DeployEntriesTest(unittest.TestCase):
             )
 
 
+class LegacyTest(unittest.TestCase):
+    def test_scan_finds_dangling(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d) / "repo"
+            repo.mkdir()
+            home = Path(d) / "home"
+            home.mkdir()
+            link = home / "old"
+            link.symlink_to(repo / "gone")
+            found = dotctl.scan_legacy(repo, home, owned=set(), roots=[(home, 1)])
+            self.assertEqual(
+                [(str(item.path), item.state) for item in found],
+                [(str(link), "dangling")],
+            )
+
+    def test_scan_ignores_outside_repo(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d) / "repo"
+            repo.mkdir()
+            home = Path(d) / "home"
+            home.mkdir()
+            other = Path(d) / "other"
+            other.write_text("x")
+            (home / "outside").symlink_to(other)
+            found = dotctl.scan_legacy(repo, home, owned=set(), roots=[(home, 1)])
+            self.assertEqual(found, [])
+
+    def test_scan_ignores_owned(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d) / "repo"
+            repo.mkdir()
+            home = Path(d) / "home"
+            home.mkdir()
+            source = repo / "config"
+            source.write_text("x")
+            link = home / "config"
+            link.symlink_to(source)
+            found = dotctl.scan_legacy(repo, home, owned={link}, roots=[(home, 1)])
+            self.assertEqual(found, [])
+
+    def test_remove_legacy_refuses_real_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d) / "repo"
+            repo.mkdir()
+            home = Path(d) / "home"
+            home.mkdir()
+            target = repo / "gone"
+            target.write_text("x")
+            path = home / "link"
+            path.write_text("real")
+            entry = dotctl.LegacyLink(
+                path=path, target=target, repo_root=repo, state="live"
+            )
+            self.assertEqual(dotctl.remove_legacy([entry]), 0)
+            self.assertTrue(path.exists())
+
+    def test_remove_legacy_removes_symlink(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d) / "repo"
+            repo.mkdir()
+            home = Path(d) / "home"
+            home.mkdir()
+            target = repo / "gone"
+            target.write_text("x")
+            path = home / "link"
+            path.symlink_to(target)
+            entry = dotctl.LegacyLink(
+                path=path, target=target, repo_root=repo, state="live"
+            )
+            self.assertEqual(dotctl.remove_legacy([entry]), 1)
+            self.assertFalse(path.is_symlink())
+
+
 if __name__ == "__main__":
     unittest.main()
