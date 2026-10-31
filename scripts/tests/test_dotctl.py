@@ -20,6 +20,13 @@ def make_module(root: Path, files: dict[str, str]) -> None:
     subprocess.run(["git", "add", "-A"], cwd=root, check=True)
 
 
+def write_tree(root: Path, files: dict[str, str]) -> None:
+    for rel, content in files.items():
+        path = root / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content)
+
+
 class SkipReasonTest(unittest.TestCase):
     def test_platform_mismatch(self):
         self.assertEqual(
@@ -359,6 +366,58 @@ class StatusTest(unittest.TestCase):
                 )
             self.assertEqual(rc, 1)
             self.assertIn("stale", output.getvalue())
+
+
+class CheckTest(unittest.TestCase):
+    def test_check_clean(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d)
+            write_tree(
+                repo,
+                {
+                    "a/Makefile": "include ../mk/deploy.mk\n",
+                    "a/.config/foo": "x",
+                    "b/README.md": "x",
+                },
+            )
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+            subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                rc = dotctl.check(repo, non_modules=set())
+            self.assertEqual(rc, 0)
+
+    def test_check_collision(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d)
+            write_tree(
+                repo,
+                {
+                    "a/Makefile": "include ../mk/deploy.mk\n",
+                    "a/.config/foo": "x",
+                    "b/Makefile": "include ../mk/deploy.mk\n",
+                    "b/.config/foo": "x",
+                },
+            )
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+            subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                rc = dotctl.check(repo, non_modules=set())
+            self.assertEqual(rc, 1)
+            self.assertIn("collision", output.getvalue())
+
+    def test_check_coverage(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d)
+            write_tree(repo, {"c/.config/foo": "x"})
+            subprocess.run(["git", "init", "-q"], cwd=repo, check=True)
+            subprocess.run(["git", "add", "-A"], cwd=repo, check=True)
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                rc = dotctl.check(repo, non_modules=set())
+            self.assertEqual(rc, 1)
+            self.assertIn("no Makefile", output.getvalue())
 
 
 if __name__ == "__main__":

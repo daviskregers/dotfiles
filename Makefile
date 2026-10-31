@@ -67,8 +67,10 @@ gen:
 setup: doctor deps install
 
 check: status
+	@python3 scripts/dotctl.py check --repo-root "$(CURDIR)" --non-modules "$(NON_MODULES)"
 	$(MAKE) -C clanker check
 	@python3 -m unittest discover -s scripts/tests -p 'test_*.py'
+	@bash scripts/check-home.sh
 
 # Install Arch packages referenced by the dotfiles (WM, bar, apps). Requires sudo.
 # hyprshade and wlogout are AUR-only; paru handles those.

@@ -399,6 +399,49 @@ def legacy(
     return 1
 
 
+def check(repo_root: Path, non_modules: set[str]) -> int:
+    issues: list[str] = []
+    modules: list[Path] = []
+
+    for path in sorted(repo_root.iterdir()):
+        if not path.is_dir() or path.name.startswith(".") or path.name in non_modules:
+            continue
+        if (path / "Makefile").is_file():
+            modules.append(path)
+            continue
+
+        raw = subprocess.run(
+            ["git", "ls-files", "-z", "--", path.name],
+            cwd=repo_root,
+            check=True,
+            capture_output=True,
+        ).stdout
+        for item in raw.split(b"\0"):
+            if not item:
+                continue
+            rel = item.decode()
+            if rel == f"{path.name}/.gitignore":
+                continue
+            if rel.startswith(f"{path.name}/."):
+                issues.append(f"{path.name}: tracked dot-path {rel} but no Makefile")
+                break
+
+    targets: dict[str, list[str]] = {}
+    for module in modules:
+        for rel in deploy_entries(module):
+            targets.setdefault(rel, []).append(module.name)
+    for rel, owners in sorted(targets.items()):
+        if len(owners) > 1:
+            issues.append(f"collision: {rel} claimed by {', '.join(owners)}")
+
+    if issues:
+        for issue in issues:
+            print(issue)
+        return 1
+    print("check: ok")
+    return 0
+
+
 def describe(
     module: str,
     os_name: str,
@@ -452,7 +495,16 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--non-modules", default="clanker")
     p.add_argument("--apply", action="store_true")
 
+    p = sub.add_parser("check", help="check module coverage and target collisions")
+    p.add_argument("--repo-root", default=".")
+    p.add_argument("--non-modules", default="clanker")
+
     args = parser.parse_args(argv)
+    if args.command == "check":
+        return check(
+            repo_root=Path(args.repo_root).resolve(),
+            non_modules=set(args.non_modules.split()),
+        )
     if args.command == "legacy":
         return legacy(
             repo_root=Path(args.repo_root).resolve(),
