@@ -210,18 +210,6 @@ vim.api.nvim_create_autocmd("LspAttach", {
             return
         end
 
-        -- local opts = { buffer = args.buf }
-        -- local term_opener = require("plugins.terminal-open-file")
-
-        -- vim.keymap.set("n", "gd", function()
-        --     print("hello!")
-        --     if term_opener.is_terminal_buffer() then
-        --         term_opener.open_file_under_cusror()
-        --         return
-        --     end
-        --     vim.lsp.buf.definition()
-        -- end, opts)
-
         if client:supports_method("textDocument/formatting") then
             vim.api.nvim_create_autocmd("BufWritePre", {
                 buffer = args.buf,

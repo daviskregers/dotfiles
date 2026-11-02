@@ -178,6 +178,16 @@ vim.keymap.set({ "n", "i", "x" }, "<C-t>", function()
     toggle_scratch_terminal()
 end, { desc = "Scratch terminal" })
 
+-- Built-in gF edits in the current window, which in a terminal is the
+-- terminal itself. Open the file:line in the editor window instead.
+vim.api.nvim_create_autocmd("TermOpen", {
+    callback = function(args)
+        vim.keymap.set("n", "gF", function()
+            require("plugins.terminal-open-file").open_location_under_cursor()
+        end, { buffer = args.buf, desc = "Open file:line in editor window" })
+    end,
+})
+
 -- ============================================================================
 -- Hunk review: poll `git diff HEAD` on a timer and stream each changed hunk
 -- into the quickfix list in stable first-seen order, so an agent's edits can be
