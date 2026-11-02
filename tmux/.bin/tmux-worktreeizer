@@ -30,11 +30,67 @@ gw_bin=$(command -v gw 2>/dev/null || printf '%s' "$HOME/.bin/gw")
 
 ADD_ENTRY="＋ new worktree"
 
+list_entries() {
+    git worktree list --porcelain | awk '/^worktree /{print substr($0, 10)}'
+    echo "$ADD_ENTRY"
+}
+
+delete_worktree() {
+    local path="$1"
+
+    if [[ "$path" == "$ADD_ENTRY" ]]; then
+        return 0
+    fi
+    if [[ "$path" == "$main_root" ]]; then
+        echo "Refusing to delete the main worktree: $path"
+        pause_close
+        return 1
+    fi
+
+    # Directory already gone (deleted outside git): only stale metadata is
+    # left, so prune it — nothing on disk to lose, no checks needed.
+    if [[ ! -d "$path" ]]; then
+        git worktree prune
+        return 0
+    fi
+
+    # gw rm acts on the cwd and owns the safety checks + [y/N] confirm.
+    # If its checks refuse, keep the error on screen and offer a force delete.
+    if ! (cd "$path" && "$gw_bin" rm); then
+        local answer
+        read -r -p "Force delete anyway? Uncommitted/unpushed work is lost. [y/N] " answer
+        [[ "$answer" == [yY] ]] || return 1
+        # --force: git itself also refuses dirty worktrees, which gw rm -f doesn't override.
+        if ! git worktree remove --force "$path"; then
+            pause_close
+            return 1
+        fi
+    fi
+    # gw rm exits 0 on "Aborted." too — only continue if the dir is really gone.
+    [[ -d "$path" ]] && return 0
+
+    # Close tmux windows whose panes still sit inside the removed worktree.
+    tmux list-panes -a -F '#{window_id} #{pane_current_path}' 2>/dev/null \
+        | awk -v p="$path" '$2 == p || index($2, p "/") == 1 {print $1}' \
+        | sort -u \
+        | while read -r win; do tmux kill-window -t "$win"; done
+}
+
+# Hidden subcommands so fzf's execute()/reload() (which run in a fresh shell)
+# can reach the functions above by re-invoking this script.
+case "$mode" in
+    __list)   list_entries; exit 0 ;;
+    __delete) delete_worktree "$2"; exit 0 ;;
+esac
+
+# cd to the main worktree first: the popup's cwd may be the worktree we just
+# deleted, and git can't resolve the repo from a vanished directory.
+self="cd $(printf '%q' "$main_root") && $(printf '%q' "$0")"
+
 selected=$(
-    {
-        git worktree list --porcelain | awk '/^worktree /{print substr($0, 10)}'
-        echo "$ADD_ENTRY"
-    } | fzf --prompt="worktree ($mode) > " --height=100% --reverse
+    list_entries | fzf --prompt="worktree ($mode) > " --height=100% --reverse \
+        --header="enter: open · ctrl-x: delete" \
+        --bind="ctrl-x:execute($self __delete {})+reload($self __list)"
 )
 
 [[ -z "$selected" ]] && exit 0
