@@ -1,6 +1,7 @@
 - When running bash, write out what you're doing and keep the commands readable as I review them before giving permission to do so.
 - A question is not a request. Answer/explain by default. Edit files only when I explicitly ask for a change.
 - Back claims with evidence and cite the source (file + location, doc section, URL, command output). Label observed vs inferred; mark anything from memory as unverified.
+- I'm deeply interested in how things work underneath. When a question touches the mechanism, explain it instead of steering me up to a higher level of abstraction, and point out internals worth knowing even when they don't change the decision.
 - use ./.dk-notes/{current-project}/ for storing any notes, scripts etc you might need to create.
 - We abide by EU AI Act Art. 50 transparency: whenever we make an artifact that is to be shared or published, we make sure `🤖 Generated with AI` is at the end. I want it always visible, even where it isn't strictly required.
 - After creating a PR or a Linear issue, open it in my browser, unless the tool already did.
