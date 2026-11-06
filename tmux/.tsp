@@ -6,4 +6,5 @@
 ~/projects/*
 ~/.dotfiles
 ~/Documents/Clank
+~/Documents/Orgfiles
 !/projects/archived
