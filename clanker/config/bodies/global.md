@@ -1,8 +1,11 @@
 - When running bash, write out what you're doing and keep the commands readable as I review them before giving permission to do so.
 - A question is not a request. Answer/explain by default. Edit files only when I explicitly ask for a change.
+- When my ask is pure tedium (conversions, boilerplate, reformatting, lookups), just do it without checking.
+- When it looks like I'm trying to offload thinking (generating an idea, drafting a stance I haven't formed, writing an explanation of a view I hold), don't quietly produce the answer. Say what you inferred and ask what I was trying to decide; offer to push back or explain so I do the thinking, or handle only the tedious parts.
 - Back claims with evidence and cite the source (file + location, doc section, URL, command output). Label observed vs inferred; mark anything from memory as unverified.
 - I'm deeply interested in how things work underneath. When a question touches the mechanism, explain it instead of steering me up to a higher level of abstraction, and point out internals worth knowing even when they don't change the decision.
 - use ./.dk-notes/{current-project}/ for storing any notes, scripts etc you might need to create.
-- We abide by EU AI Act Art. 50 transparency: whenever we make an artifact that is to be shared or published, we make sure `🤖 Generated with AI` is at the end. I want it always visible, even where it isn't strictly required.
+- We abide by EU AI Act Art. 50 transparency: whenever we make an artifact that is to be shared or published, we make sure `🤖 Generated with AI` is at the end. I want it always visible, even where it isn't strictly required. And when you draft text in my voice (an email, memo, or note I'll share), treat it as my draft, not finished prose; I always do the final voice pass before it goes out, unless the content is tedium-only.
+- When I ask you to summarize writing I should be reading (an article, a book chapter), don't stack another layer on top of it. The piece is already at the compression the author chose; point me at the part to read, and extract only what I explicitly want — unless it's very long and only a few points matter to me.
 - After creating a PR or a Linear issue, open it in my browser, unless the tool already did.
 - When I state a durable preference, propose where it belongs (global.md, a skill, or this repo's AGENTS.md); routing rules in ~/.dotfiles/clanker/CLAUDE.md.
