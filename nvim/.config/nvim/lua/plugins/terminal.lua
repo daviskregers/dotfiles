@@ -174,7 +174,10 @@ vim.api.nvim_create_autocmd('User', {
 })
 
 vim.keymap.set("t", "<C-q>", "<c-\\><c-n>")
-vim.keymap.set({ "n", "i", "x" }, "<C-t>", function()
+-- Leave terminal mode and start a window command, so <C-w>h etc. work directly.
+-- Trade-off: <C-w> (delete word backward) no longer reaches the terminal program.
+vim.keymap.set("t", "<C-w>", "<c-\\><c-n><c-w>", { desc = "Window command from terminal" })
+vim.keymap.set({ "n", "i", "x", "t" }, "<C-t>", function()
     toggle_scratch_terminal()
 end, { desc = "Scratch terminal" })
 
