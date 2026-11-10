@@ -1,0 +1,49 @@
+agent: claude-code
+provision-host-config: false
+
+cpus: 4
+memory: 8G
+
+docker: true
+
+mounts:
+  /home/dev/.dotfiles:
+    source: ~/.dotfiles
+    readonly: true
+
+home:
+  .local/bin/clanker-provision.sh: clanker-provision.sh
+  .local/bin/sandbox-startup.sh:
+    source: sandbox-startup.sh
+    hook: startup
+    root: true
+
+network:
+  profile: none
+  # The home router pads DNS answers past 512 bytes, which microsandbox's forwarder can't parse.
+  dns-servers:
+    - 1.1.1.1
+    - 1.0.0.1
+  egress-allow:
+    - api.anthropic.com
+    - platform.claude.com
+
+    - api.github.com
+    - github.com
+    - codeload.github.com
+    - release-assets.githubusercontent.com
+    - bun.sh
+    - registry.npmjs.org
+    - objects.githubusercontent.com
+
+    - registry-1.docker.io
+    - auth.docker.io
+    - production.cloudflare.docker.com
+    - production.cloudfront.docker.com
+    - ghcr.io
+    - pkg-containers.githubusercontent.com
+
+    - mcp.linear.app
+    - api.linear.app
+
+    - deb.debian.org
