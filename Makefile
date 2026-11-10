@@ -91,6 +91,9 @@ install-packages:
 
 # Install macOS packages referenced by the dotfiles (WM, keyboard, terminal, CLI).
 # karabiner-elements runs a pkg installer, so brew will ask for the sudo password.
+# agents-sandbox's tap repo isn't named homebrew-*, so brew can't auto-tap it from
+# the formula name; it needs an explicit tap with the URL first.
 install-packages-mac:
+	brew tap inoio/agents-sandbox https://github.com/inoio/agents-sandbox
 	brew install --cask $(PKGS_MAC_CASK)
 	brew install $(PKGS_MAC)
