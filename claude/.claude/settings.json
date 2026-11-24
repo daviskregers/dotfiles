@@ -1,45 +1,7 @@
 {
-  "autoMemoryEnabled": false,
-  "enabledPlugins": {
-    "edurio-core@edurio-plugins": true,
-    "edurio-dev@edurio-plugins": true,
-    "php-lsp@claude-plugins-official": true,
-    "skill-creator@claude-plugins-official": true,
-    "typescript-lsp@claude-plugins-official": true
-  },
   "env": {
     "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
     "DISABLE_AUTOUPDATER": "1"
-  },
-  "extraKnownMarketplaces": {
-    "edurio-plugins": {
-      "source": {
-        "repo": "edurio-dev/claude-plugins",
-        "source": "github"
-      }
-    }
-  },
-  "hooks": {
-    "PreToolUse": [
-      {
-        "hooks": [
-          {
-            "command": "bun \"$HOME/.claude/hooks/dangerous-command-guard.ts\"",
-            "type": "command"
-          }
-        ],
-        "matcher": "Bash"
-      },
-      {
-        "hooks": [
-          {
-            "command": "bun \"$HOME/.claude/hooks/ai-attribution.ts\"",
-            "type": "command"
-          }
-        ],
-        "matcher": "Bash|mcp__claude_ai_Linear__save_comment|mcp__claude_ai_Linear__save_issue|mcp__custom-tools__resolve_pr_thread"
-      }
-    ]
   },
   "includeCoAuthoredBy": false,
   "permissions": {
@@ -54,10 +16,49 @@
     ],
     "defaultMode": "default"
   },
-  "statusLine": {
-    "command": "bash \"$HOME/.claude/statusline.sh\"",
-    "type": "command"
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"$HOME/.claude/hooks/dangerous-command-guard.ts\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash|mcp__claude_ai_Linear__save_comment|mcp__claude_ai_Linear__save_issue|mcp__custom-tools__resolve_pr_thread",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bun \"$HOME/.claude/hooks/ai-attribution.ts\""
+          }
+        ]
+      }
+    ]
   },
-  "theme": "dark",
-  "tui": "fullscreen"
+  "statusLine": {
+    "type": "command",
+    "command": "bash \"$HOME/.claude/statusline.sh\""
+  },
+  "enabledPlugins": {
+    "edurio-core@edurio-plugins": true,
+    "edurio-dev@edurio-plugins": true,
+    "php-lsp@claude-plugins-official": true,
+    "skill-creator@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "pyright-lsp@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "edurio-plugins": {
+      "source": {
+        "source": "github",
+        "repo": "edurio-dev/claude-plugins"
+      }
+    }
+  },
+  "tui": "fullscreen",
+  "autoMemoryEnabled": false,
+  "theme": "dark"
 }
