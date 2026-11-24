@@ -104,32 +104,32 @@ ctrl-alt-cmd-shift-equal = 'resize smart +50'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#workspace
 ctrl-alt-cmd-a = 'workspace dev'
-ctrl-alt-cmd-s = 'workspace dev-2'
-ctrl-alt-cmd-d = 'workspace dev-3'
+ctrl-alt-cmd-s = 'workspace notes'
+ctrl-alt-cmd-d = 'workspace todo'
 ctrl-alt-cmd-f = 'workspace http'
 ctrl-alt-cmd-w = 'workspace www'
 ctrl-alt-cmd-e = 'workspace www2'
-ctrl-alt-cmd-z = 'workspace todo'
+ctrl-alt-cmd-z = 'workspace ticket'
 ctrl-alt-cmd-x = 'workspace db'
 ctrl-alt-cmd-c = 'workspace comms'
-ctrl-alt-cmd-v = 'workspace 7'
+ctrl-alt-cmd-v = 'workspace comms2'
 ctrl-alt-cmd-b = 'workspace 8'
-ctrl-alt-cmd-n = 'workspace notes'
+ctrl-alt-cmd-n = 'workspace 9'
 ctrl-alt-cmd-m = 'workspace music'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#move-node-to-workspace
 ctrl-alt-cmd-shift-a = 'move-node-to-workspace dev'
-ctrl-alt-cmd-shift-s = 'move-node-to-workspace dev-2'
-ctrl-alt-cmd-shift-d = 'move-node-to-workspace dev-3'
+ctrl-alt-cmd-shift-s = 'move-node-to-workspace notes'
+ctrl-alt-cmd-shift-d = 'move-node-to-workspace todo'
 ctrl-alt-cmd-shift-f = 'move-node-to-workspace http'
 ctrl-alt-cmd-shift-w = 'move-node-to-workspace www'
 ctrl-alt-cmd-shift-e = 'move-node-to-workspace www2'
-ctrl-alt-cmd-shift-z = 'move-node-to-workspace todo'
+ctrl-alt-cmd-shift-z = 'move-node-to-workspace ticket'
 ctrl-alt-cmd-shift-x = 'move-node-to-workspace db'
 ctrl-alt-cmd-shift-c = 'move-node-to-workspace comms'
-ctrl-alt-cmd-shift-v = 'move-node-to-workspace 7'
+ctrl-alt-cmd-shift-v = 'move-node-to-workspace comms2'
 ctrl-alt-cmd-shift-b = 'move-node-to-workspace 8'
-ctrl-alt-cmd-shift-n = 'move-node-to-workspace notes'
+ctrl-alt-cmd-shift-n = 'move-node-to-workspace 9'
 ctrl-alt-cmd-shift-m = 'move-node-to-workspace music'
 
 # See: https://nikitabobko.github.io/AeroSpace/commands.html#workspace-back-and-forth
@@ -158,4 +158,38 @@ ctrl-alt-cmd-shift-j = ['join-with down', 'mode main']
 ctrl-alt-cmd-shift-k = ['join-with up', 'mode main']
 ctrl-alt-cmd-shift-l = ['join-with right', 'mode main']
 esc = 'mode main'
+
+# Default workspace per app. Applies to every new window of the app and to all windows at AeroSpace startup.
+# See: https://nikitabobko.github.io/AeroSpace/guide.html#on-window-detected-callback
+[[on-window-detected]]
+if = 'test %{app-bundle-id} = com.mitchellh.ghostty'
+run = 'move-node-to-workspace dev'
+
+[[on-window-detected]]
+if = 'test %{app-bundle-id} = net.librewolf.librewolf'
+run = 'move-node-to-workspace www'
+
+[[on-window-detected]]
+if = 'test %{app-bundle-id} = com.linear'
+run = 'move-node-to-workspace ticket'
+
+[[on-window-detected]]
+if = 'test %{app-bundle-id} = org.jkiss.dbeaver.core.product'
+run = 'move-node-to-workspace db'
+
+[[on-window-detected]]
+if = 'test %{app-bundle-id} = com.tinyspeck.slackmacgap'
+run = 'move-node-to-workspace comms'
+
+[[on-window-detected]]
+if = 'test %{app-bundle-id} = md.obsidian'
+run = 'move-node-to-workspace notes'
+
+[[on-window-detected]]
+if = 'test %{app-bundle-id} = com.apple.iCal'
+run = 'move-node-to-workspace todo'
+
+[[on-window-detected]]
+if = 'test %{app-bundle-id} = com.apple.reminders'
+run = 'move-node-to-workspace todo'
 
