@@ -201,3 +201,6 @@ require("oil").setup({
 })
 
 vim.keymap.set("n", "<leader>pv", "<cmd>Oil<CR>", { desc = "Open file explorer" })
+vim.keymap.set("n", "<leader>po", function()
+    require("oil").open(vim.fn.expand("~/Documents/Compass/50 - Specs/"))
+end, { desc = "Open Specs" })
